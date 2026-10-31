@@ -65,6 +65,8 @@ public sealed partial class DonutMenu : Control
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(IsEditMode));
     public static readonly StyledProperty<bool> AllowContextEditProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(AllowContextEdit));
+    public static readonly StyledProperty<bool> ShowCenterMascotProperty =
+        AvaloniaProperty.Register<DonutMenu, bool>(nameof(ShowCenterMascot), true);
     public static readonly StyledProperty<bool> ReserveSubRingProperty =
         AvaloniaProperty.Register<DonutMenu, bool>(nameof(ReserveSubRing));
 
@@ -113,6 +115,7 @@ public sealed partial class DonutMenu : Control
     private int _hoverIndex = -1;
     private int _externalHighlight = -1;
     private bool _externalCenterHot;
+    private readonly BlobatarState _mascotState = new();
     private int _dimmedIndex = -1;
     private int _dropTargetIndex = -1;
 
@@ -133,7 +136,7 @@ public sealed partial class DonutMenu : Control
         AffectsRender<DonutMenu>(HoleRatioProperty, SliceOpacityProperty, CenterTitleProperty, CenterSubtitleProperty,
             IsEditModeProperty, SliceBrushProperty, SliceBorderBrushProperty, CenterBrushProperty, AccentBrushProperty,
             OnAccentBrushProperty, ForegroundProperty, SecondaryForegroundProperty, SuccessBrushProperty, CornerRadiusProperty,
-            CenterHintProperty, CenterHintWheelProperty);
+            CenterHintProperty, CenterHintWheelProperty, ShowCenterMascotProperty);
         ItemsProperty.Changed.AddClassHandler<DonutMenu>((d, _) => d.OnItemsChanged());
     }
 
@@ -157,6 +160,7 @@ public sealed partial class DonutMenu : Control
     public double SliceOpacity { get => GetValue(SliceOpacityProperty); set => SetValue(SliceOpacityProperty, value); }
     public string? CenterTitle { get => GetValue(CenterTitleProperty); set => SetValue(CenterTitleProperty, value); }
     public string? CenterSubtitle { get => GetValue(CenterSubtitleProperty); set => SetValue(CenterSubtitleProperty, value); }
+    public bool ShowCenterMascot { get => GetValue(ShowCenterMascotProperty); set => SetValue(ShowCenterMascotProperty, value); }
 
     /// <summary>Settings editor mode: shows ✎ on hover, raises drag and edit events instead of invoking slices.</summary>
     public bool IsEditMode { get => GetValue(IsEditModeProperty); set => SetValue(IsEditModeProperty, value); }
@@ -268,6 +272,24 @@ public sealed partial class DonutMenu : Control
             return;
         _externalHighlight = index;
         _externalCenterHot = centerHot;
+        if (ShowCenterMascot)
+        {
+            if (_externalCenterHot)
+            {
+                _mascotState.LookAt(new Point(0, 0));
+                _mascotState.SetTone(BlobatarTone.Anticipation);
+            }
+            else if (index >= 0)
+            {
+                var midAngle = DonutGeometry.MidAngle(index, Count);
+                _mascotState.LookAt(new Point(Math.Cos(midAngle) * 100, Math.Sin(midAngle) * 100));
+                _mascotState.SetTone(BlobatarTone.Alert);
+            }
+            else
+            {
+                _mascotState.SetTone(_externalCenterHot ? BlobatarTone.Anticipation : BlobatarTone.Idle);
+            }
+        }
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
     }
@@ -473,6 +495,26 @@ public sealed partial class DonutMenu : Control
         var hovered = hit.Kind == DonutHitKind.SubSegment ? Items![hit.Index].Children![hit.Sub]
             : _hoverIndex >= 0 ? Items![_hoverIndex] : null;
         ToolTip.SetTip(this, hovered is { IsEnabled: false } ? hovered.DisabledReason : null);
+        if (ShowCenterMascot)
+        {
+            var rel = new Point(p.X - Center.X, p.Y - Center.Y);
+            if (hit.Kind is DonutHitKind.Center)
+            {
+                _mascotState.LookAt(new Point(0, 0));
+                _mascotState.SetTone(BlobatarTone.Anticipation);
+            }
+            else if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
+            {
+                _mascotState.LookAt(rel);
+                _mascotState.SetTone(BlobatarTone.Alert);
+            }
+            else
+            {
+                _mascotState.LookAt(rel);
+                _mascotState.SetTone(BlobatarTone.Idle);
+            }
+            StartAnimation();
+        }
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -487,6 +529,12 @@ public sealed partial class DonutMenu : Control
         {
             CollapseGroup();
             SetHover(-1);
+        }
+        if (ShowCenterMascot)
+        {
+            _mascotState.LookAt(null);
+            _mascotState.SetTone(BlobatarTone.Idle);
+            StartAnimation();
         }
     }
 
@@ -572,6 +620,24 @@ public sealed partial class DonutMenu : Control
         if (_hoverIndex == index)
             return;
         _hoverIndex = index;
+        if (ShowCenterMascot)
+        {
+            if (_externalCenterHot)
+            {
+                _mascotState.LookAt(new Point(0, 0));
+                _mascotState.SetTone(BlobatarTone.Anticipation);
+            }
+            else if (index >= 0)
+            {
+                var midAngle = DonutGeometry.MidAngle(index, Count);
+                _mascotState.LookAt(new Point(Math.Cos(midAngle) * 100, Math.Sin(midAngle) * 100));
+                _mascotState.SetTone(BlobatarTone.Alert);
+            }
+            else
+            {
+                _mascotState.SetTone(_externalCenterHot ? BlobatarTone.Anticipation : BlobatarTone.Idle);
+            }
+        }
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
     }
@@ -754,6 +820,8 @@ public sealed partial class DonutMenu : Control
             if (_closing)
                 FinishClose();
             active |= StepProgress(dt); // hold timers still run without animation
+            if (ShowCenterMascot)
+                _mascotState.Update(dt, motionEnabled: false);
         }
         else
         {
@@ -772,6 +840,8 @@ public sealed partial class DonutMenu : Control
             active |= StepProgress(dt);
             active |= StepLayout(dt);
             active |= StepFlip(elapsed ?? dt);
+            if (ShowCenterMascot)
+                active |= _mascotState.Update(dt, motionEnabled: true);
 
             if (_openClock < double.MaxValue)
             {
@@ -1032,43 +1102,62 @@ public sealed partial class DonutMenu : Control
             context.DrawEllipse(WithOpacity(DangerBrush, 0.18), null, center, radius, radius);
 
         var maxWidth = radius * 1.6;
-        var title = CachedText(CenterTitle ?? "", bold, 14, Foreground, maxWidth, maxLines: 2);
-        var subtitle = CachedText(CenterSubtitle ?? "", regular, 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
-        // "⟳ Tab back": small, under the rest, a little narrower (the hub is round), with room for its icons.
+        var hasTitle = !string.IsNullOrEmpty(CenterTitle);
+        var hasSubtitle = !string.IsNullOrEmpty(CenterSubtitle);
         var hintIcons = FlipArrowSize + (CenterHintWheel ? MouseWidth + MouseGap : 0) + IconGap;
-        var hint = string.IsNullOrEmpty(CenterHint) ? null : CachedText(CenterHint, regular, 10.5, SecondaryForeground, maxWidth * 0.85 - hintIcons);
-        var total = title.Height + (string.IsNullOrEmpty(CenterSubtitle) ? 0 : subtitle.Height + 2) + (hint is null ? 0 : hint.Height + 5);
-        var y = center.Y - total / 2;
-        DrawCentered(context, title, center.X, y);
-        y += title.Height;
-        if (!string.IsNullOrEmpty(CenterSubtitle))
+        var hint = string.IsNullOrEmpty(CenterHint) ? null : CachedText(CenterHint, regular, ShowCenterMascot ? 10.0 : 10.5, SecondaryForeground, maxWidth * 0.85 - hintIcons);
+        var hasHint = hint is not null;
+        var hasText = hasTitle || hasSubtitle || hasHint;
+
+        if (ShowCenterMascot)
         {
-            DrawCentered(context, subtitle, center.X, y + 2);
-            y += subtitle.Height + 2;
+            var mascotSize = hasText ? Math.Clamp(radius * 0.68, 32.0, 48.0) : Math.Clamp(radius * 1.15, 44.0, 64.0);
+            var mascotTop = hasText ? center.Y - radius * 0.78 : center.Y - mascotSize / 2;
+            var mascotRect = new Rect(center.X - mascotSize / 2, mascotTop, mascotSize, mascotSize);
+            BlobatarRenderer.Render(context, mascotRect, _mascotState);
         }
-        if (hint is not null)
+
+        if (hasText)
         {
-            using (context.PushOpacity(0.85))
+            var title = CachedText(CenterTitle ?? "", bold, ShowCenterMascot ? 12.0 : 14, Foreground, maxWidth, maxLines: 2);
+            var subtitle = CachedText(CenterSubtitle ?? "", regular, ShowCenterMascot ? 10.0 : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
+            var total = title.Height + (hasSubtitle ? subtitle.Height + 2 : 0) + (hasHint ? hint!.Height + 3 : 0);
+
+            var y = ShowCenterMascot
+                ? center.Y - radius * 0.78 + Math.Clamp(radius * 0.68, 32.0, 48.0) + 2
+                : center.Y - total / 2;
+
+            if (hasTitle)
             {
-                // The flip arrow is drawn, not typed: a font without "↻" showed a box in its place (#554). A small mouse
-                // comes first when the wheel flips and no key does. The icons stand at the start of the line: on its
-                // left, or on its right in a right-to-left language, in reading order there too.
-                var left = center.X - (hintIcons + hint.Width) / 2;
-                var rtl = TextDirection == FlowDirection.RightToLeft;
-                var textLeft = rtl ? left : left + hintIcons;
-                var middle = y + 5 + hint.Height / 2;
-                var x = rtl ? left + hint.Width + IconGap : left;
-                var arrowFirst = rtl && CenterHintWheel;
-                if (CenterHintWheel && !arrowFirst)
+                DrawCentered(context, title, center.X, y);
+                y += title.Height;
+            }
+            if (hasSubtitle)
+            {
+                DrawCentered(context, subtitle, center.X, y + 2);
+                y += subtitle.Height + 2;
+            }
+            if (hint is not null)
+            {
+                using (context.PushOpacity(0.85))
                 {
-                    DrawMouse(context, new Rect(x, middle - 5, MouseWidth, 10), SecondaryForeground);
-                    x += MouseWidth + MouseGap;
+                    var left = center.X - (hintIcons + hint.Width) / 2;
+                    var rtl = TextDirection == FlowDirection.RightToLeft;
+                    var textLeft = rtl ? left : left + hintIcons;
+                    var middle = y + 3 + hint.Height / 2;
+                    var x = rtl ? left + hint.Width + IconGap : left;
+                    var arrowFirst = rtl && CenterHintWheel;
+                    if (CenterHintWheel && !arrowFirst)
+                    {
+                        DrawMouse(context, new Rect(x, middle - 5, MouseWidth, 10), SecondaryForeground);
+                        x += MouseWidth + MouseGap;
+                    }
+                    DrawFlipArrow(context, new Point(x + FlipArrowSize / 2, middle), FlipArrowSize / 2, SecondaryForeground);
+                    x += FlipArrowSize + (arrowFirst ? MouseGap : IconGap);
+                    if (arrowFirst)
+                        DrawMouse(context, new Rect(x, middle - 5, MouseWidth, 10), SecondaryForeground);
+                    DrawCentered(context, hint, textLeft + hint.Width / 2, y + 3);
                 }
-                DrawFlipArrow(context, new Point(x + FlipArrowSize / 2, middle), FlipArrowSize / 2, SecondaryForeground);
-                x += FlipArrowSize + (arrowFirst ? MouseGap : IconGap);
-                if (arrowFirst)
-                    DrawMouse(context, new Rect(x, middle - 5, MouseWidth, 10), SecondaryForeground);
-                DrawCentered(context, hint, textLeft + hint.Width / 2, y + 5);
             }
         }
     }

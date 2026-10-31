@@ -188,6 +188,7 @@ public sealed partial class DonutMenu
         {
             _ringClock = 0;
             _ring.Velocity = animate ? 2 : 0;
+            _mascotState.SetTone(BlobatarTone.Busy);
             if (!animate)
                 _ring.Value = 1;
         }
@@ -215,6 +216,12 @@ public sealed partial class DonutMenu
                 _badge.Velocity = 9; // kick → overshoot "pop"
             else
                 _badge.Value = 1;
+            if (pending == DonutProgressOutcome.Succeeded)
+            {
+                _mascotState.SetTone(BlobatarTone.Celebration);
+                _mascotState.TriggerBounce(0.72);
+                _mascotState.TriggerBlink(2);
+            }
             OutcomeShown?.Invoke(this, pending);
         }
         if (_pendingOutcome is not null)

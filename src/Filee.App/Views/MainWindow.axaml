@@ -4,6 +4,7 @@
 
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
+        xmlns:c="using:Filee.App.Controls"
         xmlns:vm="using:Filee.App.ViewModels"
 
         x:Class="Filee.App.Views.MainWindow"
@@ -68,7 +69,8 @@
 
         <StackPanel DockPanel.Dock="Top" Classes="navheader" Orientation="Horizontal" Spacing="10">
 
-          <Image Source="avares://Filee/Assets/Icons/filee.png" Width="30" Height="30" />
+          <c:BlobatarControl Width="34" Height="34" VerticalAlignment="Center" Margin="0,0,2,0"
+                             ToolTip.Tip="OWL Mascot" />
 
           <StackPanel VerticalAlignment="Center" IsVisible="{Binding !IsNavCollapsed}">
 
