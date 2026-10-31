@@ -33,10 +33,7 @@
                     ToolTip.Tip="{Binding RepositoryUrl}" ToolTip.Placement="Right">
               <PathIcon Width="13" Height="13" Data="{StaticResource Icon.GitHub}" />
             </Button>
-            <Button Classes="navlink" HorizontalAlignment="Stretch" Click="OnSponsor"
-                    ToolTip.Tip="{DynamicResource about.sponsor}" ToolTip.Placement="Right">
-              <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Heart}" Foreground="#D4537E" />
-            </Button>
+            
           </StackPanel>
           <!-- Expanded -->
           <StackPanel Spacing="8" IsVisible="{Binding !IsNavCollapsed}">
@@ -60,21 +57,13 @@
                 </StackPanel>
               </DockPanel>
             </Button>
-            <!-- The project on GitHub, and sponsoring it -->
-            <Grid ColumnDefinitions="*,6,*">
-              <Button Classes="navlink" HorizontalAlignment="Stretch" Click="OnOpenGitHub" ToolTip.Tip="{Binding RepositoryUrl}">
-                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                  <PathIcon Width="13" Height="13" Data="{StaticResource Icon.GitHub}" />
-                  <TextBlock Text="GitHub" />
-                </StackPanel>
-              </Button>
-              <Button Grid.Column="2" Classes="navlink" HorizontalAlignment="Stretch" Click="OnSponsor">
-                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                  <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Heart}" Foreground="#D4537E" />
-                  <TextBlock Text="{DynamicResource about.sponsor}" />
-                </StackPanel>
-              </Button>
-            </Grid>
+            <!-- The project on GitHub -->
+            <Button Classes="navlink" HorizontalAlignment="Stretch" Click="OnOpenGitHub" ToolTip.Tip="{Binding RepositoryUrl}">
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                <PathIcon Width="13" Height="13" Data="{StaticResource Icon.GitHub}" />
+                <TextBlock Text="GitHub" />
+              </StackPanel>
+            </Button>
             <TextBlock x:Name="VersionLabel" Classes="caption" Margin="8,0,0,0" Text="{Binding VersionText}" />
           </StackPanel>
         </StackPanel>
