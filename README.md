@@ -5,7 +5,17 @@
 </p>
 
 > [!NOTE]
-> **Filee-changer** is a customized personal fork of [KnifeLemon/Filee](https://github.com/KnifeLemon/Filee) maintained by [@sugan0025](https://github.com/sugan0025). It incorporates custom application icons (`11.ico`) across all application windows, system tray, installer, and CLI, while retaining the full local offline file conversion capabilities and privacy guarantees.
+> **Filee-changer** is a customized personal fork of [KnifeLemon/Filee](https://github.com/KnifeLemon/Filee) maintained by [@sugan0025](https://github.com/sugan0025). It incorporates custom application icons (`11.ico`), a custom Gear 5 wallpaper background, a full Liquid Glass UI theme, sound effects, clipboard auto-detection, and multiplatform support for Windows and macOS.
+
+## 📥 Direct Downloads (Pre-built, No .NET SDK Needed)
+
+Direct 1-click download links from the `release-binaries` branch:
+
+- 🪟 [**Download for Windows (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-win-x64.zip) — Windows 10 & 11
+- 🍏 [**Download for macOS (Apple Silicon M1/M2/M3/M4)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-arm64.zip) — macOS 12+
+- 💻 [**Download for macOS (Intel x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-x64.zip) — Intel-based Macs
+
+Browse all binary packages on GitHub: [release-binaries/binaries](https://github.com/sugan0025/File-changer/tree/release-binaries/binaries)
 
 <p align="center">
   <b>A free, open-source file converter you use by dragging.</b><br>
