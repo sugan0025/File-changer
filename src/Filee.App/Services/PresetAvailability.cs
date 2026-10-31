@@ -170,7 +170,7 @@ public sealed class PresetAvailability
             return new(PresetUse.Unusable, _loc["error.unsupported_source"]);
 
         // Resizing, greyscale, trimming or squeezing a file into its own format needs a picture: an MP3 or a ZIP has none.
-        if (preset.TargetFormat == BuiltInData.SameAsSource && preset.Image.EditsPicture)
+        if (preset.TargetFormat == BuiltInData.SameAsSource && preset.Image.EditsPicture && preset.Pdf.Compression == PdfCompression.None && preset.Pdf.MaxSizeMb <= 0)
         {
             formats = [.. formats.Where(f => f.Category == FormatCategory.Image)];
             if (formats.Count == 0)

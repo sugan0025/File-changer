@@ -369,6 +369,13 @@ public static class BuiltInData
     [
         new()
         {
+            Id = "size-compress", Name = "Compress", NameKey = "preset.size_compress", TargetFormat = SameAsSource,
+            Image = { Quality = 75, MaxCompression = true, TiffCompression = TiffCompression.Zip },
+            Pdf = { Compression = PdfCompression.Ebook },
+            Output = { FileNamePattern = "{name}_compressed", OnlyIfSmaller = true },
+        },
+        new()
+        {
             Id = "size-1mb", Name = "1 MB", NameKey = "preset.size_1mb", TargetFormat = SameAsSource,
             Image = { MaxSizeMb = 1 }, Pdf = { MaxSizeMb = 1, Compression = PdfCompression.Screen },
             Output = { FileNamePattern = "{name}_1mb", OnlyIfSmaller = true },
@@ -408,7 +415,7 @@ public static class BuiltInData
             Id = "resizer-group", Name = "Resizer", NameKey = "preset.group_resizer",
             TargetFormat = Preset.GroupTarget,
             Kind = PresetKind.Group,
-            SubPresetIds = ["size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"],
+            SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"],
         },
     ];
 
@@ -632,14 +639,14 @@ public static class BuiltInData
             // Full (ToolbarProfile.MaxSlices): "Extract Live Photo video" stays in the library, on no donut, and "GIF"
             // since "Merge images" took its slot (settings schema 53): a still picture as GIF is the least wanted here.
             BackPresetIds = ["tool-crop", "rotate", "flip", "tool-hide", "trim-transparent", "grayscale", "to-avif", "merge-images",
-                "resizer-group", "compress-image", "remove-metadata", "zip-all"],
+                "merge-pdf", "resizer-group", "remove-metadata", "zip-all"],
         },
         new()
         {
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["pdf-edit", "resizer-group", "compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
+            BackPresetIds = ["pdf-edit", "resizer-group", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
         },
         new()
         {

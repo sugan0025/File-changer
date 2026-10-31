@@ -110,7 +110,7 @@ public class MediaToolTests
         var presets = BuiltInData.CreatePresets();
         var images = BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds!;
         Assert.Equal(ToolbarProfile.MaxSlices, images.Count);
-        Assert.Contains("compress-image", images);
+        Assert.Contains("resizer-group", images);
         Assert.Contains("remove-metadata", images);
         Assert.DoesNotContain("extract-motion", images);
         Assert.Single(presets, p => p.Id == "extract-motion"); // still in the library

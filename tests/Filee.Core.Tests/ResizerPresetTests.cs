@@ -7,15 +7,23 @@ namespace Filee.Core.Tests;
 public class ResizerPresetTests
 {
     [Fact]
-    public void Resizer_presets_exist_and_include_group_and_sizes()
+    public void Resizer_presets_exist_and_include_compress_group_and_sizes()
     {
         var presets = BuiltInData.ResizerPresets();
-        Assert.Equal(7, presets.Count);
+        Assert.Equal(8, presets.Count);
+
+        var compress = presets.Single(p => p.Id == "size-compress");
+        Assert.Equal(BuiltInData.SameAsSource, compress.TargetFormat);
+        Assert.Equal(75, compress.Image.Quality);
+        Assert.True(compress.Image.MaxCompression);
+        Assert.Equal(PdfCompression.Ebook, compress.Pdf.Compression);
+        Assert.True(compress.Output.OnlyIfSmaller);
+        Assert.Equal("{name}_compressed", compress.Output.FileNamePattern);
 
         var group = presets.Single(p => p.Id == "resizer-group");
         Assert.Equal(PresetKind.Group, group.Kind);
         Assert.Equal(Preset.GroupTarget, group.TargetFormat);
-        Assert.Equal(["size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"], group.SubPresetIds);
+        Assert.Equal(["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"], group.SubPresetIds);
     }
 
     [Theory]
@@ -39,18 +47,20 @@ public class ResizerPresetTests
     }
 
     [Fact]
-    public void Images_and_pdf_back_faces_offer_resizer_group()
+    public void Images_and_pdf_back_faces_offer_resizer_group_without_standalone_compress()
     {
         var profiles = BuiltInData.CreateProfiles();
 
         var images = profiles.Single(p => p.Id == "images");
         Assert.NotNull(images.BackPresetIds);
         Assert.Contains("resizer-group", images.BackPresetIds);
-        Assert.InRange(images.BackPresetIds.Count, 1, 12);
+        Assert.DoesNotContain("compress-image", images.BackPresetIds);
+        Assert.Equal(12, images.BackPresetIds.Count);
 
         var pdf = profiles.Single(p => p.Id == "pdf");
         Assert.NotNull(pdf.BackPresetIds);
         Assert.Contains("resizer-group", pdf.BackPresetIds);
+        Assert.DoesNotContain("compress-pdf", pdf.BackPresetIds);
         Assert.InRange(pdf.BackPresetIds.Count, 1, 12);
     }
 }

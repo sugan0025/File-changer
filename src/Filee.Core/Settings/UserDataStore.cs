@@ -954,6 +954,9 @@ internal static class SettingsMigrations
         // v58: "Resizer" group preset (1 MB, 2 MB, 5 MB, 10 MB, 15 MB, 25 MB) on the back of Images and PDF donuts
         if (from < 58)
             changed |= AddResizerPreset(presets, profiles);
+        // v59: Move "Compress" into "Resizer" group subwheel before 1 MB
+        if (from < 59)
+            changed |= AddCompressToResizer(presets, profiles);
         return changed;
     }
 
@@ -1016,6 +1019,47 @@ internal static class SettingsMigrations
                 pdf.BackPresetIds.Insert(idx >= 0 ? idx + 1 : 0, "resizer-group");
                 changed = true;
             }
+        }
+
+        return changed;
+    }
+
+    private static bool AddCompressToResizer(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        var compress = BuiltInData.ResizerPresets().FirstOrDefault(p => p.Id == "size-compress");
+        if (compress is not null && presets.All(p => p.Id != compress.Id))
+        {
+            presets.Add(compress);
+            changed = true;
+        }
+
+        if (presets.FirstOrDefault(p => p.Id == "resizer-group") is { } resizer)
+        {
+            if (!resizer.SubPresetIds.Contains("size-compress"))
+            {
+                resizer.SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"];
+                changed = true;
+            }
+        }
+
+        if (profiles.FirstOrDefault(p => p.Id == "images") is { } images && images.BackPresetIds is not null)
+        {
+            if (images.BackPresetIds.Remove("compress-image"))
+            {
+                if (!images.BackPresetIds.Contains("merge-pdf") && images.BackPresetIds.Count < ToolbarProfile.MaxSlices)
+                {
+                    var idx = images.BackPresetIds.IndexOf("merge-images");
+                    images.BackPresetIds.Insert(idx >= 0 ? idx + 1 : 0, "merge-pdf");
+                }
+                changed = true;
+            }
+        }
+
+        if (profiles.FirstOrDefault(p => p.Id == "pdf") is { } pdf && pdf.BackPresetIds is not null)
+        {
+            if (pdf.BackPresetIds.Remove("compress-pdf"))
+                changed = true;
         }
 
         return changed;
