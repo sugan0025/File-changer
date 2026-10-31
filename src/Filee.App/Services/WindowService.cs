@@ -631,6 +631,22 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     /// <summary>
     /// Shows the "Filee can't convert .ncm files yet" card with "Request this format", replacing an earlier one.
     /// </summary>
+    private ClipboardNoticeWindow? _clipboardNotice;
+
+    public void ShowClipboardNotice(string title, string description, Action onConvert)
+    {
+        _clipboardNotice?.Close();
+        var notice = new ClipboardNoticeWindow(title, description, onConvert);
+        PrepareWindow(notice);
+        notice.Closed += (_, _) =>
+        {
+            if (_clipboardNotice == notice)
+                _clipboardNotice = null;
+        };
+        _clipboardNotice = notice;
+        notice.Show();
+    }
+
     public void ShowFormatRequestNotice(IReadOnlyList<string> extensions)
     {
         _formatRequestNotice?.Close();

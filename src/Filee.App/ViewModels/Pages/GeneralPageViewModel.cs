@@ -35,6 +35,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         ];
         _language = Languages.FirstOrDefault(l => l.Value == store.Settings.Language) ?? Languages[0];
         _startWithSystem = store.Settings.StartWithSystem;
+        _soundEffects = store.Settings.SoundEffects;
+        _clipboardAutoDetect = store.Settings.ClipboardAutoDetect;
         _showInDock = store.Settings.ShowInDock;
         _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
         _contextMenu = store.Settings.ContextMenuEnabled;
@@ -135,6 +137,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;
+    [ObservableProperty] private bool _soundEffects;
+    [ObservableProperty] private bool _clipboardAutoDetect;
     [ObservableProperty] private bool _showInDock;
     [ObservableProperty] private bool _showMenuBarIcon;
     [ObservableProperty] private string? _dockStatus;
@@ -162,6 +166,8 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
             Save(s => s.Language = newValue.Value);
     }
     partial void OnStartWithSystemChanged(bool value) => Save(s => s.StartWithSystem = value);
+    partial void OnSoundEffectsChanged(bool value) => Save(s => s.SoundEffects = value);
+    partial void OnClipboardAutoDetectChanged(bool value) => Save(s => s.ClipboardAutoDetect = value);
 
     partial void OnShowInDockChanged(bool value)
     {

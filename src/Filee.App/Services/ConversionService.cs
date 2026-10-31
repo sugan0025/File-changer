@@ -29,6 +29,7 @@ public sealed class ConversionService
     private readonly ILocalizer _loc;
     private readonly IPlatformServices _platform;
     private readonly WebDownloader _downloader;
+    private readonly SoundService? _sounds;
     private readonly ILogger<ConversionService>? _log;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, JobViewModel> _byId = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<ConversionJob>> _waiting = new();
@@ -40,9 +41,10 @@ public sealed class ConversionService
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _clipboardJobs = new();
 
     public ConversionService(JobQueue queue, UserDataStore store, ILocalizer loc, IPlatformServices platform, WebDownloader downloader,
-        ILogger<ConversionService>? log = null)
+        SoundService? sounds = null, ILogger<ConversionService>? log = null)
     {
         _log = log;
+        _sounds = sounds;
         _queue = queue;
         _store = store;
         _loc = loc;
@@ -268,8 +270,12 @@ public sealed class ConversionService
             vm.Refresh();
             var keep = vm.HasErrors ? KeepErrors : KeepSuccess;
             DispatcherTimer.RunOnce(() => Remove(vm), keep);
-            if (!vm.HasErrors && CountSuccess(job))
-                DispatcherTimer.RunOnce(() => FeedbackDue?.Invoke(this, EventArgs.Empty), keep + TimeSpan.FromSeconds(1));
+            if (!vm.HasErrors)
+            {
+                _sounds?.PlayCompleteChime();
+                if (CountSuccess(job))
+                    DispatcherTimer.RunOnce(() => FeedbackDue?.Invoke(this, EventArgs.Empty), keep + TimeSpan.FromSeconds(1));
+            }
         });
     }
 

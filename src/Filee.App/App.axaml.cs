@@ -158,6 +158,7 @@ public partial class App : Application
         AppHost.Get<WindowService>().EnsureToast();
         AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
         AppHost.Get<WatchFolderService>().Start();
+        AppHost.Get<ClipboardWatcherService>().Start();
         // Originals of files from a browser that a crash kept from being deleted ("Save only the converted file").
         _ = Task.Run(() => Filee.Core.Web.WebDrop.DeleteStale(Filee.Core.Web.WebDrop.DefaultWorkRoot, TimeSpan.FromDays(1)));
         // Likewise the work folders of conversions that never got to clean up after themselves.
@@ -180,6 +181,7 @@ public partial class App : Application
             AppHost.Get<MemoryTrimmer>().Dispose();
             AppHost.Get<TriggerService>().Dispose();
             AppHost.Get<TrayService>().Dispose();
+            AppHost.Get<ClipboardWatcherService>().Dispose();
             AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
         };
 

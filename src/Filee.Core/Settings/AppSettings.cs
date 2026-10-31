@@ -137,6 +137,12 @@ public sealed class AppSettings
 
     public bool CheckForUpdates { get; set; } = true;
 
+    /// <summary>Subtle audio chimes / haptic sounds when hovering over donut formats, flipping, and on completion.</summary>
+    public bool SoundEffects { get; set; } = true;
+
+    /// <summary>Automatically detect when images or files are copied to clipboard and offer quick conversion.</summary>
+    public bool ClipboardAutoDetect { get; set; } = true;
+
     /// <summary>What closing the main window does. A value from a newer Filee reads as <see cref="CloseAction.Ask"/>.</summary>
     [JsonConverter(typeof(LenientEnumJsonConverter<CloseAction>))]
     public CloseAction CloseAction { get; set; } = CloseAction.Ask;

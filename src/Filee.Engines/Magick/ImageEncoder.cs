@@ -567,7 +567,7 @@ internal static class ImageEncoder
 
         var sizes = options.IcoSizes.Where(s => s is > 0 and <= 256).Distinct().OrderDescending().ToList();
         if (sizes.Count == 0)
-            sizes = [256, 48, 32, 16];
+            sizes = [256, 128, 64, 48, 32, 24, 16];
         // Resized on purpose to less than an icon holds ("Edit pictures": 512 × 512 → 32 × 32): the icon is that size and
         // the smaller ones asked for, not the larger sizes blown up from it.
         if (options.Resize != ResizeMode.None && side < 256)

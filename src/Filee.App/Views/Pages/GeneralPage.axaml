@@ -13,6 +13,8 @@
           <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding Language}" MinWidth="240" AutomationProperties.Name="{DynamicResource general.language}" />
         </StackPanel>
         <ToggleSwitch Content="{DynamicResource general.start_with_system}" IsChecked="{Binding StartWithSystem}" />
+        <ToggleSwitch Content="Sound effects &amp; haptic feedback" IsChecked="{Binding SoundEffects}" />
+        <ToggleSwitch Content="Auto-detect clipboard content (quick convert)" IsChecked="{Binding ClipboardAutoDetect}" />
         <ToggleSwitch x:Name="ShowInDockSwitch" Content="{DynamicResource general.show_in_dock}"
                       IsChecked="{Binding ShowInDock}" IsVisible="{Binding SupportsDockVisibility}" />
         <ToggleSwitch x:Name="ShowMenuBarIconSwitch" Content="{DynamicResource general.show_menu_bar_icon}"

@@ -75,6 +75,8 @@ public static class AppHost
         services.AddSingleton<MemoryTrimmer>();
         services.AddSingleton<WindowService>();
         services.AddSingleton<WhatsNewService>();
+        services.AddSingleton<SoundService>();
+        services.AddSingleton<ClipboardWatcherService>();
 
         _services = services.BuildServiceProvider();
         return _services;
