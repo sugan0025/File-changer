@@ -13,6 +13,8 @@ namespace Filee.App.ViewModels;
 
 public sealed partial class JobViewModel : ObservableObject
 {
+    /// <summary>True while the donut progress ring is showing this job (the ring plays its own completion sound).</summary>
+    public bool ShownByRing { get; set; }
     private readonly ILocalizer _loc;
     private readonly IPlatformServices _platform;
     private readonly Action<JobViewModel> _dismiss;

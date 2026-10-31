@@ -268,7 +268,7 @@
 
     <Setter Property="Padding" Value="18,16" />
 
-    <Setter Property="BoxShadow" Value="0 12 36 0 #5A000000, 0 1 0 0 #45FFFFFF" />
+    <Setter Property="BoxShadow" Value="0 10 28 0 #4D000000, 0 2 6 0 #33000000, inset 0 1 0 0 #38FFFFFF, inset 0 -1 0 0 #14000000" />
 
     <Setter Property="Transitions">
 
@@ -288,7 +288,7 @@
 
     <Setter Property="BorderBrush" Value="#65FFFFFF" />
 
-    <Setter Property="BoxShadow" Value="0 16 44 0 #6A000000, 0 1 0 0 #60FFFFFF" />
+    <Setter Property="BoxShadow" Value="0 14 36 0 #5C000000, 0 3 8 0 #38000000, inset 0 1 0 0 #52FFFFFF, inset 0 -1 0 0 #14000000" />
 
   </Style>
 

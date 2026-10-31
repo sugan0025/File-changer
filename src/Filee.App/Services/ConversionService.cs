@@ -270,12 +270,15 @@ public sealed class ConversionService
             vm.Refresh();
             var keep = vm.HasErrors ? KeepErrors : KeepSuccess;
             DispatcherTimer.RunOnce(() => Remove(vm), keep);
-            if (!vm.HasErrors)
+            if (!vm.ShownByRing)
             {
-                _sounds?.PlayCompleteChime();
-                if (CountSuccess(job))
-                    DispatcherTimer.RunOnce(() => FeedbackDue?.Invoke(this, EventArgs.Empty), keep + TimeSpan.FromSeconds(1));
+                if (vm.HasErrors)
+                    _sounds?.PlayError();
+                else if (job.State != JobState.Cancelled && !job.Files.All(f => f.State == FileState.Skipped))
+                    _sounds?.PlayCompleteChime();
             }
+            if (!vm.HasErrors && CountSuccess(job))
+                DispatcherTimer.RunOnce(() => FeedbackDue?.Invoke(this, EventArgs.Empty), keep + TimeSpan.FromSeconds(1));
         });
     }
 

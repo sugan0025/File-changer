@@ -1086,6 +1086,10 @@ public sealed class RadialController(
 
 
 
+                sounds?.PlayDropCatch();
+
+
+
                 Convert(hit.Index, hit.Sub, dropped.Files.Count > 0 ? dropped.Files : viewModel.Files, dropped.Web);
 
 
@@ -1099,6 +1103,10 @@ public sealed class RadialController(
 
 
             {
+
+
+
+                sounds?.PlayCancel();
 
 
 
@@ -1210,31 +1218,40 @@ public sealed class RadialController(
 
 
 
+        var lastHover = (Index: -1, Sub: -1);
+        long quietUntil = 0;
+
         donut.ActiveIndexChanged += (_, index) =>
-
-
-
         {
-
-
-
-            if (index >= 0)
-
-
-
+            var now = (Index: index, Sub: donut.ActiveSubIndex);
+            var changed = now != lastHover;
+            lastHover = now;
+            if (index >= 0 && changed && Environment.TickCount64 >= quietUntil)
                 sounds?.PlayHoverTick();
-
-
-
             viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
-
-
-
         };
 
+        donut.FaceSwapping += (_, _) =>
+        {
+            quietUntil = Environment.TickCount64 + 220; // let the swoosh finish
+            sounds?.PlayFlipSound();
+        };
 
+        donut.GroupExpanded += (_, _) =>
+        {
+            quietUntil = Environment.TickCount64 + 90;
+            sounds?.PlayFanOut();
+        };
 
-        donut.FaceSwapping += (_, _) => sounds?.PlayFlipSound();
+        donut.OutcomeShown += (_, outcome) =>
+        {
+            switch (outcome)
+            {
+                case DonutProgressOutcome.Succeeded: sounds?.PlayCompleteChime(); break;
+                case DonutProgressOutcome.Failed: sounds?.PlayError(); break;
+                case DonutProgressOutcome.Cancelled: sounds?.PlayCancel(); break;
+            }
+        };
 
 
 
@@ -1282,15 +1299,15 @@ public sealed class RadialController(
 
 
 
-        donut.SegmentInvoked += (_, index) => Convert(index, -1, viewModel.Files, TakeWeb());
+        donut.SegmentInvoked += (_, index) => { sounds?.PlayDropCatch(); Convert(index, -1, viewModel.Files, TakeWeb()); };
 
 
 
-        donut.SubSegmentInvoked += (_, hit) => Convert(hit.Group, hit.Sub, viewModel.Files, TakeWeb());
+        donut.SubSegmentInvoked += (_, hit) => { sounds?.PlayDropCatch(); Convert(hit.Group, hit.Sub, viewModel.Files, TakeWeb()); };
 
 
 
-        donut.CenterInvoked += (_, _) => Close();
+        donut.CenterInvoked += (_, _) => { sounds?.PlayCancel(); Close(); };
 
 
 
@@ -1934,6 +1951,7 @@ public sealed class RadialController(
 
 
 
+        job.ShownByRing = true;
         _progressJob = job;
 
 
@@ -2090,6 +2108,7 @@ public sealed class RadialController(
 
 
 
+        _progressJob.ShownByRing = false;
         conversions.ShowInToast(_progressJob);
 
 
@@ -2123,10 +2142,10 @@ public sealed class RadialController(
 
 
         if (_progressJob is not null)
-
-
-
+        {
+            _progressJob.ShownByRing = false;
             conversions.ShowInToast(_progressJob);
+        }
 
 
 

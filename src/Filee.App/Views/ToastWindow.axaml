@@ -6,7 +6,7 @@
         x:Class="Filee.App.Views.ToastWindow"
         x:DataType="s:ConversionService"
         Title="Filee"
-        Width="360"
+        Width="384"
         SizeToContent="Height"
         WindowDecorations="None"
         Background="Transparent"
@@ -72,7 +72,7 @@
     </Style>
   </Window.Styles>
 
-  <ItemsControl x:Name="Jobs" ItemsSource="{Binding ToastJobs}" Margin="12">
+  <ItemsControl x:Name="Jobs" ItemsSource="{Binding ToastJobs}" Margin="24">
     <ItemsControl.ItemsPanel>
       <ItemsPanelTemplate>
         <StackPanel Spacing="8" />

@@ -8,7 +8,7 @@ namespace Filee.App.Views;
 
 public partial class ClipboardNoticeWindow : Window
 {
-    private const int ScreenMargin = 16;
+    private const int ScreenMargin = 4;
     private readonly Action? _onConvert;
     private bool _isClosed;
 

@@ -11,7 +11,7 @@ namespace Filee.App.Views;
 /// <summary>Bottom-right progress stack. Visible exactly while ConversionService.ToastJobs is non-empty.</summary>
 public partial class ToastWindow : Window
 {
-    private const int ScreenMargin = 12;
+    private const int ScreenMargin = 0;
 
     public ToastWindow()
     {

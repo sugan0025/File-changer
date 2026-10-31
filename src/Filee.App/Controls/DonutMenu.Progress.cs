@@ -26,6 +26,8 @@ public enum DonutProgressOutcome
 
 public sealed partial class DonutMenu
 {
+    /// <summary>Raised when the outcome badge pops in the center of the ring.</summary>
+    public event EventHandler<DonutProgressOutcome>? OutcomeShown;
     public static readonly StyledProperty<IBrush?> SuccessBrushProperty =
         AvaloniaProperty.Register<DonutMenu, IBrush?>(nameof(SuccessBrush), Brushes.SeaGreen);
 
@@ -213,6 +215,7 @@ public sealed partial class DonutMenu
                 _badge.Velocity = 9; // kick → overshoot "pop"
             else
                 _badge.Value = 1;
+            OutcomeShown?.Invoke(this, pending);
         }
         if (_pendingOutcome is not null)
             active = true;

@@ -33,6 +33,8 @@ public sealed partial class DonutMenu
 
     // Group slices: the one fanned out (-1 none), the one still drawn while its ring folds away, and the hovered
     // slice of the ring.
+    /// <summary>Raised when a group's ring opens.</summary>
+    public event EventHandler<int>? GroupExpanded;
     private int _expanded = -1;
     private int _shownExpanded = -1;
     private int _subHover = -1;
@@ -185,10 +187,13 @@ public sealed partial class DonutMenu
         // Another group's ring still folding away: this one grows out of its own slice, not from half open.
         if (_shownExpanded != group)
             _expand = default;
+        var opening = _expanded != group;
         _expanded = _shownExpanded = group;
         ClearPending();
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
+        if (opening)
+            GroupExpanded?.Invoke(this, group);
     }
 
     private void SetSub(int sub)

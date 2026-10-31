@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Filee.App.Views.ClipboardNoticeWindow"
         Title="Filee"
-        Width="380"
+        Width="404"
         SizeToContent="Height"
         WindowDecorations="None"
         Background="Transparent"
@@ -11,7 +11,7 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         CanResize="False">
-  <Border Classes="card" Margin="12" Padding="14,12">
+  <Border Classes="card" Margin="24" Padding="14,12">
     <DockPanel>
       <Image DockPanel.Dock="Left" Source="avares://Filee/Assets/Icons/filee.png" Width="32" Height="32"
              VerticalAlignment="Top" Margin="0,2,10,0" />
