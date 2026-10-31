@@ -960,6 +960,9 @@ public sealed partial class DonutMenu : Control
         var radius = (r1 - 6) * pulse;
         var cancelHot = _externalCenterHot;
         context.DrawEllipse(CenterBrush, BorderPen(), center, radius, radius);
+        // Liquid glass inner specular refraction rim
+        var innerGlassPen = new Pen(new SolidColorBrush(Colors.White, 0.22), 1.0);
+        context.DrawEllipse(null, innerGlassPen, center, Math.Max(0, radius - 2), Math.Max(0, radius - 2));
         if (cancelHot)
             context.DrawEllipse(WithOpacity(DangerBrush, 0.18), null, center, radius, radius);
 

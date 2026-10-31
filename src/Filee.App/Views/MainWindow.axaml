@@ -8,10 +8,29 @@
         Icon="avares://Filee/Assets/Icons/filee.ico"
         Width="1080" Height="760" MinWidth="820" MinHeight="560"
         WindowStartupLocation="CenterScreen">
-  <Grid ColumnDefinitions="Auto,*">
-    <!-- Navigation: full width with titles, or collapsed to an icon rail (tooltips instead of text). The width animates. -->
-    <Border Classes="navpane" Classes.collapsed="{Binding IsNavCollapsed}" Width="{Binding NavWidth}" ClipToBounds="True"
-            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="0,0,1,0">
+  <Panel>
+    <!-- Background Wallpaper -->
+    <Image Source="avares://Filee/Assets/Backgrounds/app_bg.png"
+           Stretch="UniformToFill"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Center" />
+
+    <!-- Ambient Liquid Glass Backdrop Scrim & Vignette -->
+    <Border Background="#450B0D14" />
+    <Border>
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+          <GradientStop Color="#200E1018" Offset="0.0" />
+          <GradientStop Color="#400A0C12" Offset="0.55" />
+          <GradientStop Color="#65040508" Offset="1.0" />
+        </LinearGradientBrush>
+      </Border.Background>
+    </Border>
+
+    <!-- Front Part / Application Content Grid -->
+    <Grid ColumnDefinitions="Auto,*">
+      <!-- Navigation: full width with titles, or collapsed to an icon rail (tooltips instead of text). The width animates. -->
+      <Border Classes="navpane" Classes.collapsed="{Binding IsNavCollapsed}" Width="{Binding NavWidth}" ClipToBounds="True">
       <DockPanel Margin="{Binding NavPadding}">
         <StackPanel DockPanel.Dock="Top" Classes="navheader" Orientation="Horizontal" Spacing="10">
           <Image Source="avares://Filee/Assets/Icons/filee.png" Width="30" Height="30" />
@@ -94,4 +113,5 @@
       <ContentControl Classes="page" Content="{Binding CurrentPage}" Margin="32,26,32,32" MaxWidth="980" HorizontalAlignment="Stretch" />
     </ScrollViewer>
   </Grid>
+  </Panel>
 </Window>

@@ -10,9 +10,17 @@
         Width="560" Height="680" MinWidth="440" MinHeight="400"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-  <DockPanel>
-    <Border DockPanel.Dock="Bottom" Padding="20,12" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource SubtleBorderBrush}"
-            Background="{DynamicResource SurfaceBrush}">
+  <Panel>
+    <Image Source="avares://Filee/Assets/Backgrounds/app_bg.png" Stretch="UniformToFill" />
+    <Border Background="#660A0C14" />
+    <DockPanel>
+      <Border DockPanel.Dock="Bottom" Padding="20,12" BorderThickness="0,1,0,0" BorderBrush="#33FFFFFF">
+        <Border.Background>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#59151824" Offset="0.0" />
+            <GradientStop Color="#3E0E1018" Offset="1.0" />
+          </LinearGradientBrush>
+        </Border.Background>
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button Content="{DynamicResource common.cancel}" Click="OnCancel" IsCancel="True" />
         <Button Classes="accent" Content="{DynamicResource common.save}" Click="OnSave" IsDefault="True" IsEnabled="{Binding IsValid}" />
@@ -29,5 +37,6 @@
         <views:PresetEditorView />
       </StackPanel>
     </ScrollViewer>
-  </DockPanel>
+    </DockPanel>
+  </Panel>
 </Window>

@@ -10,7 +10,10 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">
-  <StackPanel Margin="22" Spacing="14">
+  <Panel>
+    <Image Source="avares://Filee/Assets/Backgrounds/app_bg.png" Stretch="UniformToFill" />
+    <Border Background="#700A0C14" />
+    <StackPanel Margin="22" Spacing="14">
     <StackPanel Spacing="4">
       <TextBlock Classes="h2" Text="{DynamicResource close.title}" />
       <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource close.text}" />
@@ -25,4 +28,5 @@
               Click="OnTray" IsDefault="True" />
     </WrapPanel>
   </StackPanel>
+  </Panel>
 </Window>

@@ -6,17 +6,34 @@
              x:DataType="vm:HomePageViewModel">
   <UserControl.Styles>
     <Style Selector="Border#DropZone">
+      <Setter Property="Background">
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+          <GradientStop Color="#357F77DD" Offset="0.0" />
+          <GradientStop Color="#22202638" Offset="0.5" />
+          <GradientStop Color="#30151824" Offset="1.0" />
+        </LinearGradientBrush>
+      </Setter>
+      <Setter Property="BorderBrush" Value="#45FFFFFF" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="BoxShadow" Value="0 12 36 0 #55000000, 0 1 0 0 #45FFFFFF" />
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="Background" Duration="0:0:0.2" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
           <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="BackEaseOut" />
         </Transitions>
       </Setter>
     </Style>
+    <Style Selector="Border#DropZone:pointerover">
+      <Setter Property="BorderBrush" Value="#70FFFFFF" />
+      <Setter Property="BoxShadow" Value="0 16 44 0 #6A000000, 0 1 0 0 #65FFFFFF" />
+    </Style>
     <Style Selector="Border#DropZone.over">
-      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="RenderTransform" Value="scale(1.015)" />
+      <Setter Property="Background" Value="#558E85F3" />
+      <Setter Property="BorderBrush" Value="#99FFFFFF" />
+      <Setter Property="BoxShadow" Value="0 20 50 0 #707F77DD, 0 1 0 0 #B0FFFFFF" />
+      <Setter Property="RenderTransform" Value="scale(1.02)" />
     </Style>
     <Style Selector="PathIcon.chevron">
       <Setter Property="RenderTransform" Value="rotate(0deg)" />
@@ -57,8 +74,7 @@
     <!-- Drop zone: files dropped here open the donut toolbar at the cursor. Double-click opens file selector. -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220"
             Cursor="Hand" ToolTip.Tip="{DynamicResource home.drop_select}"
-            Background="{DynamicResource AccentFaintBrush}" BorderBrush="{DynamicResource AccentSoftBrush}"
-            BorderThickness="2" CornerRadius="{DynamicResource SoftRadiusLarge}" Padding="24">
+            CornerRadius="{DynamicResource SoftRadiusLarge}" Padding="24">
       <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
         <Border Width="64" Height="64" CornerRadius="999" Background="{DynamicResource AccentSoftBrush}" HorizontalAlignment="Center">
           <PathIcon Width="28" Height="28" Data="{StaticResource Icon.Upload}" Foreground="{DynamicResource AccentStrongBrush}" />
