@@ -166,11 +166,11 @@ public sealed class RadialController(
 
 
 
-    SoundService sounds,
+    ILogger<RadialController> log,
 
 
 
-    ILogger<RadialController> log)
+    SoundService? sounds = null)
 
 
 

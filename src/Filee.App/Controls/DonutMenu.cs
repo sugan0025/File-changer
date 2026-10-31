@@ -91,7 +91,7 @@ public sealed partial class DonutMenu : Control
 
     /// <summary>Gap between slices in pixels (keeps the donut "full" while separating slices).</summary>
     private const double GapPixels = 3;
-    private const double PopOut = 7;
+    private const double PopOut = 9;
     private const double OpenDuration = 0.30;
     private const double OpenStagger = 0.012;
     private double[] _closeFrom = [];
@@ -578,6 +578,9 @@ public sealed partial class DonutMenu : Control
 
     // ───────────────────────── Animation ─────────────────────────
 
+    /// <summary>Calculates critical damping for a given stiffness (2·√k).</summary>
+    private static double Critical(double stiffness) => 2 * Math.Sqrt(stiffness);
+
     /// <summary>Damping at which a spring of stiffness 320 settles without overshooting (2·√320).</summary>
     private const double CriticalDamping = 36;
 
@@ -754,14 +757,16 @@ public sealed partial class DonutMenu : Control
         }
         else
         {
-            // Popping out bounces; letting go settles without a bounce: one below zero would make the faded accent
-            // flash once more on its way back.
+            // Popping out bounces with taut responsiveness (k=700, d=32); letting go settles critically without bounce.
             for (var i = 0; i < _hover.Length; i++)
-                active |= i == ActiveIndex ? _hover[i].Step(1, dt) : _hover[i].Step(0, dt, 320, CriticalDamping);
-            active |= _centerPulse.Step(0, dt, 260, 12);
-            // A soft bounce opening, like the slices popping out; folding away settles without one. The bounce grows the
-            // ring by about a pixel, well inside the room kept for it (SubRingSpace).
-            active |= _expanded >= 0 ? _expand.Step(1, dt, 320, 24) : _expand.Step(0, dt, 320, CriticalDamping);
+                active |= i == ActiveIndex
+                    ? _hover[i].Step(1, dt, 700, 32)
+                    : _hover[i].Step(0, dt, 700, Critical(700));
+            active |= _centerPulse.Step(0, dt, 360, 18);
+            // Group fan-out opens with a lively spring (k=480, d=26); folding away settles critically.
+            active |= _expanded >= 0
+                ? _expand.Step(1, dt, 480, 26)
+                : _expand.Step(0, dt, 480, Critical(480));
             if (_expanded < 0 && _expand.Value <= 0.001)
                 _shownExpanded = -1;
             active |= StepProgress(dt);
@@ -888,18 +893,41 @@ public sealed partial class DonutMenu : Control
                 Matrix.CreateTranslation(center.X + offset.X, center.Y + offset.Y) *
                 SliceFlipTransform(false, i);
 
+            var flipShade = IsFlipping ? (0.82 + 0.18 * SliceFlipWidth(false, i)) : 1.0;
             using (context.PushTransform(transform))
-            using (context.PushOpacity(Math.Clamp(open, 0, 1) * (i == _dimmedIndex ? 0.3 : 1)))
+            using (context.PushOpacity(Math.Clamp(open, 0, 1) * flipShade * (i == _dimmedIndex ? 0.3 : 1)))
             {
                 var wedge = CreateWedge(center, r1, r2, mid, span);
-                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
-
-                // The accent fades in and out with the highlight (no floor: a floor made it vanish with a jump).
                 var emphasis = i == _dropTargetIndex ? 1.0 : hover;
-                if (emphasis > 0.01 && item.IsEnabled)
-                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * Math.Clamp(emphasis, 0, 1)), null, wedge);
+                var isEnabled = item.IsEnabled;
 
-                var hot = (i == ActiveIndex || i == _dropTargetIndex) && item.IsEnabled;
+                // Directional specular lighting from 12 o\'clock key light
+                var lightDot = -Math.Sin(mid);
+                var rimAlpha = (byte)Math.Clamp(38 + 32 * lightDot, 18, 76);
+                var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
+
+                // Focused hover bloom behind active slice
+                if (emphasis > 0.01 && isEnabled)
+                {
+                    var bloomWedge = CreateWedge(center, Math.Max(0, r1 - 2), r2 + 4, mid, span + 0.02);
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.28 * Math.Clamp(emphasis, 0, 1)), null, bloomWedge);
+                }
+
+                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (isEnabled ? 1 : 0.55)), glassPen, wedge);
+
+                if (emphasis > 0.01 && isEnabled)
+                {
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * Math.Clamp(emphasis, 0, 1)), null, wedge);
+                    var activePen = new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)), 1.2);
+                    context.DrawGeometry(null, activePen, wedge);
+                }
+                else
+                {
+                    var bevelWedge = CreateWedge(center, r1 + 1.2, r2 - 1.2, mid, span);
+                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.8), bevelWedge);
+                }
+
+                var hot = (i == ActiveIndex || i == _dropTargetIndex) && isEnabled;
                 DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
                     r2 - r1 - 16, typeface, typefaceRegular, hot);
             }
@@ -918,13 +946,33 @@ public sealed partial class DonutMenu : Control
                                 Matrix.CreateScale(scale * (1 + slice.Hover * 0.025), scale * (1 + slice.Hover * 0.025)) *
                                 Matrix.CreateTranslation(center.X + offset.X, center.Y + offset.Y) *
                                 SliceFlipTransform(true, i);
+                var flipShade = 0.82 + 0.18 * SliceFlipWidth(true, i);
                 using (context.PushTransform(transform))
-                using (context.PushOpacity(Math.Clamp(slice.Open, 0, 1) * (slice.Dimmed ? 0.3 : 1)))
+                using (context.PushOpacity(Math.Clamp(slice.Open, 0, 1) * flipShade * (slice.Dimmed ? 0.3 : 1)))
                 {
                     var wedge = CreateWedge(center, r1, r2, slice.Mid, slice.Span);
-                    context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (slice.Item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
+                    var lightDot = -Math.Sin(slice.Mid);
+                    var rimAlpha = (byte)Math.Clamp(38 + 32 * lightDot, 18, 76);
+                    var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
+
                     if (slice.Emphasis > 0.01 && slice.Item.IsEnabled)
+                    {
+                        var bloomWedge = CreateWedge(center, Math.Max(0, r1 - 2), r2 + 4, slice.Mid, slice.Span + 0.02);
+                        context.DrawGeometry(WithOpacity(AccentBrush, 0.28 * Math.Clamp(slice.Emphasis, 0, 1)), null, bloomWedge);
+                    }
+
+                    context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (slice.Item.IsEnabled ? 1 : 0.55)), glassPen, wedge);
+                    if (slice.Emphasis > 0.01 && slice.Item.IsEnabled)
+                    {
                         context.DrawGeometry(WithOpacity(AccentBrush, 0.82 * Math.Clamp(slice.Emphasis, 0, 1)), null, wedge);
+                        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 255, 255)), 1.2), wedge);
+                    }
+                    else
+                    {
+                        var bevelWedge = CreateWedge(center, r1 + 1.2, r2 - 1.2, slice.Mid, slice.Span);
+                        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.8), bevelWedge);
+                    }
+
                     DrawLabel(context, slice.Item, center, (r1 + r2) / 2, slice.Mid,
                         slice.Span * (r1 + r2) / 2 - 10, r2 - r1 - 16, typeface, typefaceRegular,
                         slice.Hot && slice.Item.IsEnabled);
@@ -937,21 +985,38 @@ public sealed partial class DonutMenu : Control
 
     private void DrawSoftShadow(DrawingContext context, Point center, double r2)
     {
-        // A radial gradient ring fakes a soft drop shadow without blur effects (cheap on any GPU).
-        var shadowRadius = r2 + 14;
-        var brush = new RadialGradientBrush
-        {
-            GradientStops =
-            {
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), (r2 - 18) / shadowRadius),
-                new GradientStop(Color.FromArgb(46, 0, 0, 0), (r2 - 2) / shadowRadius),
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-            },
-        };
+        // Dual-layer elevation shadow: ambient soft blur + crisp contact grounding.
         var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
         using (context.PushOpacity(opening * ShadowCoverage))
-            context.DrawEllipse(brush, null, new Point(center.X, center.Y + 4), shadowRadius, shadowRadius);
+        {
+            // 1. Ambient soft wash (elevated diffusion)
+            var ambientRadius = r2 + 22;
+            var ambientBrush = new RadialGradientBrush
+            {
+                GradientStops =
+                {
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 24) / ambientRadius)),
+                    new GradientStop(Color.FromArgb(32, 0, 0, 0), (r2 - 6) / ambientRadius),
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+                },
+            };
+            context.DrawEllipse(ambientBrush, null, new Point(center.X, center.Y + 6), ambientRadius, ambientRadius);
+
+            // 2. Crisp contact drop (grounded underneath)
+            var contactRadius = r2 + 10;
+            var contactBrush = new RadialGradientBrush
+            {
+                GradientStops =
+                {
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 14) / contactRadius)),
+                    new GradientStop(Color.FromArgb(52, 0, 0, 0), (r2 - 2) / contactRadius),
+                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+                },
+            };
+            context.DrawEllipse(contactBrush, null, new Point(center.X, center.Y + 2.5), contactRadius, contactRadius);
+        }
     }
 
     private void DrawCenter(DrawingContext context, Point center, double r1, Typeface bold, Typeface regular)

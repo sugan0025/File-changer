@@ -282,12 +282,19 @@ public sealed partial class DonutMenu
                 var c = EaseInCubic(t);
                 if (c >= 0.999)
                     continue;
-                var scale = 1 - 0.8 * c;
+                // Fluid suction vortex: accelerated tangential spin and centripetal spiral
+                var spin = c * c * 0.72 + (i % 2 == 0 ? 0.04 : -0.04) * c;
+                var scale = 1.0 - Math.Pow(c, 1.6) * 0.85;
+                var midAngle = DonutGeometry.MidAngle(i, n);
+                var pull = c * c * 16.0;
+                var dx = -Math.Cos(midAngle) * pull;
+                var dy = -Math.Sin(midAngle) * pull;
+
                 var transform =
                     Matrix.CreateTranslation(-center.X, -center.Y) *
-                    Matrix.CreateRotation(c * 0.25) *
+                    Matrix.CreateRotation(spin) *
                     Matrix.CreateScale(scale, scale) *
-                    Matrix.CreateTranslation(center.X, center.Y);
+                    Matrix.CreateTranslation(center.X + dx, center.Y + dy);
                 using (context.PushTransform(transform))
                 using (context.PushOpacity(1 - c))
                 {
@@ -349,6 +356,16 @@ public sealed partial class DonutMenu
         if (_outcome is { } outcome && outcome != DonutProgressOutcome.Cancelled && badge > 0.01)
             DrawOutcomeBadge(context, center, outcome, badge, bold);
 
+        // Radiant ripple halo: pulses outward from badge upon completion
+        if (_outcome == DonutProgressOutcome.Succeeded && _holdClock >= 0 && _holdClock < 0.6)
+        {
+            var rt = Math.Clamp(_holdClock / 0.6, 0, 1);
+            var rippleRadius = plateRadius + rt * 38;
+            var rippleOpacity = Math.Pow(1 - rt, 1.6) * 0.7;
+            var ripplePen = new Pen(WithOpacity(SuccessBrush, rippleOpacity), 2.8 * (1 - rt * 0.5));
+            context.DrawEllipse(null, ripplePen, center, rippleRadius, rippleRadius);
+        }
+
         if (_ringHover && _outcome is null && _handOffClock < 0)
             DrawCancelButton(context, CancelButtonCenter(center));
     }
@@ -398,18 +415,33 @@ public sealed partial class DonutMenu
 
     private static void DrawPlateShadow(DrawingContext context, Point center, double radius)
     {
-        var outer = radius + 10;
-        var brush = new RadialGradientBrush
+        // 1. Ambient soft diffusion
+        var ambientOuter = radius + 16;
+        var ambientBrush = new RadialGradientBrush
         {
             GradientStops =
             {
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                new GradientStop(Color.FromArgb(0, 0, 0, 0), (radius - 8) / outer),
-                new GradientStop(Color.FromArgb(52, 0, 0, 0), radius / outer),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (radius - 12) / ambientOuter)),
+                new GradientStop(Color.FromArgb(34, 0, 0, 0), (radius - 2) / ambientOuter),
                 new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
             },
         };
-        context.DrawEllipse(brush, null, new Point(center.X, center.Y + 3), outer, outer);
+        context.DrawEllipse(ambientBrush, null, new Point(center.X, center.Y + 4), ambientOuter, ambientOuter);
+
+        // 2. Close contact grounding
+        var contactOuter = radius + 6;
+        var contactBrush = new RadialGradientBrush
+        {
+            GradientStops =
+            {
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (radius - 6) / contactOuter)),
+                new GradientStop(Color.FromArgb(58, 0, 0, 0), radius / contactOuter),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+            },
+        };
+        context.DrawEllipse(contactBrush, null, new Point(center.X, center.Y + 1.5), contactOuter, contactOuter);
     }
 
     /// <summary>Clockwise arc from 12 o'clock covering <paramref name="fraction"/> of the circle.</summary>

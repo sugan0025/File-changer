@@ -8,6 +8,7 @@ namespace Filee.App.Views.Pages;
 
 public partial class AboutPage : UserControl
 {
+    public SupportersView Supporters { get; } = new();
     public AboutPage() => InitializeComponent();
 
     private async void OnOpenRepository(object? sender, RoutedEventArgs e)

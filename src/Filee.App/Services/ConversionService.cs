@@ -41,7 +41,7 @@ public sealed class ConversionService
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _clipboardJobs = new();
 
     public ConversionService(JobQueue queue, UserDataStore store, ILocalizer loc, IPlatformServices platform, WebDownloader downloader,
-        SoundService? sounds = null, ILogger<ConversionService>? log = null)
+        ILogger<ConversionService>? log = null, SoundService? sounds = null)
     {
         _log = log;
         _sounds = sounds;

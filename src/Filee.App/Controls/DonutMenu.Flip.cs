@@ -142,10 +142,11 @@ public sealed partial class DonutMenu
         var u = Progress(oldFace, index);
         if (oldFace ? u >= 0.5 : u < 0.5)
             return 0;
-        // Ease each half to zero velocity at the edge: no minimum-width stripe or
-        // abrupt change of direction as the old face hands over to the new one.
-        var half = oldFace ? 1 - 2 * u : 2 * u - 1;
-        return half * half * (3 - 2 * half);
+        // 3D perspective rotation: cosine foreshortening turns cleanly through edge-on
+        var angle = u * Math.PI;
+        return oldFace
+            ? Math.Clamp(Math.Cos(angle), 0, 1)
+            : Math.Clamp(-Math.Cos(angle), 0, 1);
     }
 
     internal Matrix SliceFlipTransform(bool oldFace, int index)

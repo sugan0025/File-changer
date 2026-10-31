@@ -418,24 +418,53 @@ public sealed partial class DonutMenu
     {
         var (inner, outer) = SubRadii;
         var t = Math.Max(0, expansion);
-        // Grows outward from the group's slice: scaled about the point where it meets the donut.
         var anchor = DonutGeometry.PointAt(center, inner, parentMid);
-        var scale = 0.8 + 0.2 * t;
-        var transform = Matrix.CreateTranslation(-anchor.X, -anchor.Y) * Matrix.CreateScale(scale, scale) *
-                        Matrix.CreateTranslation(anchor.X, anchor.Y) * SliceFlipTransform(oldFace, group);
+        var count = children.Count;
 
-        using (context.PushTransform(transform))
-        using (context.PushOpacity(Math.Clamp(t, 0, 1) * opening))
+        for (var k = 0; k < count; k++)
         {
-            for (var k = 0; k < children.Count; k++)
+            // Sequential card fan-out stagger: each sub-slice emerges in radial order
+            var kDelay = (count > 1 && expanded) ? (double)k / (count - 1) * 0.16 : 0;
+            var tk = expanded ? Math.Clamp((t - kDelay) / (1.0 - kDelay + 0.0001), 0, 1) : t;
+            if (tk <= 0.001)
+                continue;
+
+            var scale = 0.78 + 0.22 * tk;
+            var transform = Matrix.CreateTranslation(-anchor.X, -anchor.Y) * Matrix.CreateScale(scale, scale) *
+                            Matrix.CreateTranslation(anchor.X, anchor.Y) * SliceFlipTransform(oldFace, group);
+
+            using (context.PushTransform(transform))
+            using (context.PushOpacity(Math.Clamp(tk, 0, 1) * opening))
             {
                 var item = children[k];
-                var mid = DonutGeometry.SubMidAngle(parentMid, k, children.Count, subSpan);
+                var mid = DonutGeometry.SubMidAngle(parentMid, k, count, subSpan);
                 var wedge = CreateWedge(center, inner, outer, mid, subSpan);
-                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), BorderPen(), wedge);
                 var hot = k == subHover && expanded && item.IsEnabled;
+
+                // Sub-slice directional specular rim from 12 o\'clock key light
+                var lightDot = -Math.Sin(mid);
+                var rimAlpha = (byte)Math.Clamp(36 + 28 * lightDot, 18, 70);
+                var subGlassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
+
                 if (hot)
+                {
+                    // Soft hover bloom
+                    var bloomWedge = CreateWedge(center, Math.Max(0, inner - 2), outer + 3, mid, subSpan + 0.02);
+                    context.DrawGeometry(WithOpacity(AccentBrush, 0.25), null, bloomWedge);
+                }
+
+                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), subGlassPen, wedge);
+                if (hot)
+                {
                     context.DrawGeometry(WithOpacity(AccentBrush, 0.82), null, wedge);
+                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(110, 255, 255, 255)), 1.1), wedge);
+                }
+                else
+                {
+                    var bevel = CreateWedge(center, inner + 1, outer - 1, mid, subSpan);
+                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.7), bevel);
+                }
+
                 DrawLabel(context, item, center, (inner + outer) / 2, mid, subSpan * (inner + outer) / 2 - 8,
                     SubBand - 8, bold, regular, hot);
             }
