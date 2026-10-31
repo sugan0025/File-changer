@@ -787,6 +787,9 @@ public sealed class PdfOptions
     /// <summary>Combine all dropped files into one PDF instead of one PDF per file.</summary>
     public bool MergeIntoSingle { get; set; }
 
+    /// <summary>Target maximum file size in megabytes; 0 = no limit.</summary>
+    public double MaxSizeMb { get; set; }
+
     public PdfPageSize PageSize { get; set; } = PdfPageSize.FitImage;
 
     /// <summary>Page margin in millimetres (ignored for <see cref="PdfPageSize.FitImage"/>).</summary>

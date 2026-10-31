@@ -951,6 +951,9 @@ internal static class SettingsMigrations
         // v57: "Caption" preset (Whisper AI) outputs SRT directly; added to Video and Audio donut profiles
         if (from < 57)
             changed |= AddCaptionPreset(presets, profiles);
+        // v58: "Resizer" group preset (1 MB, 2 MB, 5 MB, 10 MB, 15 MB, 25 MB) on the back of Images and PDF donuts
+        if (from < 58)
+            changed |= AddResizerPreset(presets, profiles);
         return changed;
     }
 
@@ -974,6 +977,47 @@ internal static class SettingsMigrations
         }
         changed |= Offer(presets, profiles, "video", caption.Id, "extract-subtitles");
         changed |= Offer(presets, profiles, "audio", caption.Id, "to-aac");
+        return changed;
+    }
+
+    private static bool AddResizerPreset(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        foreach (var p in BuiltInData.ResizerPresets())
+        {
+            if (presets.All(existing => existing.Id != p.Id))
+            {
+                presets.Add(p);
+                changed = true;
+            }
+        }
+
+        if (profiles.FirstOrDefault(p => p.Id == "images") is { } images)
+        {
+            if (images.BackPresetIds is not null && !images.BackPresetIds.Contains("resizer-group"))
+            {
+                if (images.BackPresetIds.Contains("merge-pdf"))
+                    images.BackPresetIds.Remove("merge-pdf");
+                else if (images.BackPresetIds.Count >= ToolbarProfile.MaxSlices)
+                    images.BackPresetIds.RemoveAt(images.BackPresetIds.Count - 1);
+                var idx = images.BackPresetIds.IndexOf("merge-images");
+                images.BackPresetIds.Insert(idx >= 0 ? idx + 1 : images.BackPresetIds.Count, "resizer-group");
+                changed = true;
+            }
+        }
+
+        if (profiles.FirstOrDefault(p => p.Id == "pdf") is { } pdf)
+        {
+            if (pdf.BackPresetIds is not null && !pdf.BackPresetIds.Contains("resizer-group"))
+            {
+                if (pdf.BackPresetIds.Count >= ToolbarProfile.MaxSlices)
+                    pdf.BackPresetIds.RemoveAt(pdf.BackPresetIds.Count - 1);
+                var idx = pdf.BackPresetIds.IndexOf("pdf-edit");
+                pdf.BackPresetIds.Insert(idx >= 0 ? idx + 1 : 0, "resizer-group");
+                changed = true;
+            }
+        }
+
         return changed;
     }
 

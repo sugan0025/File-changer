@@ -28,6 +28,7 @@ public static class SizeLimit
     {
         FormatCategory.Image when preset.Image.MaxSizeMb > 0 => Bytes(preset.Image.MaxSizeMb),
         FormatCategory.Video when preset.Media.MaxSizeMb > 0 => Bytes(preset.Media.MaxSizeMb),
+        FormatCategory.Pdf when preset.Pdf.MaxSizeMb > 0 => Bytes(preset.Pdf.MaxSizeMb),
         _ => 0,
     };
 

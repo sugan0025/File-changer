@@ -37,9 +37,9 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IPdfFinisher, II
 
     public Task<IReadOnlyList<string>> ConvertAsync(ConversionStep step, IProgress<double>? progress, CancellationToken cancellationToken) =>
         step.From != "pdf" ? Task.Run(() => ImageToPdf(step, progress, cancellationToken), cancellationToken)
-        : step.Preset.Pdf is { Compression: PdfCompression.None, RemoveMetadata: true, SplitPages: false, PageRange: "" }
+        : step.Preset.Pdf is { Compression: PdfCompression.None, MaxSizeMb: <= 0, RemoveMetadata: true, SplitPages: false, PageRange: "" }
             ? Task.Run(() => WithoutMetadata(step, progress, cancellationToken), cancellationToken)
-        : step.Preset.Pdf.Compression == PdfCompression.None ? Task.Run(() => SplitOrExtract(step, progress, cancellationToken), cancellationToken)
+        : step.Preset.Pdf.Compression == PdfCompression.None && step.Preset.Pdf.MaxSizeMb <= 0 ? Task.Run(() => SplitOrExtract(step, progress, cancellationToken), cancellationToken)
         : Task.Run(() => CompressAsync(step, progress, cancellationToken), cancellationToken);
 
     /// <summary>Watermark, page numbers and password (PdfFinishing).</summary>
@@ -322,9 +322,38 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IPdfFinisher, II
             }
         }
 
+        var limitBytes = preset.Pdf.MaxSizeMb > 0 ? SizeLimit.Bytes(preset.Pdf.MaxSizeMb) : 0;
         var original = new FileInfo(plain).Length;
         var best = candidates.Select(path => new FileInfo(path)).MinBy(file => file.Length);
-        if (best is not null && best.Length < original)
+        if (limitBytes > 0 && (best is null || best.Length > limitBytes))
+        {
+            var stages = new (PdfCompression Level, int? Dpi, int? Quality)[]
+            {
+                (PdfCompression.Screen, null, null),
+                (PdfCompression.Screen, 50, 40),
+                (PdfCompression.Screen, 36, 30)
+            };
+            foreach (var (stageLevel, customDpi, customQual) in stages)
+            {
+                ct.ThrowIfCancellationRequested();
+                var stageFile = Path.Combine(scratch, Guid.NewGuid().ToString("N")[..8] + "-fit.pdf");
+                try
+                {
+                    using var doc = OpenForChanges(plain);
+                    PdfCompressor.Compress(doc, stageLevel, preset.Image.KeepMetadata, ct, customDpi, customQual);
+                    doc.Save(stageFile);
+                    var fi = new FileInfo(stageFile);
+                    if (best is null || fi.Length < best.Length)
+                        best = fi;
+                    if (best.Length <= limitBytes)
+                        break;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                }
+            }
+        }
+        if (best is not null && (best.Length < original || (limitBytes > 0 && best.Length <= limitBytes)))
         {
             CopyWritable(best.FullName, output);
             return true;

@@ -133,6 +133,7 @@ public static class BuiltInData
         .. ModelPresets(),
         .. GeoPresets(),
         .. TracePresets(),
+        .. ResizerPresets(),
     ];
 
     /// <summary>
@@ -362,6 +363,56 @@ public static class BuiltInData
     ];
 
     /// <summary>
+    /// Target file size presets for PDF and images ("Resizer" group on the back of the donut wheel).
+    /// </summary>
+    public static List<Preset> ResizerPresets() =>
+    [
+        new()
+        {
+            Id = "size-1mb", Name = "1 MB", NameKey = "preset.size_1mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 1 }, Pdf = { MaxSizeMb = 1, Compression = PdfCompression.Screen },
+            Output = { FileNamePattern = "{name}_1mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "size-2mb", Name = "2 MB", NameKey = "preset.size_2mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 2 }, Pdf = { MaxSizeMb = 2, Compression = PdfCompression.Screen },
+            Output = { FileNamePattern = "{name}_2mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "size-5mb", Name = "5 MB", NameKey = "preset.size_5mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 5 }, Pdf = { MaxSizeMb = 5, Compression = PdfCompression.Ebook },
+            Output = { FileNamePattern = "{name}_5mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "size-10mb", Name = "10 MB", NameKey = "preset.size_10mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 10 }, Pdf = { MaxSizeMb = 10, Compression = PdfCompression.Ebook },
+            Output = { FileNamePattern = "{name}_10mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "size-15mb", Name = "15 MB", NameKey = "preset.size_15mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 15 }, Pdf = { MaxSizeMb = 15, Compression = PdfCompression.Ebook },
+            Output = { FileNamePattern = "{name}_15mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "size-25mb", Name = "25 MB", NameKey = "preset.size_25mb", TargetFormat = SameAsSource,
+            Image = { MaxSizeMb = 25 }, Pdf = { MaxSizeMb = 25, Compression = PdfCompression.Print },
+            Output = { FileNamePattern = "{name}_25mb", OnlyIfSmaller = true },
+        },
+        new()
+        {
+            Id = "resizer-group", Name = "Resizer", NameKey = "preset.group_resizer",
+            TargetFormat = Preset.GroupTarget,
+            Kind = PresetKind.Group,
+            SubPresetIds = ["size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"],
+        },
+    ];
+
+    /// <summary>
     /// HEVC / AV1 video, ALAC and the subtitle targets (added in settings schema 11, see SettingsMigrations).
     /// </summary>
     public static List<Preset> CodecAndSubtitlePresets() =>
@@ -581,14 +632,14 @@ public static class BuiltInData
             // Full (ToolbarProfile.MaxSlices): "Extract Live Photo video" stays in the library, on no donut, and "GIF"
             // since "Merge images" took its slot (settings schema 53): a still picture as GIF is the least wanted here.
             BackPresetIds = ["tool-crop", "rotate", "flip", "tool-hide", "trim-transparent", "grayscale", "to-avif", "merge-images",
-                "merge-pdf", "compress-image", "remove-metadata", "zip-all"],
+                "resizer-group", "compress-image", "remove-metadata", "zip-all"],
         },
         new()
         {
             Id = "pdf", NameKey = "profile.pdf",
             Extensions = ["pdf"],
             PresetIds = [.. PdfDonut],
-            BackPresetIds = ["pdf-edit", "compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
+            BackPresetIds = ["pdf-edit", "resizer-group", "compress-pdf", "to-webp", "to-tiff", "to-html", "to-odt", "to-rtf", "to-azw3", "to-cbz", "remove-metadata", "zip-all"],
         },
         new()
         {

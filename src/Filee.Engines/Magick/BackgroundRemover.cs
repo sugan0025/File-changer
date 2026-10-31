@@ -374,6 +374,60 @@ public static class BackgroundRemover
     }
 
     /// <summary>
+    /// Decontaminates the colour of semi-transparent edge pixels (0 &lt; alpha &lt; 255) by propagating the true chromatic
+    /// colour of the nearest solid foreground pixel (alpha = 255). This eliminates white or coloured fringing / halos
+    /// around hair, dark clothing, and silhouettes.
+    /// </summary>
+    private static void DecontaminateEdges(byte[] pixels, int width, int height)
+    {
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var o = (y * width + x) * 4;
+                var a = pixels[o + 3];
+                if (a == 0 || a == 255)
+                    continue;
+
+                int bestDistSq = int.MaxValue;
+                int bestR = -1, bestG = -1, bestB = -1;
+
+                for (var dy = -3; dy <= 3; dy++)
+                {
+                    var ny = y + dy;
+                    if (ny < 0 || ny >= height) continue;
+                    for (var dx = -3; dx <= 3; dx++)
+                    {
+                        if (dx == 0 && dy == 0) continue;
+                        var nx = x + dx;
+                        if (nx < 0 || nx >= width) continue;
+
+                        var no = (ny * width + nx) * 4;
+                        if (pixels[no + 3] == 255)
+                        {
+                            var distSq = dx * dx + dy * dy;
+                            if (distSq < bestDistSq)
+                            {
+                                bestDistSq = distSq;
+                                bestR = pixels[no];
+                                bestG = pixels[no + 1];
+                                bestB = pixels[no + 2];
+                            }
+                        }
+                    }
+                }
+
+                if (bestR >= 0)
+                {
+                    pixels[o] = (byte)bestR;
+                    pixels[o + 1] = (byte)bestG;
+                    pixels[o + 2] = (byte)bestB;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// The backdrop inside closed shapes, which keeps its colour: backdrop the image edge cannot reach (4-connected
     /// flood fill that stops at pixels at least <paramref name="wall"/> opaque). Ink is never part of it, so the edges
     /// of a stroke keep their un-mixed colour and lone specks stay removed.
