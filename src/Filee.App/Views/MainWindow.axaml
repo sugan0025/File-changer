@@ -16,7 +16,7 @@
         <StackPanel DockPanel.Dock="Top" Classes="navheader" Orientation="Horizontal" Spacing="10">
           <Image Source="avares://Filee/Assets/Icons/filee.png" Width="30" Height="30" />
           <StackPanel VerticalAlignment="Center" IsVisible="{Binding !IsNavCollapsed}">
-            <TextBlock Text="Filee" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="Filee-changer" FontSize="18" FontWeight="Bold" />
             <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
           </StackPanel>
         </StackPanel>

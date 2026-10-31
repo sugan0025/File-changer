@@ -37,26 +37,6 @@
   <a href="https://hellogithub.com/repository/sugan0025/Filee-changer" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=0847caedd5bd4077a70b90f83afdf83c&claim_uid=jAlIvVMhn0kcEsU" alt="Featured｜HelloGitHub" width="250" height="54" /></a>
 </p>
 
-<p align="center">
-  <b>English</b> ·
-  <a href="README.es.md">Español</a> ·
-  <a href="README.ja.md">日本語</a> ·
-  <a href="README.ko.md">한국어</a> ·
-  <a href="README.zh-CN.md">简体中文</a> ·
-  <a href="README.zh-TW.md">繁體中文</a> ·
-  <a href="README.pl.md">Polski</a> ·
-  <a href="README.hi.md">हिन्दी</a> ·
-  <a href="README.ru.md">Русский</a> ·
-  <a href="README.ar.md">العربية</a> ·
-  <a href="README.pt-BR.md">Português (Brasil)</a> ·
-  <a href="README.pt-PT.md">Português (Portugal)</a> ·
-  <a href="README.fr.md">Français</a> ·
-  <a href="README.th.md">ไทย</a> ·
-  <a href="README.tr.md">Türkçe</a> ·
-  <a href="README.id.md">Bahasa Indonesia</a> ·
-  <a href="README.it.md">Italiano</a>
-</p>
-
 <table>
   <tr>
     <td width="33%" valign="top">
@@ -230,25 +210,6 @@ It connects to the internet only:
   Turn this off in Settings → About ("Check for updates automatically").
 - to download the conversion engines you choose to install, from the official locations pinned in [`engines.json`](src/Filee.Engines/Infrastructure/engines.json), and the text recognition (OCR) languages a preset uses, pinned in [`ocr-languages.json`](src/Filee.Engines/Infrastructure/ocr-languages.json).
 - when you click a link, which opens your web browser.
-
-## Sponsor
-
-Filee is free and stays free.
-If you'd like to support it, pick whichever way suits you ([Fairy](https://fairy.hada.io/@filee) takes Korean cards and easy-pay).
-
-**Your name or logo here.**
-Monthly backers are listed here by name, and sponsors get their logo here and on Filee's About page.
-One-time supporters can ask to be listed too.
-
-<!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
-
-<p align="center">
-  <a href="https://github.com/sponsors/KnifeLemon"><img src="https://img.shields.io/badge/GitHub%20Sponsors-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white" alt="GitHub Sponsors"></a>
-  <a href="https://patreon.com/KnifeLemon"><img src="https://img.shields.io/badge/Patreon-000000?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon"></a>
-  <a href="https://ko-fi.com/knifelemon"><img src="https://img.shields.io/badge/Ko--fi-FF6433?style=for-the-badge&logo=kofi&logoColor=white" alt="Ko-fi"></a>
-  <a href="https://paypal.me/knifelemon"><img src="https://img.shields.io/badge/PayPal-002991?style=for-the-badge&logo=paypal&logoColor=white" alt="PayPal"></a>
-  <a href="https://fairy.hada.io/@filee"><img src="https://img.shields.io/badge/Fairy-2E9E6B?style=for-the-badge" alt="Fairy"></a>
-</p>
 
 ## License
 
