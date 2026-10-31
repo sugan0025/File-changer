@@ -5,22 +5,38 @@ using Filee.Core.Settings;
 
 namespace Filee.App.Services;
 
-public sealed class SoundService(UserDataStore store)
+public sealed class SoundService : IDisposable
 {
     private const uint SndAsync = 0x0001;
     private const uint SndMemory = 0x0004;
 
     [DllImport("winmm.dll", EntryPoint = "PlaySoundW", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool PlaySound(byte[] pszSound, IntPtr hmod, uint fdwSound);
+    private static extern bool PlaySound(IntPtr pszSound, IntPtr hmod, uint fdwSound);
 
-    private readonly byte[]? _hoverTick = GenerateHoverTick();
-    private readonly byte[]? _flipSound = GenerateFlipSound();
-    private readonly byte[]? _completeChime = GenerateCompleteChime();
+    private readonly UserDataStore _store;
+    private readonly IntPtr _hoverTick;
+    private readonly IntPtr _flipSound;
+    private readonly IntPtr _completeChime;
+
+    public SoundService(UserDataStore store)
+    {
+        _store = store;
+        _hoverTick = AllocateWav(GenerateHoverTick());
+        _flipSound = AllocateWav(GenerateFlipSound());
+        _completeChime = AllocateWav(GenerateCompleteChime());
+    }
+
+    private static IntPtr AllocateWav(byte[] wav)
+    {
+        var ptr = Marshal.AllocHGlobal(wav.Length);
+        Marshal.Copy(wav, 0, ptr, wav.Length);
+        return ptr;
+    }
 
     public void PlayHoverTick()
     {
-        if (!store.Settings.SoundEffects || _hoverTick is null || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects || _hoverTick == IntPtr.Zero || !OperatingSystem.IsWindows())
             return;
         try
         {
@@ -34,7 +50,7 @@ public sealed class SoundService(UserDataStore store)
 
     public void PlayFlipSound()
     {
-        if (!store.Settings.SoundEffects || _flipSound is null || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects || _flipSound == IntPtr.Zero || !OperatingSystem.IsWindows())
             return;
         try
         {
@@ -47,7 +63,7 @@ public sealed class SoundService(UserDataStore store)
 
     public void PlayCompleteChime()
     {
-        if (!store.Settings.SoundEffects || _completeChime is null || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects || _completeChime == IntPtr.Zero || !OperatingSystem.IsWindows())
             return;
         try
         {
@@ -140,5 +156,12 @@ public sealed class SoundService(UserDataStore store)
         }
 
         return stream.ToArray();
+    }
+
+    public void Dispose()
+    {
+        if (_hoverTick != IntPtr.Zero) Marshal.FreeHGlobal(_hoverTick);
+        if (_flipSound != IntPtr.Zero) Marshal.FreeHGlobal(_flipSound);
+        if (_completeChime != IntPtr.Zero) Marshal.FreeHGlobal(_completeChime);
     }
 }

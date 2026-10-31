@@ -10,6 +10,7 @@ public partial class ClipboardNoticeWindow : Window
 {
     private const int ScreenMargin = 16;
     private readonly Action? _onConvert;
+    private bool _isClosed;
 
     public ClipboardNoticeWindow() => InitializeComponent();
 
@@ -20,17 +21,42 @@ public partial class ClipboardNoticeWindow : Window
         DescriptionText.Text = description;
         Motion.Track(this);
         SizeChanged += (_, _) => PlaceBottomRight();
-        // Auto-dismiss after 8 seconds
-        DispatcherTimer.RunOnce(Close, TimeSpan.FromSeconds(8));
+        Closed += (_, _) => _isClosed = true;
+
+        // Auto-dismiss after 8 seconds safely
+        DispatcherTimer.RunOnce(() =>
+        {
+            if (!_isClosed)
+            {
+                try
+                {
+                    Close();
+                }
+                catch
+                {
+                }
+            }
+        }, TimeSpan.FromSeconds(8));
     }
 
     private void OnConvert(object? sender, RoutedEventArgs e)
     {
-        Close();
+        if (!_isClosed)
+        {
+            _isClosed = true;
+            try { Close(); } catch { }
+        }
         _onConvert?.Invoke();
     }
 
-    private void OnClose(object? sender, RoutedEventArgs e) => Close();
+    private void OnClose(object? sender, RoutedEventArgs e)
+    {
+        if (!_isClosed)
+        {
+            _isClosed = true;
+            try { Close(); } catch { }
+        }
+    }
 
     private void PlaceBottomRight()
     {
@@ -43,4 +69,3 @@ public partial class ClipboardNoticeWindow : Window
         Position = new PixelPoint(area.Right - width - ScreenMargin, area.Bottom - height - ScreenMargin);
     }
 }
-
