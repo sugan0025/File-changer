@@ -458,4 +458,45 @@ public class BackgroundRemovalTests(EngineFixture fx) : IClassFixture<EngineFixt
         Assert.Equal(255, Pixel(result, 5, 5).A);
         Assert.Equal(255, Pixel(result, 5, 5).R);
     }
+
+    [Fact]
+    public void A_solid_subject_or_photo_preserves_interior_and_highlights()
+    {
+        // White backdrop with a solid subject containing warm skin tones and pale highlights
+        using var image = new MagickImage(new MagickColor("#FAFAFA"), 120, 120);
+        new Drawables()
+            .FillColor(new MagickColor("#CA8C77")).Rectangle(20, 20, 100, 100) // solid skin tone
+            .FillColor(new MagickColor("#FFEFE4")).Rectangle(40, 40, 70, 70)   // pale highlight
+            .Draw(image);
+
+        Removed(image);
+
+        // Backdrop removed
+        Assert.Equal(0, Pixel(image, 5, 5).A);
+        // Subject interior is 100% solid and keeps its exact colours
+        var skin = Pixel(image, 25, 25);
+        Assert.Equal(255, skin.A);
+        Assert.InRange(skin.R, 0xC4, 0xD0);
+        var highlight = Pixel(image, 55, 55);
+        Assert.Equal(255, highlight.A);
+        Assert.InRange(highlight.R, 0xF8, 0xFF);
+    }
+
+    [Fact]
+    public void Photo_of_person_preserves_subject_and_removes_backdrop()
+    {
+        var path = @"C:\Users\sugan\Downloads\Files\Images\jpg\Suganesan.jpg";
+        if (!File.Exists(path)) return;
+        using var image = new MagickImage(path);
+        BackgroundRemover.Apply(image, 25, false);
+
+        var bg = Pixel(image, 10, 10);
+        Assert.Equal(0, bg.A);
+
+        var face = Pixel(image, 480, 350);
+        Assert.Equal(255, face.A);
+
+        var highlight = Pixel(image, 350, 307);
+        Assert.Equal(255, highlight.A);
+    }
 }

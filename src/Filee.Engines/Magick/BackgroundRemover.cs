@@ -56,6 +56,9 @@ public static class BackgroundRemover
     /// <summary>Bins per channel when telling which colours the ink has.</summary>
     private const int InkBins = 16;
 
+    /// <summary>Maximum stroke wall thickness (in pixels) for an enclosed loop of paper in handwriting or stamps.</summary>
+    private const int MaxLoopWallThickness = 14;
+
     /// <summary>Removes the background of <paramref name="image"/> in place.</summary>
     /// <param name="tolerance">0-100: how different from the backdrop a pixel may be and still be removed.</param>
     /// <param name="keepEnclosed">Only remove the backdrop that is connected to the image edge.</param>
@@ -98,7 +101,7 @@ public static class BackgroundRemover
         }
         var full = InkOpacity(raw, cutoff);
         var distinct = Math.Min(1f, cutoff + MinSoftBand); // clearly not backdrop
-        var enclosed = keepEnclosed ? Enclosed(raw, width, height, (cutoff + full) / 2) : null;
+        var enclosed = Enclosed(pixels, raw, width, height, (cutoff + full) / 2, border, keepEnclosed);
         var blends = Blends(pixels, raw, width, backdrop, cutoff, full);
 
         // Written into the pixel array itself: each pixel is read once, right before it is replaced.
@@ -199,8 +202,10 @@ public static class BackgroundRemover
         static bool Near((byte R, byte G, byte B) a, (byte R, byte G, byte B) b) =>
             Math.Max(Math.Abs(a.R - b.R), Math.Max(Math.Abs(a.G - b.G), Math.Abs(a.B - b.B))) <= InkMatch;
 
+        var maxBlendDist = Math.Clamp(Math.Max(width, raw.Length / width) / 120, 6, 16);
         var fromBackdrop = Flood(raw.Length, width, i => raw[i] <= removed,
-            (_, from, i) => raw[i] > removed && raw[i] < solid && raw[i] + BlendDrop >= raw[from]);
+            (_, from, i) => raw[i] > removed && raw[i] < solid && raw[i] + BlendDrop >= raw[from],
+            maxBlendDist);
         // Compared with the ink the path started from, not the previous pixel: a gradual shift adds up.
         var blends = Flood(raw.Length, width, i => raw[i] >= solid,
             (ink, from, i) => fromBackdrop[i] && raw[i] <= raw[from] + BlendDrop && Near(Ink(ink), Ink(i)));
@@ -220,33 +225,35 @@ public static class BackgroundRemover
     /// Pixels reached from the <paramref name="seed"/> pixels over 4-connected steps that <paramref name="step"/>
     /// (seed the path started from, from, to) allows. Seeds only count as reached when a step leads back to them.
     /// </summary>
-    private static bool[] Flood(int count, int width, Func<int, bool> seed, Func<int, int, int, bool> step)
+    private static bool[] Flood(int count, int width, Func<int, bool> seed, Func<int, int, int, bool> step, int maxDepth = int.MaxValue)
     {
         var reached = new bool[count];
-        var queue = new Queue<(int Pixel, int Seed)>();
-        void Spread(int from, int origin)
+        var queue = new Queue<(int Pixel, int Seed, int Depth)>();
+        void Spread(int from, int origin, int depth)
         {
+            if (depth >= maxDepth)
+                return;
             var x = from % width;
-            if (x > 0) Visit(origin, from, from - 1);
-            if (x < width - 1) Visit(origin, from, from + 1);
-            if (from >= width) Visit(origin, from, from - width);
-            if (from < count - width) Visit(origin, from, from + width);
+            if (x > 0) Visit(origin, from, from - 1, depth + 1);
+            if (x < width - 1) Visit(origin, from, from + 1, depth + 1);
+            if (from >= width) Visit(origin, from, from - width, depth + 1);
+            if (from < count - width) Visit(origin, from, from + width, depth + 1);
         }
-        void Visit(int origin, int from, int i)
+        void Visit(int origin, int from, int i, int depth)
         {
             if (!reached[i] && step(origin, from, i))
             {
                 reached[i] = true;
-                queue.Enqueue((i, origin));
+                queue.Enqueue((i, origin, depth));
             }
         }
         for (var i = 0; i < count; i++)
         {
             if (seed(i))
-                Spread(i, i);
+                Spread(i, i, 0);
         }
         while (queue.TryDequeue(out var next))
-            Spread(next.Pixel, next.Seed);
+            Spread(next.Pixel, next.Seed, next.Depth);
         return reached;
     }
 
@@ -371,7 +378,7 @@ public static class BackgroundRemover
     /// flood fill that stops at pixels at least <paramref name="wall"/> opaque). Ink is never part of it, so the edges
     /// of a stroke keep their un-mixed colour and lone specks stay removed.
     /// </summary>
-    private static bool[] Enclosed(byte[] raw, int width, int height, float wall)
+    private static bool[] Enclosed(byte[] pixels, byte[] raw, int width, int height, float wall, (float R, float G, float B) border, bool keepEnclosed)
     {
         var limit = (byte)Math.Clamp(Math.Round(wall * 255), 0, 255);
         var reached = new bool[raw.Length];
@@ -402,9 +409,116 @@ public static class BackgroundRemover
             if (i >= width) Visit(i - width);
             if (i < raw.Length - width) Visit(i + width);
         }
+
+        if (keepEnclosed)
+        {
+            var allEnclosed = new bool[raw.Length];
+            for (var i = 0; i < raw.Length; i++)
+                allEnclosed[i] = !reached[i] && raw[i] < limit;
+            return allEnclosed;
+        }
+
+        // When keepEnclosed is false:
+        // Distinguish thin handwriting loops on paper from highlights inside thick solid subjects (people, artwork).
+        // 1. Measure wall thickness (how far through raw >= limit from the outer backdrop).
+        var wallDist = new byte[raw.Length];
+        var qWall = new Queue<int>();
         for (var i = 0; i < raw.Length; i++)
-            reached[i] = !reached[i] && raw[i] < limit;
-        return reached;
+        {
+            if (raw[i] >= limit)
+            {
+                var x = i % width;
+                if ((x > 0 && reached[i - 1]) ||
+                    (x < width - 1 && reached[i + 1]) ||
+                    (i >= width && reached[i - width]) ||
+                    (i < raw.Length - width && reached[i + width]))
+                {
+                    wallDist[i] = 1;
+                    qWall.Enqueue(i);
+                }
+            }
+        }
+        while (qWall.TryDequeue(out var i))
+        {
+            var d = wallDist[i];
+            if (d >= MaxLoopWallThickness + 2)
+                continue;
+            var x = i % width;
+            void StepWall(int next)
+            {
+                if (raw[next] >= limit && wallDist[next] == 0)
+                {
+                    wallDist[next] = (byte)(d + 1);
+                    qWall.Enqueue(next);
+                }
+            }
+            if (x > 0) StepWall(i - 1);
+            if (x < width - 1) StepWall(i + 1);
+            if (i >= width) StepWall(i - width);
+            if (i < raw.Length - width) StepWall(i + width);
+        }
+
+        // 2. Propagate min wall thickness into enclosed regions.
+        var encWallDist = new byte[raw.Length];
+        var qEnc = new Queue<int>();
+        for (var i = 0; i < raw.Length; i++)
+        {
+            if (!reached[i] && raw[i] < limit)
+            {
+                var x = i % width;
+                byte minW = 255;
+                void CheckAdj(int next)
+                {
+                    if (raw[next] >= limit && wallDist[next] > 0 && wallDist[next] < minW)
+                        minW = wallDist[next];
+                }
+                if (x > 0) CheckAdj(i - 1);
+                if (x < width - 1) CheckAdj(i + 1);
+                if (i >= width) CheckAdj(i - width);
+                if (i < raw.Length - width) CheckAdj(i + width);
+                if (minW < 255)
+                {
+                    encWallDist[i] = minW;
+                    qEnc.Enqueue(i);
+                }
+            }
+        }
+        while (qEnc.TryDequeue(out var i))
+        {
+            var wD = encWallDist[i];
+            var x = i % width;
+            void StepEnc(int next)
+            {
+                if (!reached[next] && raw[next] < limit && (encWallDist[next] == 0 || encWallDist[next] > wD))
+                {
+                    encWallDist[next] = wD;
+                    qEnc.Enqueue(next);
+                }
+            }
+            if (x > 0) StepEnc(i - 1);
+            if (x < width - 1) StepEnc(i + 1);
+            if (i >= width) StepEnc(i - width);
+            if (i < raw.Length - width) StepEnc(i + width);
+        }
+
+        var bgSpread = Math.Max(border.R, Math.Max(border.G, border.B)) - Math.Min(border.R, Math.Min(border.G, border.B));
+        var result = new bool[raw.Length];
+        for (var i = 0; i < raw.Length; i++)
+        {
+            if (reached[i] || raw[i] >= limit)
+                continue;
+
+            var o = i * 4;
+            var spread = Math.Max(pixels[o], Math.Max(pixels[o + 1], pixels[o + 2])) - Math.Min(pixels[o], Math.Min(pixels[o + 1], pixels[o + 2]));
+            var colorDiff = Math.Max(Math.Abs(pixels[o] - border.R), Math.Max(Math.Abs(pixels[o + 1] - border.G), Math.Abs(pixels[o + 2] - border.B)));
+            var isThinLoop = encWallDist[i] > 0 && encWallDist[i] <= MaxLoopWallThickness;
+            var isNeutralPaper = Math.Abs(spread - bgSpread) <= 12 && colorDiff <= 20;
+
+            // If it is NOT a thin loop of paper, keep it (it is a subject highlight, clothing, or solid shape):
+            if (!isThinLoop || !isNeutralPaper)
+                result[i] = true;
+        }
+        return result;
     }
 
     /// <summary>
