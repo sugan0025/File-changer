@@ -457,6 +457,8 @@
   "preset.size_5mb": "5 MB",
   "preset.size_10mb": "10 MB",
   "preset.size_15mb": "15 MB",
+  "preset.size_15mb.donut": "15 MB",
+  "preset.size_15mb.short": "15 MB",
   "preset.size_25mb": "25 MB",
 
   "format.folder": "Folder",

@@ -126,7 +126,7 @@ public sealed class Preset
     public PresetKind Kind { get; set; } = PresetKind.Convert;
 
     /// <summary>Most presets one group fans out: more slices would get too narrow to hit.</summary>
-    public const int MaxSubPresets = 6;
+    public const int MaxSubPresets = 8;
 
     /// <summary>
     /// <see cref="TargetFormat"/> of a group: no format at all. A Filee from before groups reads a group as a

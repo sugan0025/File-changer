@@ -957,6 +957,9 @@ internal static class SettingsMigrations
         // v59: Move "Compress" into "Resizer" group subwheel before 1 MB
         if (from < 59)
             changed |= AddCompressToResizer(presets, profiles);
+        // v60: Add "15 MB" to "Resizer" group subwheel
+        if (from < 60)
+            changed |= Add15MbToResizer(presets, profiles);
         return changed;
     }
 
@@ -1024,6 +1027,34 @@ internal static class SettingsMigrations
         return changed;
     }
 
+    private static bool Add15MbToResizer(List<Preset> presets, List<ToolbarProfile> profiles)
+    {
+        var changed = false;
+        var p15 = BuiltInData.ResizerPresets().FirstOrDefault(p => p.Id == "size-15mb");
+        if (p15 is not null && presets.All(p => p.Id != p15.Id))
+        {
+            presets.Add(p15);
+            changed = true;
+        }
+
+        if (presets.FirstOrDefault(p => p.Id == "resizer-group") is { } resizer)
+        {
+            if (!resizer.SubPresetIds.Contains("size-15mb"))
+            {
+                var list = new List<string>(resizer.SubPresetIds);
+                var idx = list.IndexOf("size-10mb");
+                if (idx >= 0)
+                    list.Insert(idx + 1, "size-15mb");
+                else
+                    list.Add("size-15mb");
+                resizer.SubPresetIds = list;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     private static bool AddCompressToResizer(List<Preset> presets, List<ToolbarProfile> profiles)
     {
         var changed = false;
@@ -1038,7 +1069,7 @@ internal static class SettingsMigrations
         {
             if (!resizer.SubPresetIds.Contains("size-compress"))
             {
-                resizer.SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"];
+                resizer.SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"];
                 changed = true;
             }
         }

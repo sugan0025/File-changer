@@ -68,7 +68,7 @@ public class BackFaceTests
             "tool-pdf-crop", "pdf-rotate-left", "pdf-rotate-right",
             "tool-pdf-pages", "pdf-split", "tool-pdf-add",
         ], edit.SubPresetIds);
-        Assert.Equal(Preset.MaxSubPresets, edit.SubPresetIds.Count);
+        Assert.Equal(6, edit.SubPresetIds.Count);
         Assert.All(edit.SubPresetIds, id => Assert.False(presets[id].IsGroup));
         Assert.All(edit.SubPresetIds.Where(id => id.StartsWith("tool-pdf-")), id => Assert.True(presets[id].IsTool));
     }

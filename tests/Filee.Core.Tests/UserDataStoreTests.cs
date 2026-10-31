@@ -175,7 +175,7 @@ public class UserDataStoreTests
     }
 
     [Fact]
-    public void Groups_keep_only_conversions_once_and_at_most_six()
+    public void Groups_keep_only_conversions_once_and_at_most_max_sub_presets()
     {
         using var dir = new TempDir();
         var store = new UserDataStore(dir.Path);
@@ -186,17 +186,18 @@ public class UserDataStoreTests
             Id = "mine",
             Name = "Mine",
             Kind = PresetKind.Group,
-            SubPresetIds = ["to-png", "gone", "to-png", "other", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff"],
+            SubPresetIds = ["to-png", "gone", "to-png", "other", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff", "to-avif", "to-heic"],
         });
         store.SaveLibrary();
 
         var reloaded = new UserDataStore(dir.Path);
         reloaded.Load();
 
-        // A deleted preset and a group in the group are dropped, a repeat counts once, the rest is cut at six.
+        // A deleted preset and a group in the group are dropped, a repeat counts once, the rest is cut at MaxSubPresets (8).
         var group = reloaded.FindPreset("mine")!;
         Assert.True(group.IsGroup);
-        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico"], group.SubPresetIds);
+        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-bmp", "to-gif", "to-ico", "to-tiff", "to-avif"], group.SubPresetIds);
+        Assert.Equal(Preset.MaxSubPresets, group.SubPresetIds.Count);
         // No target format a Filee from before groups (which reads it as a conversion) could run it with.
         Assert.Equal(Preset.GroupTarget, group.TargetFormat);
         Assert.Null(Filee.Core.Formats.FormatRegistry.FindById(Preset.GroupTarget));

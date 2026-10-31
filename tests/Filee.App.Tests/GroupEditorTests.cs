@@ -59,7 +59,7 @@ public class GroupEditorTests
         var vm = Edit(group);
 
         Assert.Equal(group.SubPresetIds, vm.Members.Select(m => m.PresetId));
-        Assert.Equal(Preset.MaxSubPresets, vm.Members.Count);
+        Assert.Equal(6, vm.Members.Count);
         Assert.True(vm.Apply());
         Assert.Equal([
             "tool-pdf-crop", "pdf-rotate-left", "pdf-rotate-right",

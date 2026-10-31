@@ -23,7 +23,7 @@ public class ResizerPresetTests
         var group = presets.Single(p => p.Id == "resizer-group");
         Assert.Equal(PresetKind.Group, group.Kind);
         Assert.Equal(Preset.GroupTarget, group.TargetFormat);
-        Assert.Equal(["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"], group.SubPresetIds);
+        Assert.Equal(["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"], group.SubPresetIds);
     }
 
     [Theory]

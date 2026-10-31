@@ -415,7 +415,7 @@ public static class BuiltInData
             Id = "resizer-group", Name = "Resizer", NameKey = "preset.group_resizer",
             TargetFormat = Preset.GroupTarget,
             Kind = PresetKind.Group,
-            SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-25mb"],
+            SubPresetIds = ["size-compress", "size-1mb", "size-2mb", "size-5mb", "size-10mb", "size-15mb", "size-25mb"],
         },
     ];
 
