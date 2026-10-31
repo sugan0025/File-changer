@@ -13,6 +13,12 @@ namespace Filee.Engines.Magick;
 /// </summary>
 public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransformer, IImageJoiner
 {
+    static MagickImageConverter()
+    {
+        // Limit OpenMP threads inside Magick so concurrent jobs in Parallel.ForEachAsync don't oversubscribe the CPU
+        ResourceLimits.Thread = 1;
+    }
+
     public string Id => "magick";
     public string DisplayName => "ImageMagick";
     public int MaxParallelism => 0;
@@ -66,9 +72,9 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
             pages.Write(outputPath, MagickFormat.Tiff);
         }, cancellationToken);
 
-    public bool CanRead(string format) => ImageEncoder.Sources.Contains(format);
+    public bool CanRead(string format) => ImageEncoder.SourcesSet.Contains(format);
 
-    public bool CanWrite(string format) => ImageEncoder.Writable.Contains(format);
+    public bool CanWrite(string format) => ImageEncoder.WritableSet.Contains(format);
 
     /// <summary>"Merge images": the pictures one under another or side by side in one image (<see cref="ImageJoiner"/>).</summary>
     public Task JoinAsync(IReadOnlyList<(string Path, string Format)> inputs, string outputPath, string format,

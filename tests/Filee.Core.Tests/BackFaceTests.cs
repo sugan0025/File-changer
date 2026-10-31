@@ -85,7 +85,7 @@ public class BackFaceTests
 
         Assert.True(SettingsMigrations.ApplyToLibrary(45, presets, profiles));
 
-        Assert.Equal(["pdf-edit", "to-html", "zip-all"], pdf.BackPresetIds);
+        Assert.Equal(["pdf-edit", "resizer-group", "to-html", "zip-all"], pdf.BackPresetIds);
         Assert.All(new[] { "tool-pdf-crop", "tool-pdf-pages", "tool-pdf-add", "pdf-rotate-left", "pdf-rotate-right", "pdf-edit" },
             id => Assert.Single(presets, p => p.Id == id));
         Assert.False(SettingsMigrations.ApplyToLibrary(45, presets, profiles));
@@ -94,13 +94,13 @@ public class BackFaceTests
     [Fact]
     public void The_fronts_stay_as_they_were_before_back_faces()
     {
-        Assert.Equal(["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size",
-            "tool-image-edit", "tool-hide"], BuiltIn("images").PresetIds);
+        Assert.Equal(["to-png", "remove-background", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size",
+            "tool-image-edit"], BuiltIn("images").PresetIds);
         Assert.Equal(BuiltInData.PdfDonut, BuiltIn("pdf").PresetIds);
         Assert.Equal(["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-odt", "to-txt", "to-html", "to-epub", "to-png", "merge-pdf"],
             BuiltIn("office").PresetIds);
         Assert.Equal(["to-pdf", "merge-pdf", "zip-all", "to-png", "to-txt"], BuiltIn("mixed").PresetIds);
-        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "caption-video", "to-mkv", "to-avi"],
+        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "extract-audio", "to-mp3", "extract-subtitles", "caption-video", "to-mkv"],
             BuiltIn("video").PresetIds);
     }
 

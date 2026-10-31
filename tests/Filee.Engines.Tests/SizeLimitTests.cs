@@ -429,4 +429,39 @@ public class SizeLimitTests(EngineFixture fx) : IClassFixture<EngineFixture>
         Assert.Equal("8 s in 0.05 MB", file.ErrorDetail);
         Assert.Empty(job.Outputs);
     }
+
+    [Fact]
+    public async Task A_pdf_with_images_is_compressed_down_to_meet_the_size_limit()
+    {
+        var dir = fx.NewFolder();
+        var pdfPath = Path.Combine(dir, "large_doc.pdf");
+
+        // Generate a synthetic PDF containing a high-resolution noisy image
+        using (var doc = new PdfSharp.Pdf.PdfDocument())
+        {
+            var page = doc.AddPage();
+            using var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+            var imagePath = Path.Combine(dir, "embedded.png");
+            using (var img = Noisy(1200, 900))
+                img.Write(imagePath, MagickFormat.Png);
+            using (var ximg = PdfSharp.Drawing.XImage.FromFile(imagePath))
+                gfx.DrawImage(ximg, 0, 0, page.Width, page.Height);
+            doc.Save(pdfPath);
+        }
+
+        var originalSize = new FileInfo(pdfPath).Length;
+        const double targetMb = 0.1; // 100 KB limit
+
+        var preset = BuiltInData.CreatePresets().Single(p => p.Id == "compress-pdf").Clone();
+        preset.Pdf.MaxSizeMb = targetMb;
+        preset.Output.OnlyIfSmaller = false;
+
+        var job = await fx.ConvertAsync([pdfPath], preset);
+        Assert.True(job.State == JobState.Completed, string.Join("; ", job.Files.Select(f => $"{f.ErrorKey} {f.ErrorDetail}")));
+
+        var output = job.Outputs.Single();
+        var outputSize = new FileInfo(output).Length;
+        Assert.True(outputSize < originalSize, $"Output {outputSize} should be smaller than {originalSize}");
+        Assert.InRange(outputSize, 1, SizeLimit.Bytes(targetMb));
+    }
 }

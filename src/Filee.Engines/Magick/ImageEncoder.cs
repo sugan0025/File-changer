@@ -38,6 +38,8 @@ internal static class ImageEncoder
         "apng", "mng", "qoi", "dds", "pcx", "cur", "xpm", "xbm", "wbmp", "pam", "pfm", "sgi", "ras", "miff",
     ];
 
+    public static readonly HashSet<string> WritableSet = new(Writable, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Formats that store several frames/pages in one file.</summary>
     private static readonly HashSet<string> MultiFrame = ["tiff", "gif", "apng", "mng"];
 
@@ -91,8 +93,10 @@ internal static class ImageEncoder
     /// Every format ImageMagick reads as input: the raster formats, the picture of <see cref="Packages"/> and, on
     /// Windows, the metafiles.
     /// </summary>
-    public static IEnumerable<string> Sources =>
-        OperatingSystem.IsWindows() ? [.. Readable, .. Packages, .. Metafiles] : [.. Readable, .. Packages];
+    public static readonly string[] Sources =
+        (OperatingSystem.IsWindows() ? [.. Readable, .. Packages, .. Metafiles] : [.. Readable, .. Packages]);
+
+    public static readonly HashSet<string> SourcesSet = new(Sources, StringComparer.OrdinalIgnoreCase);
 
     public static MagickFormat ToMagickFormat(string formatId) => formatId switch
     {
@@ -505,42 +509,114 @@ internal static class ImageEncoder
             limit = long.MaxValue;
         if (size <= limit && size >= minimum)
             return;
-        using var copy = image.Clone();
-        var lossy = format is MagickFormat.Jpeg or MagickFormat.WebP or MagickFormat.Avif or MagickFormat.Jxl or MagickFormat.Jp2;
-        var floor = Math.Min(MinFittedLongEdge, Math.Max(copy.Width, copy.Height));
-        while (size > limit)
-        {
-            if (lossy && copy.Quality > 50)
-                copy.Quality = Math.Max(50, copy.Quality - 10);
-            else
-            {
-                var longEdge = Math.Max(copy.Width, copy.Height);
-                if (longEdge <= floor)
-                    break;
-                // The file shrinks about as the pixel count does: aim a little under the limit, but not below the floor.
-                var scale = Math.Max(Math.Clamp(Math.Sqrt((double)limit / size) * 0.95, 0.3, 0.9), (double)floor / longEdge);
-                copy.Resize(new MagickGeometry((uint)Math.Max(1, Math.Round(copy.Width * scale)), (uint)Math.Max(1, Math.Round(copy.Height * scale))));
-            }
-            copy.Write(path, format);
-            size = new FileInfo(path).Length;
-        }
-        if (size > limit)
-            throw new ConversionRefusedException("error.over_size_limit", SizeLimit.Describe(size, limit, image: true));
 
-        // Still the copy fitted above (its quality and pixels), never the picture as it came.
-        while (lossy && size < minimum && copy.Quality < 100)
+        var lossy = format is MagickFormat.Jpeg or MagickFormat.WebP or MagickFormat.Avif or MagickFormat.Jxl or MagickFormat.Jp2;
+        if (lossy && format == MagickFormat.WebP && image.Settings.GetDefine(MagickFormat.WebP, "lossless") is "true")
+            lossy = false;
+
+        var floor = Math.Min(MinFittedLongEdge, Math.Max(image.Width, image.Height));
+        byte[]? bestBytes = null;
+        IMagickImage<byte>? bestImage = null;
+
+        if (size > limit)
         {
-            var previous = copy.Quality;
-            copy.Quality = Math.Min(100, previous + 10);
-            copy.Write(path, format);
+            // 1. Try lowering quality down to 50 in memory (no disk I/O, no pixel loss)
+            if (lossy)
+            {
+                using var probe = image.Clone();
+                uint q = probe.Quality is > 0 and <= 100 ? probe.Quality : 90;
+                while (q > 50)
+                {
+                    q = (uint)Math.Max(50, (int)q - 10);
+                    probe.Quality = q;
+                    var probeBytes = probe.ToByteArray(format);
+                    if (probeBytes.Length <= limit)
+                    {
+                        bestBytes = probeBytes;
+                        bestImage = probe.Clone();
+                        break;
+                    }
+                }
+            }
+
+            // 2. If still over limit, downsample dimensions - always scaling from the pristine original image
+            if (bestBytes is null)
+            {
+                var currentSize = size;
+                var currentQuality = lossy ? 50u : (image.Quality > 0 ? image.Quality : 90u);
+                var currentScale = 1.0;
+                var longEdge = Math.Max(image.Width, image.Height);
+
+                while (longEdge > floor)
+                {
+                    var stepScale = Math.Clamp(Math.Sqrt((double)limit / currentSize) * 0.95, 0.3, 0.9);
+                    currentScale *= stepScale;
+                    if (Math.Round(Math.Max(image.Width, image.Height) * currentScale) < floor)
+                        currentScale = (double)floor / Math.Max(image.Width, image.Height);
+
+                    var newW = (uint)Math.Max(1, Math.Round(image.Width * currentScale));
+                    var newH = (uint)Math.Max(1, Math.Round(image.Height * currentScale));
+                    longEdge = Math.Max(newW, newH);
+
+                    using var resized = image.Clone();
+                    resized.Resize(new MagickGeometry(newW, newH));
+                    if (lossy)
+                        resized.Quality = currentQuality;
+
+                    var resizedBytes = resized.ToByteArray(format);
+                    currentSize = resizedBytes.Length;
+
+                    if (resizedBytes.Length <= limit)
+                    {
+                        bestBytes = resizedBytes;
+                        bestImage = resized.Clone();
+                        break;
+                    }
+
+                    if (longEdge <= floor)
+                    {
+                        WriteAtomic(path, resizedBytes);
+                        break;
+                    }
+                }
+            }
+
+            if (bestBytes is not null)
+                WriteAtomic(path, bestBytes);
+
             size = new FileInfo(path).Length;
             if (size > limit)
+                throw new ConversionRefusedException("error.over_size_limit", SizeLimit.Describe(size, limit, image: true));
+        }
+
+        // 3. Minimum size handling (raising quality if under minimum)
+        if (lossy && size < minimum)
+        {
+            using var tuned = bestImage ?? image.Clone();
+            while (tuned.Quality < 100)
             {
-                copy.Quality = previous;
-                copy.Write(path, format);
-                break;
+                var previousQ = tuned.Quality;
+                var nextQ = Math.Min(100, previousQ + 10);
+                tuned.Quality = nextQ;
+                var bytes = tuned.ToByteArray(format);
+                if (bytes.Length > limit)
+                {
+                    tuned.Quality = previousQ;
+                    break;
+                }
+                WriteAtomic(path, bytes);
+                size = bytes.Length;
+                if (size >= minimum)
+                    break;
             }
         }
+    }
+
+    private static void WriteAtomic(string path, byte[] bytes)
+    {
+        var tmp = path + $".tmp.{Guid.NewGuid():N}";
+        File.WriteAllBytes(tmp, bytes);
+        File.Move(tmp, path, overwrite: true);
     }
 
     /// <summary>Writes one image as <paramref name="targetFormat"/> (APNG through <see cref="Apng"/>).</summary>

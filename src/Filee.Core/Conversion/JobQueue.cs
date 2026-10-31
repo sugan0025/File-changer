@@ -142,10 +142,22 @@ public sealed partial class JobQueue : IAsyncDisposable
                 : job.Files.Any(f => f.State == FileState.Done) ? JobState.CompletedWithErrors
                 : JobState.Failed;
         }
+        catch (OperationCanceledException)
+        {
+            job.State = JobState.Cancelled;
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                f.State = FileState.Cancelled;
+        }
         catch (Exception ex)
         {
             _log.LogError(ex, "Job {Job} failed", job.Id);
-            job.State = JobState.Failed;
+            job.State = job.CancellationToken.IsCancellationRequested ? JobState.Cancelled : JobState.Failed;
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+            {
+                f.State = job.CancellationToken.IsCancellationRequested ? FileState.Cancelled : FileState.Failed;
+                if (!job.CancellationToken.IsCancellationRequested && string.IsNullOrEmpty(f.ErrorKey))
+                    f.ErrorKey = "error.conversion_failed";
+            }
         }
         finally
         {
@@ -287,7 +299,15 @@ public sealed partial class JobQueue : IAsyncDisposable
 
         var inputs = parts.OfType<string>().ToList();
         if (inputs.Count == 0 || job.CancellationToken.IsCancellationRequested)
+        {
+            if (job.CancellationToken.IsCancellationRequested)
+            {
+                foreach (var f in job.Files.Where(f => !Stopped(f)))
+                    f.State = FileState.Cancelled;
+            }
+            Notify(job);
             return;
+        }
 
         var first = job.Files[0];
         var allocator = CreateFinalAllocator(job, first.SourcePath, 1, oneFile: true);
@@ -295,6 +315,7 @@ public sealed partial class JobQueue : IAsyncDisposable
         if (output is null)
         {
             foreach (var f in job.Files) f.State = FileState.Skipped;
+            Notify(job);
             return;
         }
 
@@ -303,17 +324,32 @@ public sealed partial class JobQueue : IAsyncDisposable
             await _pdfMerger!.MergeAsync(inputs, output, job.CancellationToken);
             // Once for the merged PDF, so its pages are numbered through.
             await FinishPdfsAsync(job.Preset, [output], job.CancellationToken);
+            first.Outputs.Add(output);
+            foreach (var f in job.Files.Where(f => f.State != FileState.Failed))
+            {
+                f.State = FileState.Done;
+                f.Progress = 1;
+            }
         }
-        catch
+        catch (OperationCanceledException)
         {
             allocator.Discard();
-            throw;
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                f.State = FileState.Cancelled;
         }
-        first.Outputs.Add(output);
-        foreach (var f in job.Files.Where(f => f.State != FileState.Failed))
+        catch (ConversionRefusedException ex)
         {
-            f.State = FileState.Done;
-            f.Progress = 1;
+            allocator.Discard();
+            _log.LogInformation("Merging {Count} files into {Output} was refused: {Reason}", inputs.Count, output, ex.Message);
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                FailFile(job, f, ex.ErrorKey, ex.Detail);
+        }
+        catch (Exception ex)
+        {
+            allocator.Discard();
+            _log.LogWarning(ex, "Merging {Count} files into {Output} failed", inputs.Count, output);
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                FailFile(job, f, "error.conversion_failed", ex.Message);
         }
         Notify(job);
     }
@@ -341,7 +377,15 @@ public sealed partial class JobQueue : IAsyncDisposable
 
         var inputs = parts.SelectMany(p => p ?? []).ToList();
         if (inputs.Count == 0 || job.CancellationToken.IsCancellationRequested)
+        {
+            if (job.CancellationToken.IsCancellationRequested)
+            {
+                foreach (var f in job.Files.Where(f => !Stopped(f)))
+                    f.State = FileState.Cancelled;
+            }
+            Notify(job);
             return;
+        }
 
         var first = job.Files[0];
         var allocator = CreateFinalAllocator(job, first.SourcePath, 1, oneFile: true);
@@ -349,26 +393,42 @@ public sealed partial class JobQueue : IAsyncDisposable
         if (output is null)
         {
             foreach (var f in job.Files) f.State = FileState.Skipped;
+            Notify(job);
             return;
         }
 
         try
         {
             await _tiffMerger!.MergeAsync(inputs, output, job.Preset.Image, job.CancellationToken);
+            // Not checked against the maximum (as before), but a picture under the minimum gets its notice (#662).
+            if (SizeLimit.IsUnderMinimum(job.Preset, [output]))
+                first.UnderMinimumSize = true;
+            first.Outputs.Add(output);
+            foreach (var f in job.Files.Where(f => f.State != FileState.Failed))
+            {
+                f.State = FileState.Done;
+                f.Progress = 1;
+            }
         }
-        catch
+        catch (OperationCanceledException)
         {
             allocator.Discard();
-            throw;
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                f.State = FileState.Cancelled;
         }
-        // Not checked against the maximum (as before), but a picture under the minimum gets its notice (#662).
-        if (SizeLimit.IsUnderMinimum(job.Preset, [output]))
-            first.UnderMinimumSize = true;
-        first.Outputs.Add(output);
-        foreach (var f in job.Files.Where(f => f.State != FileState.Failed))
+        catch (ConversionRefusedException ex)
         {
-            f.State = FileState.Done;
-            f.Progress = 1;
+            allocator.Discard();
+            _log.LogInformation("Writing multi-page TIFF {Output} was refused: {Reason}", output, ex.Message);
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                FailFile(job, f, ex.ErrorKey, ex.Detail);
+        }
+        catch (Exception ex)
+        {
+            allocator.Discard();
+            _log.LogWarning(ex, "Writing multi-page TIFF {Output} failed", output);
+            foreach (var f in job.Files.Where(f => !Stopped(f)))
+                FailFile(job, f, "error.conversion_failed", ex.Message);
         }
         Notify(job);
     }
@@ -862,7 +922,7 @@ public sealed partial class JobQueue : IAsyncDisposable
                         if (preset.Image.ChangesSpeed && !(isLast && finalOutput))
                             preset = AtOriginalSpeed(preset);
                         // Likewise the size limit: only the result has to fit, not a picture passed to the next engine.
-                        if ((preset.Image.MaxSizeMb > 0 || preset.Image.MinSizeMb > 0 || preset.Media.MaxSizeMb > 0) && !(isLast && finalOutput))
+                        if ((preset.Image.MaxSizeMb > 0 || preset.Image.MinSizeMb > 0 || preset.Media.MaxSizeMb > 0 || preset.Pdf.MaxSizeMb > 0) && !(isLast && finalOutput))
                             preset = WithoutSizeLimit(preset);
                         var stepInfo = new ConversionStep(input, step.From, step.To, preset, allocator, workDir, step.FrameSequence,
                             key => file.NoticeKey = key, step.MotionPhoto, step.LivePhoto, fonts =>
@@ -965,6 +1025,7 @@ public sealed partial class JobQueue : IAsyncDisposable
             copy.Image.MaxSizeMb = 0;
             copy.Image.MinSizeMb = 0;
             copy.Media.MaxSizeMb = 0;
+            copy.Pdf.MaxSizeMb = 0;
             return copy;
         }
 

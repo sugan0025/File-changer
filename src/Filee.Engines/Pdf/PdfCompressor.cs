@@ -344,6 +344,8 @@ internal static class PdfCompressor
             else if (filters is ["/FlateDecode"])
             {
                 // The data stays the same (predictor included), only packed tighter.
+                if (data.Length < 4096)
+                    return; // Skip re-inflating tiny streams (< 4 KB)
                 var packed = Deflate(Inflate(data));
                 if (packed.Length < data.Length)
                     dictionary.Stream.Value = packed;

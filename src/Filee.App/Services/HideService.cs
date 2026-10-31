@@ -19,7 +19,7 @@ public static class HideService
 
     /// <summary>True when the window can open a <paramref name="formatId"/> file: a picture the image engine reads.</summary>
     public static bool CanOpen(string formatId) =>
-        HideTool.CanHide(formatId) && ImageEncoder.Sources.Contains(formatId);
+        HideTool.CanHide(formatId) && ImageEncoder.SourcesSet.Contains(formatId);
 
     /// <summary>
     /// Reads <paramref name="path"/> as the conversion will (the composite of a PSD, the largest size of an icon, turned

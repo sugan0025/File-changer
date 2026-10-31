@@ -22,7 +22,7 @@ public sealed class PdfSharpConverter : IConverter, IPdfMerger, IPdfFinisher, II
 
     public string Id => "pdfsharp";
     public string DisplayName => "PDFsharp";
-    public int MaxParallelism => 0;
+    public int MaxParallelism => 2;
 
     /// <summary>Images into a PDF are turned first; a PDF to a PDF (split, extract) is copied page by page, as is.</summary>
     public bool Transforms(string from, string to) => from != "pdf";
