@@ -576,11 +576,11 @@ public static class BuiltInData
         {
             Id = "images", NameKey = "profile.images",
             Extensions = ExtensionsOf(FormatCategory.Image),
-            PresetIds = ["to-png", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size",
-                "tool-image-edit", "tool-hide"],
+            PresetIds = ["to-png", "remove-background", "to-jpg", "to-webp", "to-pdf", "trace-svg", "trace-line-art", "to-tiff", "to-bmp", "to-ico", "half-size",
+                "tool-image-edit"],
             // Full (ToolbarProfile.MaxSlices): "Extract Live Photo video" stays in the library, on no donut, and "GIF"
             // since "Merge images" took its slot (settings schema 53): a still picture as GIF is the least wanted here.
-            BackPresetIds = ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "to-avif", "merge-images",
+            BackPresetIds = ["tool-crop", "rotate", "flip", "tool-hide", "trim-transparent", "grayscale", "to-avif", "merge-images",
                 "merge-pdf", "compress-image", "remove-metadata", "zip-all"],
         },
         new()

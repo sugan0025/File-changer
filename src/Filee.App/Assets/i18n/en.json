@@ -369,7 +369,7 @@
   "image_edit.unit.Millimetres": "mm",
   "image_edit.unit.Inches": "inches",
   "preset.grayscale": "Grayscale",
-  "preset.remove_background": "Remove background",
+  "preset.remove_background": "BG remove",
   "preset.trim_transparent": "Trim transparent borders",
   "preset.group_rotate": "Rotate",
   "preset.rotate_left": "Rotate left",
