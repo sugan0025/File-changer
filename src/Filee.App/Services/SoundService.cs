@@ -1,5 +1,6 @@
 // Subtle audio feedback and haptic chimes for donut interactions and conversion completions.
 
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Filee.Core.Settings;
 
@@ -22,9 +23,12 @@ public sealed class SoundService : IDisposable
     public SoundService(UserDataStore store)
     {
         _store = store;
-        _hoverTick = AllocateWav(GenerateHoverTick());
-        _flipSound = AllocateWav(GenerateFlipSound());
-        _completeChime = AllocateWav(GenerateCompleteChime());
+        if (OperatingSystem.IsWindows())
+        {
+            _hoverTick = AllocateWav(GenerateHoverTick());
+            _flipSound = AllocateWav(GenerateFlipSound());
+            _completeChime = AllocateWav(GenerateCompleteChime());
+        }
     }
 
     private static IntPtr AllocateWav(byte[] wav)
@@ -36,38 +40,82 @@ public sealed class SoundService : IDisposable
 
     public void PlayHoverTick()
     {
-        if (!_store.Settings.SoundEffects || _hoverTick == IntPtr.Zero || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects)
             return;
-        try
+
+        if (OperatingSystem.IsWindows() && _hoverTick != IntPtr.Zero)
         {
-            PlaySound(_hoverTick, IntPtr.Zero, SndAsync | SndMemory);
+            try
+            {
+                PlaySound(_hoverTick, IntPtr.Zero, SndAsync | SndMemory);
+            }
+            catch
+            {
+            }
         }
-        catch
+        else if (OperatingSystem.IsMacOS())
         {
-            // Audio errors should never crash or interrupt the UI
+            PlayMacSound("Tink");
         }
     }
 
     public void PlayFlipSound()
     {
-        if (!_store.Settings.SoundEffects || _flipSound == IntPtr.Zero || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects)
             return;
-        try
+
+        if (OperatingSystem.IsWindows() && _flipSound != IntPtr.Zero)
         {
-            PlaySound(_flipSound, IntPtr.Zero, SndAsync | SndMemory);
+            try
+            {
+                PlaySound(_flipSound, IntPtr.Zero, SndAsync | SndMemory);
+            }
+            catch
+            {
+            }
         }
-        catch
+        else if (OperatingSystem.IsMacOS())
         {
+            PlayMacSound("Pop");
         }
     }
 
     public void PlayCompleteChime()
     {
-        if (!_store.Settings.SoundEffects || _completeChime == IntPtr.Zero || !OperatingSystem.IsWindows())
+        if (!_store.Settings.SoundEffects)
             return;
+
+        if (OperatingSystem.IsWindows() && _completeChime != IntPtr.Zero)
+        {
+            try
+            {
+                PlaySound(_completeChime, IntPtr.Zero, SndAsync | SndMemory);
+            }
+            catch
+            {
+            }
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            PlayMacSound("Glass");
+        }
+    }
+
+    private static void PlayMacSound(string soundName)
+    {
         try
         {
-            PlaySound(_completeChime, IntPtr.Zero, SndAsync | SndMemory);
+            var path = $"/System/Library/Sounds/{soundName}.aiff";
+            if (File.Exists(path))
+            {
+                using var p = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/afplay",
+                    ArgumentList = { path },
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+            }
         }
         catch
         {

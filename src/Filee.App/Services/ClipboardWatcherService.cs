@@ -23,11 +23,26 @@ public sealed class ClipboardWatcherService(
 
     public void Start()
     {
-        if (_timer is not null || !OperatingSystem.IsWindows())
+        if (_timer is not null)
             return;
 
-        _lastSequence = GetClipboardSequenceNumber();
-        _timer = new DispatcherTimer(TimeSpan.FromMilliseconds(800), DispatcherPriority.Background, OnTick);
+        // Clipboard watcher is supported on Windows and macOS
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+            return;
+
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                _lastSequence = GetClipboardSequenceNumber();
+            }
+            catch
+            {
+            }
+        }
+
+        var interval = OperatingSystem.IsWindows() ? TimeSpan.FromMilliseconds(800) : TimeSpan.FromMilliseconds(1200);
+        _timer = new DispatcherTimer(interval, DispatcherPriority.Background, OnTick);
         _timer.Start();
     }
 
@@ -36,11 +51,19 @@ public sealed class ClipboardWatcherService(
         if (!store.Settings.ClipboardAutoDetect || store.Settings.Paused)
             return;
 
-        uint currentSeq = GetClipboardSequenceNumber();
-        if (currentSeq == _lastSequence || currentSeq == 0)
-            return;
-
-        _lastSequence = currentSeq;
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                uint currentSeq = GetClipboardSequenceNumber();
+                if (currentSeq == _lastSequence || currentSeq == 0)
+                    return;
+                _lastSequence = currentSeq;
+            }
+            catch
+            {
+            }
+        }
 
         ClipboardContent? content;
         try
@@ -105,4 +128,3 @@ public sealed class ClipboardWatcherService(
         _timer = null;
     }
 }
-

@@ -2,7 +2,7 @@
 bin/
 obj/
 artifacts/
-publish/
+publish*/
 Releases/
 
 # Downloaded conversion engines (see build/fetch-engines.ps1)
