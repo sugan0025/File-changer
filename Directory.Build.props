@@ -20,7 +20,7 @@
     <Copyright>Copyright (c) Filee contributors</Copyright>
 
     <!-- Single source of truth for the GitHub repository (used by the updater and the About page). -->
-    <FileeRepositoryUrl>https://github.com/sugan0025/Filee-changer</FileeRepositoryUrl>
+    <FileeRepositoryUrl>https://github.com/sugan0025/File-changer</FileeRepositoryUrl>
     <RepositoryUrl>$(FileeRepositoryUrl)</RepositoryUrl>
   </PropertyGroup>
 

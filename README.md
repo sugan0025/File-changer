@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://filee.sh"><b>Website</b></a> ·
-  <a href="https://github.com/sugan0025/Filee-changer/releases/latest"><b>Download</b></a> ·
+  <a href="https://github.com/sugan0025/File-changer/releases/latest"><b>Download</b></a> ·
   <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
   <a href="#install">Install</a> ·
   <a href="#command-line">Command line</a> ·
@@ -22,9 +22,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sugan0025/Filee-changer/actions/workflows/ci.yml"><img src="https://github.com/sugan0025/Filee-changer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/sugan0025/Filee-changer/releases/latest"><img src="https://img.shields.io/github/v/release/sugan0025/Filee-changer?color=7F77DD&label=release" alt="Latest release"></a>
-  <a href="https://github.com/sugan0025/Filee-changer/releases"><img src="https://img.shields.io/github/downloads/sugan0025/Filee-changer/total?color=1D9E75" alt="Downloads"></a>
+  <a href="https://github.com/sugan0025/File-changer/actions/workflows/ci.yml"><img src="https://github.com/sugan0025/File-changer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/sugan0025/File-changer/releases/latest"><img src="https://img.shields.io/github/v/release/sugan0025/File-changer?color=7F77DD&label=release" alt="Latest release"></a>
+  <a href="https://github.com/sugan0025/File-changer/releases"><img src="https://img.shields.io/github/downloads/sugan0025/File-changer/total?color=1D9E75" alt="Downloads"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
   <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
   <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS preview">
@@ -34,7 +34,7 @@
 <p align="center">
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
   <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
-  <a href="https://hellogithub.com/repository/sugan0025/Filee-changer" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=0847caedd5bd4077a70b90f83afdf83c&claim_uid=jAlIvVMhn0kcEsU" alt="Featured｜HelloGitHub" width="250" height="54" /></a>
+  <a href="https://hellogithub.com/repository/sugan0025/File-changer" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=0847caedd5bd4077a70b90f83afdf83c&claim_uid=jAlIvVMhn0kcEsU" alt="Featured｜HelloGitHub" width="250" height="54" /></a>
 </p>
 
 <table>
@@ -65,7 +65,7 @@
 
 ## Install
 
-Download from [Releases](https://github.com/sugan0025/Filee-changer/releases/latest).
+Download from [Releases](https://github.com/sugan0025/File-changer/releases/latest).
 
 <a href="https://apps.microsoft.com/detail/XPDCN05L89WS0C?referrer=appbadge&cid=github&mode=full"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Microsoft Store" width="200"></a>
 
@@ -177,7 +177,7 @@ Every command and option: [filee.sh/cli](https://filee.sh/cli/) or `filee help`.
 Build with the .NET 10 SDK on Windows, macOS or Linux:
 
 ```bash
-git clone https://github.com/sugan0025/Filee-changer.git
+git clone https://github.com/sugan0025/File-changer.git
 cd Filee-changer
 pwsh build/fetch-engines.ps1 -Only rhwp,pandoc   # optional engines
 dotnet run --project src/Filee.App
@@ -217,5 +217,5 @@ MIT, © 2026 Myeonggu Kim (KnifeLemon) and Filee contributors.
 Bundled third-party components keep their own licenses, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 <p align="center">
-  <a href="https://star-history.com/#sugan0025/Filee-changer&Date"><img src="https://api.star-history.com/svg?repos=sugan0025/Filee-changer&type=Date" alt="Star history" width="600"></a>
+  <a href="https://star-history.com/#sugan0025/File-changer&Date"><img src="https://api.star-history.com/svg?repos=sugan0025/File-changer&type=Date" alt="Star history" width="600"></a>
 </p>
