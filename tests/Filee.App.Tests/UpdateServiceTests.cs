@@ -18,6 +18,8 @@ namespace Filee.App.Tests;
 public class UpdateServiceTests
 {
     [Theory]
+    [InlineData("v2.2.0.14", "2.2.0", true)]
+    [InlineData("v2.2.0.15", "2.2.0.14", true)]
     [InlineData("v1.0.2", "1.0.1", true)]
     [InlineData("1.1", "1.0.9", true)]
     [InlineData("v2.0.0-beta.1", "1.9.0", true)]

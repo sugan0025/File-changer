@@ -1278,15 +1278,15 @@ public sealed partial class UpdateService : ObservableObject
     /// <summary>"v1.2" / "1.2.0-beta+abc" → 1.2.0 (missing parts are 0, suffixes ignored).</summary>
     internal static bool TryParse(string? text, out Version version)
     {
-        version = new Version(0, 0, 0);
+        version = new Version(0, 0, 0, 0);
         if (string.IsNullOrWhiteSpace(text))
             return false;
         var core = text.Trim().TrimStart('v', 'V').Split('-', '+')[0];
         if (!Version.TryParse(core.Contains('.') ? core : core + ".0", out var parsed))
             return false;
-        version = new Version(parsed.Major, parsed.Minor, Math.Max(0, parsed.Build));
+        version = new Version(parsed.Major, parsed.Minor, Math.Max(0, parsed.Build), Math.Max(0, parsed.Revision));
         return true;
     }
 
-    private static string Normalize(string tag) => TryParse(tag, out var version) ? version.ToString(3) : tag;
+    private static string Normalize(string tag) => TryParse(tag, out var version) ? (version.Revision > 0 ? version.ToString(4) : version.ToString(3)) : tag;
 }
