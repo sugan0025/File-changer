@@ -8,20 +8,20 @@
   <UserControl.Styles>
     <!-- Liquid Morphed Glass Master Card -->
     <Style Selector="Border.liquid-glass-master">
-      <Setter Property="Background" Value="#35141926" />
-      <Setter Property="BorderBrush" Value="#45FFFFFF" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="24" />
-      <Setter Property="BoxShadow" Value="0 20 50 0 #50000000, 0 1 0 0 #60FFFFFF, inset 0 1 1 0 #30FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource GlassMasterCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassMasterCardBorderBrush}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusLarge}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE3}" />
     </Style>
 
     <!-- Liquid Console Bar -->
     <Style Selector="Border.liquid-console-bar">
-      <Setter Property="Background" Value="#2B1A2030" />
-      <Setter Property="BorderBrush" Value="#40FFFFFF" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="BoxShadow" Value="0 8 24 0 #30000000, 0 1 0 0 #35FFFFFF, inset 0 1 0 0 #18FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource GlassConsoleBarBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassConsoleBarBorderBrush}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE1}" />
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
@@ -32,17 +32,17 @@
     </Style>
     <Style Selector="Border.liquid-console-bar:pointerover">
       <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Background" Value="#3D222B40" />
-      <Setter Property="BoxShadow" Value="0 12 32 0 #45000000, 0 1 0 0 #60FFFFFF, inset 0 1 0 0 #30FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource GlassConsoleBarHoverBrush}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE2}" />
     </Style>
 
     <!-- Liquid Glass Subcards for Packages & Engines -->
     <Style Selector="Border.liquid-glass-subcard">
-      <Setter Property="Background" Value="#22161A26" />
-      <Setter Property="BorderBrush" Value="#30FFFFFF" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="BoxShadow" Value="0 6 20 0 #20000000, 0 1 0 0 #25FFFFFF, inset 0 1 0 0 #10FFFFFF" />
+      <Setter Property="Background" Value="{DynamicResource GlassSubcardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassSubcardBorderBrush}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE1}" />
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
@@ -52,9 +52,9 @@
       </Setter>
     </Style>
     <Style Selector="Border.liquid-glass-subcard:pointerover">
-      <Setter Property="BorderBrush" Value="#65FFFFFF" />
-      <Setter Property="Background" Value="#321D2336" />
-      <Setter Property="BoxShadow" Value="0 10 28 0 #35000000, 0 1 0 0 #50FFFFFF, inset 0 1 0 0 #20FFFFFF" />
+      <Setter Property="BorderBrush" Value="{DynamicResource GlassEdgeHoverBrush}" />
+      <Setter Property="Background" Value="{DynamicResource GlassSubcardHoverBrush}" />
+      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE2}" />
     </Style>
 
     <!-- Dragging engine card in liquid glass -->
@@ -98,12 +98,12 @@
             <DockPanel LastChildFill="True">
               <!-- Left: The glyph ('>' rotates/becomes '▼' when open) -->
               <TextBlock DockPanel.Dock="Left" Text="{Binding DropdownGlyph}"
-                         FontFamily="Consolas, monospace" FontSize="16" FontWeight="Bold"
+                         FontFamily="{DynamicResource AppMonoFontFamily}" FontSize="16" FontWeight="Bold"
                          Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
 
               <!-- Center: Authentic Conversion Status Text (No Database / Dashboard / Email Service!) -->
               <TextBlock Text="{Binding ActiveStatusText}"
-                         FontFamily="Consolas, monospace" FontSize="13"
+                         FontFamily="{DynamicResource AppMonoFontFamily}" FontSize="13"
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
@@ -175,7 +175,7 @@
             </ItemsControl>
 
             <!-- All / Installed Engines matching this category: drag a card (or use its arrows) to change the priority order -->
-            <ItemsControl x:Name="EngineList" ItemsSource="{Binding FilteredEngines}">
+            <ItemsControl x:Name="EngineList" ItemsSource="{Binding Engines}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <StackPanel Spacing="10" />

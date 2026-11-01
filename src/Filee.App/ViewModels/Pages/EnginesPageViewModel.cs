@@ -117,7 +117,7 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int _selectedCategory = 1;
 
     /// <summary>Whether the bottom console bar dropdown is expanded.</summary>
-    [ObservableProperty] private bool _isDropdownOpen;
+    [ObservableProperty] private bool _isDropdownOpen = true;
 
     public ObservableCollection<EnginePackageState> FilteredPackages { get; } = [];
     public ObservableCollection<EngineItemViewModel> FilteredEngines { get; } = [];

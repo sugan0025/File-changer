@@ -53,7 +53,7 @@
       </Border>
       <TextBlock Text="documents · images · media"
                  Canvas.Left="35" Canvas.Top="228" Width="200" TextAlignment="Center"
-                 FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
+                 FontSize="10" FontFamily="{DynamicResource AppMonoFontFamily}" Foreground="#9CA3AF" />
 
       <!-- 3. Node 2: Processing (Liquid Frosted Glass) -->
       <Border x:Name="Node2Card" Canvas.Left="290" Canvas.Top="135" Width="170" Height="80"
@@ -68,7 +68,7 @@
       </Border>
       <TextBlock Text="clean · parse · validate"
                  Canvas.Left="275" Canvas.Top="228" Width="200" TextAlignment="Center"
-                 FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
+                 FontSize="10" FontFamily="{DynamicResource AppMonoFontFamily}" Foreground="#9CA3AF" />
 
       <!-- 4. Node 3: Routing (Liquid Morphed Hero Card) -->
       <Border x:Name="RoutingCard" Canvas.Left="530" Canvas.Top="135" Width="170" Height="80"
@@ -87,7 +87,7 @@
       </Border>
       <TextBlock Text="filter · map · dispatch"
                  Canvas.Left="515" Canvas.Top="228" Width="200" TextAlignment="Center"
-                 FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
+                 FontSize="10" FontFamily="{DynamicResource AppMonoFontFamily}" Foreground="#9CA3AF" />
 
       <!-- 5. End Node 0: Graphics & Images (Longer Liquid Glass Card: 220px) -->
       <Border x:Name="EndNode0" Canvas.Left="890" Canvas.Top="49" Width="220" Height="52"

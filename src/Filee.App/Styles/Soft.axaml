@@ -74,6 +74,51 @@
 
           <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#3D000000" />
 
+        
+          <!-- Glass Tokens (Light / Morning / Afternoon) -->
+          <LinearGradientBrush x:Key="GlassCardBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#9EFFFFFF" Offset="0.0" />
+            <GradientStop Color="#6BEBF4FF" Offset="1.0" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="GlassCardHoverBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#B8FFFFFF" Offset="0.0" />
+            <GradientStop Color="#8CEBF4FF" Offset="1.0" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="GlassEdgeBrush" Color="#B3B4CDEB" />
+          <SolidColorBrush x:Key="GlassEdgeHoverBrush" Color="#E6FFFFFF" />
+          <SolidColorBrush x:Key="GlassInnerHighlightBrush" Color="#F2FFFFFF" />
+          <Color x:Key="GlassShadowColor">#2E284678</Color>
+          <SolidColorBrush x:Key="AmbientReflectionBrush" Color="#59BFE0FF" />
+
+          <!-- Master Card & Subcard Brushes -->
+          <SolidColorBrush x:Key="GlassMasterCardBrush" Color="#E6FFFFFF" />
+          <SolidColorBrush x:Key="GlassMasterCardBorderBrush" Color="#80B4CDEB" />
+          <SolidColorBrush x:Key="GlassSubcardBrush" Color="#99FFFFFF" />
+          <SolidColorBrush x:Key="GlassSubcardHoverBrush" Color="#CCFFFFFF" />
+          <SolidColorBrush x:Key="GlassSubcardBorderBrush" Color="#40B4CDEB" />
+          <SolidColorBrush x:Key="GlassConsoleBarBrush" Color="#CCFFFFFF" />
+          <SolidColorBrush x:Key="GlassConsoleBarHoverBrush" Color="#E6FFFFFF" />
+          <SolidColorBrush x:Key="GlassConsoleBarBorderBrush" Color="#80B4CDEB" />
+
+          <!-- Nav Pane -->
+          <LinearGradientBrush x:Key="NavPaneBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#CCF6F8FC" Offset="0.0" />
+            <GradientStop Color="#99EBF2FA" Offset="1.0" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="NavPaneBorderBrush" Color="#20000000" />
+
+          <!-- Ambient Scrim Backdrop -->
+          <LinearGradientBrush x:Key="PhaseScrimBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#70F4F8FF" Offset="0.0" />
+            <GradientStop Color="#8CF4F8FF" Offset="0.55" />
+            <GradientStop Color="#A0E0EAFC" Offset="1.0" />
+          </LinearGradientBrush>
+
+          <!-- Elevation Shadows -->
+          <BoxShadows x:Key="ElevationE1">0 2 8 0 #1A284678, 0 1 2 0 #10000000, inset 0 1 0 0 #40FFFFFF</BoxShadows>
+          <BoxShadows x:Key="ElevationE2">0 6 20 0 #20284678, 0 2 6 0 #14000000, inset 0 1 0 0 #60FFFFFF</BoxShadows>
+          <BoxShadows x:Key="ElevationE3">0 14 36 0 #28284678, 0 3 8 0 #18000000, inset 0 1 1 0 #80FFFFFF</BoxShadows>
+
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -120,6 +165,51 @@
 
           <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#66FFFFFF" />
 
+        
+          <!-- Glass Tokens (Dark / Night) -->
+          <LinearGradientBrush x:Key="GlassCardBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#59202535" Offset="0.0" />
+            <GradientStop Color="#3D131622" Offset="1.0" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="GlassCardHoverBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#6E283042" Offset="0.0" />
+            <GradientStop Color="#4D191D2E" Offset="1.0" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="GlassEdgeBrush" Color="#40FFFFFF" />
+          <SolidColorBrush x:Key="GlassEdgeHoverBrush" Color="#65FFFFFF" />
+          <SolidColorBrush x:Key="GlassInnerHighlightBrush" Color="#38FFFFFF" />
+          <Color x:Key="GlassShadowColor">#59000000</Color>
+          <SolidColorBrush x:Key="AmbientReflectionBrush" Color="#1F8E85F3" />
+
+          <!-- Master Card & Subcard Brushes -->
+          <SolidColorBrush x:Key="GlassMasterCardBrush" Color="#35141926" />
+          <SolidColorBrush x:Key="GlassMasterCardBorderBrush" Color="#45FFFFFF" />
+          <SolidColorBrush x:Key="GlassSubcardBrush" Color="#22161A26" />
+          <SolidColorBrush x:Key="GlassSubcardHoverBrush" Color="#321D2336" />
+          <SolidColorBrush x:Key="GlassSubcardBorderBrush" Color="#30FFFFFF" />
+          <SolidColorBrush x:Key="GlassConsoleBarBrush" Color="#2B1A2030" />
+          <SolidColorBrush x:Key="GlassConsoleBarHoverBrush" Color="#3D222B40" />
+          <SolidColorBrush x:Key="GlassConsoleBarBorderBrush" Color="#40FFFFFF" />
+
+          <!-- Nav Pane -->
+          <LinearGradientBrush x:Key="NavPaneBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#59151824" Offset="0.0" />
+            <GradientStop Color="#3E0E1018" Offset="1.0" />
+          </LinearGradientBrush>
+          <SolidColorBrush x:Key="NavPaneBorderBrush" Color="#33FFFFFF" />
+
+          <!-- Ambient Scrim Backdrop -->
+          <LinearGradientBrush x:Key="PhaseScrimBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#4005070D" Offset="0.0" />
+            <GradientStop Color="#550A0C12" Offset="0.55" />
+            <GradientStop Color="#80040508" Offset="1.0" />
+          </LinearGradientBrush>
+
+          <!-- Elevation Shadows -->
+          <BoxShadows x:Key="ElevationE1">0 6 20 0 #20000000, 0 1 0 0 #25FFFFFF, inset 0 1 0 0 #10FFFFFF</BoxShadows>
+          <BoxShadows x:Key="ElevationE2">0 10 28 0 #4D000000, 0 2 6 0 #33000000, inset 0 1 0 0 #38FFFFFF, inset 0 -1 0 0 #14000000</BoxShadows>
+          <BoxShadows x:Key="ElevationE3">0 20 50 0 #50000000, 0 1 0 0 #60FFFFFF, inset 0 1 1 0 #30FFFFFF</BoxShadows>
+
         </ResourceDictionary>
 
       </ResourceDictionary.ThemeDictionaries>
@@ -141,6 +231,28 @@
       <!-- Springy easing used by press/hover transitions ("말랑말랑"). -->
 
       <BackEaseOut x:Key="SoftEase" />
+
+      <!-- Spacing Scale Tokens -->
+      <x:Double x:Key="Space4">4</x:Double>
+      <x:Double x:Key="Space8">8</x:Double>
+      <x:Double x:Key="Space12">12</x:Double>
+      <x:Double x:Key="Space16">16</x:Double>
+      <x:Double x:Key="Space24">24</x:Double>
+      <x:Double x:Key="Space32">32</x:Double>
+
+      <!-- Typography Scale Tokens -->
+      <x:Double x:Key="FontSizeCaption">12</x:Double>
+      <x:Double x:Key="FontSizeLabel">13</x:Double>
+      <x:Double x:Key="FontSizeBody">14</x:Double>
+      <x:Double x:Key="FontSizeSubheading">16</x:Double>
+      <x:Double x:Key="FontSizeHeading">24</x:Double>
+
+      <!-- Hairline Thickness -->
+      <Thickness x:Key="HairlineThickness">1</Thickness>
+
+      <!-- Monospace Font Family -->
+      <FontFamily x:Key="AppMonoFontFamily">Cascadia Mono, Consolas, Menlo, monospace</FontFamily>
+
 
     </ResourceDictionary>
 
@@ -198,7 +310,7 @@
 
   <Style Selector="TextBlock.h1">
 
-    <Setter Property="FontSize" Value="24" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeHeading}" />
 
     <Setter Property="FontWeight" Value="SemiBold" />
 
@@ -206,7 +318,7 @@
 
   <Style Selector="TextBlock.h2">
 
-    <Setter Property="FontSize" Value="16" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeSubheading}" />
 
     <Setter Property="FontWeight" Value="SemiBold" />
 
@@ -220,7 +332,7 @@
 
   <Style Selector="TextBlock.caption">
 
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
 
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
 
@@ -228,7 +340,7 @@
 
   <Style Selector="TextBlock.label">
 
-    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="FontSize" Value="{DynamicResource FontSizeLabel}" />
 
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
 
@@ -245,54 +357,27 @@
 
 
   <!-- ───────── Liquid Glass Cards ───────── -->
-
   <Style Selector="Border.card">
-
-    <Setter Property="Background">
-
-      <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-
-        <GradientStop Color="#59202535" Offset="0.0" />
-
-        <GradientStop Color="#3D131622" Offset="1.0" />
-
-      </LinearGradientBrush>
-
-    </Setter>
-
-    <Setter Property="BorderBrush" Value="#40FFFFFF" />
-
-    <Setter Property="BorderThickness" Value="1" />
-
+    <Setter Property="Background" Value="{DynamicResource GlassCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource GlassEdgeBrush}" />
+    <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
     <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
-
     <Setter Property="Padding" Value="18,16" />
-
-    <Setter Property="BoxShadow" Value="0 10 28 0 #4D000000, 0 2 6 0 #33000000, inset 0 1 0 0 #38FFFFFF, inset 0 -1 0 0 #14000000" />
-
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevationE2}" />
     <Setter Property="Transitions">
-
       <Transitions>
-
         <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
-
+        <BrushTransition Property="Background" Duration="0:0:0.2" />
         <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
-
       </Transitions>
-
     </Setter>
-
   </Style>
 
   <Style Selector="Border.card:pointerover">
-
-    <Setter Property="BorderBrush" Value="#65FFFFFF" />
-
-    <Setter Property="BoxShadow" Value="0 14 36 0 #5C000000, 0 3 8 0 #38000000, inset 0 1 0 0 #52FFFFFF, inset 0 -1 0 0 #14000000" />
-
+    <Setter Property="BorderBrush" Value="{DynamicResource GlassEdgeHoverBrush}" />
+    <Setter Property="Background" Value="{DynamicResource GlassCardHoverBrush}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource ElevationE3}" />
   </Style>
-
-
 
   <Style Selector="Border.chip">
 
@@ -675,22 +760,9 @@
 
   <!-- ───────── Liquid Glass Navigation Pane ───────── -->
 
-  <Style Selector="Border.navpane">
-
-    <Setter Property="Background">
-
-      <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-
-        <GradientStop Color="#59151824" Offset="0.0" />
-
-        <GradientStop Color="#3E0E1018" Offset="1.0" />
-
-      </LinearGradientBrush>
-
-    </Setter>
-
-    <Setter Property="BorderBrush" Value="#33FFFFFF" />
-
+    <Style Selector="Border.navpane">
+    <Setter Property="Background" Value="{DynamicResource NavPaneBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NavPaneBorderBrush}" />
     <Setter Property="BorderThickness" Value="0,0,1,0" />
 
     <Setter Property="BoxShadow" Value="10 0 32 0 #50000000, 1 0 0 0 #20FFFFFF" />

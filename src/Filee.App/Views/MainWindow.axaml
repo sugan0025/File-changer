@@ -34,26 +34,7 @@
 
 
     <!-- Ambient Liquid Glass Backdrop Scrim & Vignette -->
-
-    <Border Background="#2A05070D" />
-
-    <Border>
-
-      <Border.Background>
-
-        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
-
-          <GradientStop Color="#200E1018" Offset="0.0" />
-
-          <GradientStop Color="#400A0C12" Offset="0.55" />
-
-          <GradientStop Color="#65040508" Offset="1.0" />
-
-        </LinearGradientBrush>
-
-      </Border.Background>
-
-    </Border>
+    <Border Background="{DynamicResource PhaseScrimBrush}" />
 
 
 
