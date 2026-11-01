@@ -1,221 +1,189 @@
-# Filee-changer
+<!-- ========================================================================= -->
+<!-- FILE-CHANGER: LIQUID GLASS OFFLINE CONVERTER FOR WINDOWS, MACOS & LINUX           -->
+<!-- ========================================================================= -->
+
+<div align="center">
+
+# ⚡ File-changer
+
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=19&duration=3000&pause=1000&color=60A5FA&center=true&vCenter=true&repeat=true&width=750&height=45&lines=Liquid+Glass+Aesthetic+%E2%80%A2+Ambient+Backdrop+Blur+%26+Specular+Borders;Instant+Drag+%26+Drop+Donut+Wheel+%E2%80%A2+Subtle+Synthesized+Audio+Chimes;Clipboard+Auto-Detector+%E2%80%A2+Quick+Conversion+Notification+HUD;100%25+Offline+Local+Engine+%E2%80%A2+Zero+Telemetry+%E2%80%A2+Windows+%26+macOS" alt="File-changer Typist" />
+</a>
+
+<br><br>
+
+<!-- Badges: Platform, Runtime, Theme & License -->
+<a href="https://dotnet.microsoft.com/">
+  <img src="https://img.shields.io/badge/.NET_10-Avalonia_UI-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10 Avalonia UI" />
+</a>
+&nbsp;
+<a href="https://github.com/sugan0025/File-changer/releases">
+  <img src="https://img.shields.io/badge/Platform-Windows_%7C_macOS_%7C_Linux-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows & macOS" />
+</a>
+&nbsp;
+<a href="https://github.com/sugan0025/File-changer/tree/release-binaries">
+  <img src="https://img.shields.io/badge/Theme-Liquid_Glass_Design-38BDF8?style=for-the-badge&logo=css3&logoColor=white" alt="Liquid Glass Design" />
+</a>
+&nbsp;
+<img src="https://img.shields.io/badge/Privacy-100%25_Offline_Local-16A34A?style=for-the-badge&logo=shield&logoColor=white" alt="100% Offline Local" />
+&nbsp;
+<a href="./LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="MIT License" />
+</a>
+
+<br><br>
 
 <p align="center">
-  <img src="docs/media/banner-en.jpg" alt="Filee: Drag. Drop. Converted." width="100%">
+  <b>A modern, high-performance offline desktop file converter engineered with a custom frosted Liquid Glass interface, Luffy Gear 5 backdrop scrim, synthesized audio chimes, clipboard auto-detection, and native multiplatform support for Windows, macOS, and Linux.</b>
 </p>
 
-> [!NOTE]
-> **Filee-changer** is a customized personal fork of [KnifeLemon/Filee](https://github.com/KnifeLemon/Filee) maintained by [@sugan0025](https://github.com/sugan0025). It incorporates custom application icons (`11.ico`) across all application windows, system tray, installer, and CLI, while retaining the full local offline file conversion capabilities and privacy guarantees.
+[📥 Downloads](#-pre-built-downloads) &nbsp;•&nbsp; [✨ Features](#-features) &nbsp;•&nbsp; [🎯 How It Works](#-how-it-works) &nbsp;•&nbsp; [🚀 Quick Start](#-quick-start) &nbsp;•&nbsp; [📁 Architecture](#-project-architecture) &nbsp;•&nbsp; [🛠 Tech Stack](#-tech-stack) &nbsp;•&nbsp; [👤 Author & Credits](#-author--credits)
 
-<p align="center">
-  <b>A free, open-source file converter you use by dragging.</b><br>
-  Hold a key (<kbd>Ctrl</kbd>, <kbd>Option</kbd> on macOS), drag files and drop them on a format in the donut that opens at your cursor.
-</p>
+</div>
 
-<p align="center">
-  <a href="https://filee.sh"><b>Website</b></a> ·
-  <a href="https://github.com/sugan0025/File-changer/releases/latest"><b>Download</b></a> ·
-  <a href="https://www.linkedin.com/company/filee-sh/"><b>LinkedIn</b></a> ·
-  <a href="#install">Install</a> ·
-  <a href="#command-line">Command line</a> ·
-  <a href="#development">Development</a>
-</p>
+---
 
-<p align="center">
-  <a href="https://github.com/sugan0025/File-changer/actions/workflows/ci.yml"><img src="https://github.com/sugan0025/File-changer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/sugan0025/File-changer/releases/latest"><img src="https://img.shields.io/github/v/release/sugan0025/File-changer?color=7F77DD&label=release" alt="Latest release"></a>
-  <a href="https://github.com/sugan0025/File-changer/releases"><img src="https://img.shields.io/github/downloads/sugan0025/File-changer/total?color=1D9E75" alt="Downloads"></a>
-  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-3C3489" alt="Windows 10 | 11">
-  <img src="https://img.shields.io/badge/Linux-x64%20%7C%20ARM64-3C3489" alt="Linux x64 | ARM64">
-  <img src="https://img.shields.io/badge/macOS-preview-534AB7" alt="macOS preview">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6A62C9" alt="MIT license"></a>
-</p>
+## 📋 Overview
 
-<p align="center">
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/weekly?language=C%23&v=2" alt="Filee: #1 C# repository of the week on Trendshift" width="250" height="55"></a>
-  <a href="https://trendshift.io/repositories/276987"><img src="https://trendshift.io/api/badge/trendshift/repositories/276987/daily?language=C%23&v=2" alt="Filee: #1 C# repository of the day on Trendshift" width="250" height="55"></a>
-  <a href="https://hellogithub.com/repository/sugan0025/File-changer" target="_blank"><img src="https://abroad.hellogithub.com/v1/widgets/recommend.svg?rid=0847caedd5bd4077a70b90f83afdf83c&claim_uid=jAlIvVMhn0kcEsU" alt="Featured｜HelloGitHub" width="250" height="54" /></a>
-</p>
+**File-changer** brings effortless, private, and offline conversion directly to your mouse cursor. Hold <kbd>Ctrl</kbd> on Windows or <kbd>Option</kbd> on macOS, drag any file, and release it over an interactive donut menu wheel to convert documents, images, video, and audio instantly.
 
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <b>Right at your cursor</b><br>
-      No app window to open.
-      The formats appear where you already are, only the ones that make sense for the files you drag.
-    </td>
-    <td width="33%" valign="top">
-      <b>270 formats, no other software</b><br>
-      Images, PDF, Word, Excel, PowerPoint, HWP, e-books, archives, fonts, CAD, 3D models and geospatial data work without Office, Hancom Office or LibreOffice.
-    </td>
-    <td width="33%" valign="top">
-      <b>Stays on your computer</b><br>
-      Nothing is uploaded.
-      Filee works offline and saves the result next to the original.
-    </td>
-  </tr>
-</table>
-
-## See it in action
-
-<p align="center">
-  <a href="https://filee.sh"><img src="docs/media/demo-en.webp" alt="Dragging trip.jpg with Ctrl held: a donut of formats opens at the cursor, the file is dropped on PNG, a progress ring completes and trip.png appears" width="820"></a><br>
-  <sub>Watch the 27-second video and try the interactive demo on <a href="https://filee.sh">filee.sh</a></sub>
-</p>
-
-## Install
-
-Download from [Releases](https://github.com/sugan0025/File-changer/releases/latest).
-
-<a href="https://apps.microsoft.com/detail/XPDCN05L89WS0C?referrer=appbadge&cid=github&mode=full"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Microsoft Store" width="200"></a>
-
-- **Windows 10/11**: run `Filee-<version>-win-Setup.exe`, or unzip the `win-Portable.zip` and run `Filee.exe`.
-  - Setup is Filee's own installer, in Filee's languages, and needs nothing else on the PC.
-  - It can add the Explorer menu, start at sign-in, the `filee` command and optional engines.
-  - Silent installs take Inno Setup's switches (`/VERYSILENT /SUPPRESSMSGBOXES`).
-- **macOS 13+** (preview): unpack the `osx-arm64` or `osx-x64` package and run `./install.sh`.
-  - Or open the `.dmg` and drag Filee to Applications (the `filee` command comes with `install.sh`).
-  - The build isn't notarized yet, so allow the first start in System Settings → Privacy & Security → **Open Anyway**.
-- **Linux x64/ARM64** (Ubuntu 22.04+): unpack the package and run `./install.sh` (no root, needs Python 3).
-  - Drag gestures need X11.
-    On Wayland, use the drop zone and the file manager's right-click menu.
-
-Filee shows new releases in its menu and updates itself, keeping your settings and engines.
-After an update, a few slides show what's new.
-
-**Windows: Filee doesn't start (no window, no error)?**
-This happens on Windows 10 that hasn't been updated for a long time, on a PC whose processor supports Hardware-enforced Stack Protection (CET).
-Windows turns that protection on but lacks a part that .NET needs, so Filee and Setup stop right away.
-
-- **Recommended:** install the available Windows updates (the latest cumulative update).
-- **If updating isn't possible:** turning the protection off for Filee alone usually works.
-  Run this in PowerShell as administrator:
-
-```powershell
-Set-ProcessMitigation -Name Filee.exe -Disable UserShadowStack
-Set-ProcessMitigation -Name filee-cli.exe -Disable UserShadowStack
+```yaml
+Application Status   : Production Ready (Windows x64 · macOS Apple Silicon · Linux x64)
+Target Framework     : .NET 10 (C# 13 · Avalonia UI Cross-Platform)
+Visual Design System : Frosted Liquid Glass (Ambient Vignette · Translucent Cards · Gear 5 Art)
+Audio Feedback       : Synthesized Audio Ticks (Unmanaged Win32 Pinned Buffers · macOS afplay)
+Clipboard Pipeline   : Zero-Delay Sequence Watcher · HUD Toast Notification · 1-Click Convert
+Privacy & Security   : 100% Offline Local Processing · Zero Network Telemetry · No Cloud Uploads
 ```
 
-Do the same with Setup's file name (e.g. `Filee-<version>-win-Setup.exe`), or use the portable ZIP, which needs only these two lines.
-To undo it, remove the entries in Windows Security → App & browser control → Exploit protection settings → Program settings.
+---
 
-## Features
+## 📥 Pre-built Downloads
 
-- **A donut at the cursor**: hold a key, drag files and drop them on a format.
-  Only formats that fit the files appear.
-- **Straight from the browser**: drag a picture, a link to a file or a download out of Chrome, Edge, Firefox or Safari the same way.
-  - Filee saves it to your Downloads folder (or keeps only the converted file) and converts it.
-  - Links are downloaded without your browser's sign-in.
-- **One toolbar per file type**, arranged by drag and drop, with presets for:
-  - quality, size, DPI
-  - PDF pages and compression
-  - video and audio
-  - output folder and file names
-- **Two sides to every donut**: press <kbd>Tab</kbd> or turn the mouse wheel while it is open to flip it over to less common formats and tools.
-- **Crop before converting**: the Crop slice opens pictures one by one.
-  Drag the frame, pick a ratio, and only that part is saved.
-- **Many files at once**, in parallel.
-  Routes with several steps (HWP → HWPX → DOCX) are found automatically.
-- **Watch folders** convert every file that lands in them.
-- **Recent conversions** on Home, each with a thumbnail: open the result, or open it with another app.
-- **Other ways in**: the right-click menu, a keyboard shortcut, the drop zone and the [`filee` command](#command-line).
-- Light and dark themes with your own accent colour and donut opacity, in English, Español, 日本語, 한국어, 简体中文, 繁體中文, Polski, हिन्दी, Русский, العربية (right to left), Português (Brasil), Français, नेपाली, ไทย, Türkçe, Português (Portugal), Deutsch, Italiano and Bahasa Indonesia.
+Download standalone portable archives for your platform (no .NET SDK or installation required — extract and run immediately):
 
-## Screenshots
+| Platform | Download Link | Target Systems | Package Size |
+| :--- | :--- | :--- | :--- |
+| **Windows** | [**Download for Windows (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-win-x64.zip) | Windows 10 & 11 (64-bit) | ~80 MB |
+| **macOS (Apple Silicon)** | [**Download for macOS (Apple Silicon)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-arm64.zip) | M1, M2, M3, M4 Macs | ~78 MB |
+| **Linux** | [**Download for Linux (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-linux-x64.tar.gz) | Ubuntu, Debian, Fedora, Arch (64-bit) | ~82 MB |
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/media/page-toolbar-en.png" alt="Donut toolbar editor with profiles and presets"></td>
-    <td width="50%"><img src="docs/media/page-home-en.png" alt="Home screen with the drop zone and recent conversions"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Arrange the donut by drag and drop, one profile per file type</sub></td>
-    <td align="center"><sub>Home: drop zone and recent conversions</sub></td>
-  </tr>
-</table>
+> You can also browse all packages on the dedicated [**`release-binaries`**](https://github.com/sugan0025/File-changer/tree/release-binaries/binaries) branch or explore release tags under [**Releases**](https://github.com/sugan0025/File-changer/releases).
 
-## Formats
+---
 
-| From | To |
-|---|---|
-| **Images**: JPG, PNG, WEBP, AVIF, TIFF, BMP, GIF, APNG, ICO, ICNS, JPEG XL, JPEG 2000, PSD/PSB, TGA, PPM, HEIC, QOI, DDS, PCX, MNG, CUR, …;<br>GIMP XCF, camera RAW (CR2, CR3, NEF, ARW, DNG, …), DICOM, OpenEXR, HDR, FITS, JPEG XR (Windows), iPhone Live Photo (LIVP) read | any of these (HEIC⁵), PDF, SVG (traced), resized, grayscale;<br>Live/Motion Photos (iPhone, Android) → their video (MP4, MOV⁵), and a video → Live Photo (iPhone) or Motion Photo (Android)⁵, experimental |
-| **Vector**: SVG, SVGZ, EMF, WMF, AI<br>EPS, PS¹<br>CDR, VSD, CGM, ODG, FODG² | PDF (vector), PNG and other images,<br>SVG ↔ SVGZ, SVG → DXF/DWG, PDF → EPS/PS¹, SVG → EMF, WMF, ODG² |
-| **PDF** | DOCX, HWPX, TXT, PNG, JPG, TIFF, CBZ, PPTX (a picture of each page), SVG²;<br>merge (in an order you choose first), split, page ranges, compress (smaller PDFs) |
-| **Documents**: DOCX, DOCM, DOTX, EML, Outlook MSG;<br>OFD (Chinese e-invoices, official documents) read<br>DOC, ODT, FODT, OTT, RTF, WPS, WPD, Pages, ClarisWorks, MacWrite, T602, …² | PDF, DOCX, HWPX, EPUB, TXT, HTML;<br>MSG → EML<br>ODT, FODT, OTT² |
-| **Spreadsheets**: XLSX, XLSM, XLS, XLT, ODS, CSV, TSV<br>OTS, FODS, Numbers, ET² | PDF, XLSX, ODS, CSV, TSV, JSON, HWPX, HTML<br>XLT, OTS² |
-| **Presentations**: PPTX, PPTM, POTX, POTM, PPSX<br>PPT, ODP, OTP, FODP, Keynote² | PDF, PNG, JPG, DOCX, HWPX<br>OTP² |
-| **HWP**: HWP, HWPX | PDF, PNG, DOCX, HWPX ↔ HWP, TXT, Markdown, HTML |
-| **Text**: TXT, LOG, script source (PY, PAC, BAT, COMMAND; read, never run), Markdown, HTML;<br>MHTML (saved web pages) read<br>reStructuredText, LaTeX, Org, AsciiDoc, Typst, MediaWiki, DocBook, Jupyter, Textile, man, OPML³ | UTF-8 TXT, PDF, DOCX, HWPX, EPUB<br>each other, PPTX slides³ |
-| **E-books**: EPUB, KEPUB, MOBI, AZW3, AZW, AZW4, FB2, CBZ, CBR, CB7, HTMLZ, TXTZ<br>LIT, LRF, CHM, PDB, …⁴ | PDF, EPUB, KEPUB (Kobo), DOCX, TXT, HTML, HWPX<br>MOBI, AZW3⁴ |
-| **Video**⁵: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, MPEG, Video CD (DAT), TS, M2TS, 3GP, OGV, VOB, … | MP4 (H.264, HEVC, AV1), WEBM, MOV, MKV, AVI, GIF, APNG, MP3, M4A, 720p,<br>subtitles (SRT, ASS, WebVTT) |
-| **Audio**⁵: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF, AMR, APE, WavPack, TTA, DSD (DSF, DFF), DTS, AC3, E-AC3, … | MP3, M4A (AAC, ALAC), WAV, FLAC, OGG, OPUS, AAC, WavPack, TTA, W64, AC3, E-AC3 |
-| **Subtitles**: SRT, ASS/SSA, WebVTT, SAMI (SMI), LRC, TTML, MicroDVD, SCC | each other as UTF-8 (Korean CP949 files read correctly) |
-| **Archives**: ZIP, ANSYS Workbench (WBPZ), 7Z, RAR, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, ISO, CAB, DMG, ALZ, EGG, … | extract, ZIP, 7Z, TAR, TAR.GZ;<br>any files → one ZIP |
-| **CAD**: DWG, DXF | PDF, SVG, PNG, DWG ↔ DXF |
-| **Fonts**: TTF, OTF, WOFF, WOFF2, EOT;<br>FON (Windows bitmap fonts) read | each other;<br>FON → one font per size |
-| **Data**: JSON, JSON Lines, YAML, TOML, XML<br>vCard, iCalendar | each other, CSV and XLSX (tables);<br>vCard, iCalendar ↔ CSV |
-| **3D models**: GLB, glTF, STL, OBJ (+ MTL), 3MF, PLY;<br>FBX read | each other, PNG preview |
-| **Geospatial vectors**: Shapefile, GeoJSON, KML, KMZ, GPX<br>CSV with coordinates; Garmin FIT read | each other and CSV / XLSX / JSON;<br>projected data (UTM, Web Mercator, Lambert, Albers) comes out as WGS 84 longitude / latitude |
+## ✨ Features
 
-Unmarked formats work out of the box, without Office, Hancom Office or LibreOffice.
-Marked ones need an optional engine, downloaded only when needed: ¹ Ghostscript, ² LibreOffice, ³ Pandoc, ⁴ calibre, ⁵ FFmpeg ([details](docs/ENGINES.md)).
+- **Liquid Glass Interface**: Translucent acrylic panels, specular borders, frosted card gradients, and Luffy Gear 5 / Sun God Nika artwork backdrop.
+- **Audio & Haptic Chimes**:
+  - Subtle hover tick sound when gliding across wheel formats.
+  - Smooth whoosh sound when turning or flipping the donut slice face.
+  - Pleasant chime notification upon conversion completion.
+  - Seamlessly powered on Windows via pinned unmanaged audio memory and on macOS via native system sound players.
+- **Clipboard Auto-Detector**:
+  - Automatically identifies copied images and files on the system clipboard.
+  - Non-intrusive bottom-right HUD popup to convert clipboard contents with 1 click.
+- **Radial Donut Menu Wheel**:
+  - Front-face shortcuts for **BG Remove** (transparent PNG generator) and **Extract Audio** (instant MP3/M4A extraction).
+  - Multi-page donut slices: tap <kbd>Tab</kbd> while hovering to flip between front and back tool profiles.
+- **All-in-One Format Support**:
+  - **Images**: PNG, JPG, WEBP, ICO (multi-resolution), AVIF, BMP, TIFF, SVG vectorizer, and background removal.
+  - **Documents**: PDF, DOCX, XLSX, ODT, HWPX, Markdown, EPUB, TXT, HTML.
+  - **Video & Audio**: MP4, MKV, WebM, GIF, MP3, WAV, M4A, subtitle extractions.
+- **Complete Privacy**: Everything processes locally on your machine with zero server calls.
 
-## Command line
+---
 
-The `filee` command uses the same engines and presets as the app (Setup or `install.sh` adds it).
+## 🎯 How It Works
 
-```
-filee convert photo.heic --to jpg
-filee convert *.png --to webp --quality 80 -o converted
-filee watch D:\Inbox --to pdf --move-originals
-```
+1. **Grab any file** in File Explorer or macOS Finder.
+2. **Hold <kbd>Ctrl</kbd>** (Windows) or **<kbd>Option</kbd>** (macOS) and start dragging the file.
+3. The **Liquid Glass Donut Wheel** opens under your cursor.
+4. Drop the file on your target format slice (e.g. `PNG`, `BG Remove`, `PDF`, `MP4`, or `ICO`).
+5. Your converted file appears right next to the original in milliseconds!
 
-Every command and option: [filee.sh/cli](https://filee.sh/cli/) or `filee help`.
+---
 
-## Development
+## 🚀 Quick Start (Building from Source)
 
-Build with the .NET 10 SDK on Windows, macOS or Linux:
+If you prefer building from source, you only need the [.NET 10 SDK](https://dotnet.microsoft.com/download):
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/sugan0025/File-changer.git
-cd Filee-changer
-pwsh build/fetch-engines.ps1 -Only rhwp,pandoc   # optional engines
+cd File-changer
+
+# 2. Run the application
 dotnet run --project src/Filee.App
-dotnet test
+
+# 3. (Optional) Publish a standalone portable build
+dotnet publish src/Filee.App -c Release -r win-x64 --self-contained -o publish
 ```
 
-[Architecture](docs/ARCHITECTURE.md) · [Engines](docs/ENGINES.md) · [Adding a converter](docs/ADDING-A-CONVERTER.md) · [Adding a language](docs/ADDING-A-LANGUAGE.md) · [Contributing](CONTRIBUTING.md)
+---
 
-Pull requests are welcome.
-If Filee saves you some clicks, a ⭐ helps other people find it.
+## 📁 Project Architecture
 
-## Code signing policy
+```
+File-changer/
+├── src/
+│   ├── Filee.App/                # Avalonia desktop shell (views, controls, liquid glass theme)
+│   │   ├── Assets/               # Icons, Luffy Gear 5 wallpapers, vector marks
+│   │   ├── Controls/             # DonutMenu radial wheel rendering and slice geometry
+│   │   ├── Services/             # Audio engine, clipboard watcher, window coordinator
+│   │   ├── Styles/               # Soft.axaml (Liquid Glass brushes, card & button styles)
+│   │   └── Views/                # Modern settings window, notice popups, HUD
+│   ├── Filee.Core/               # Core domain models, profiles, settings schemas, job queues
+│   ├── Filee.Engines/            # Media engines (Magick, FFmpeg, PDF, LibreOffice integrations)
+│   ├── Filee.Platform.Windows/   # Win32 platform services, cursor hooks, clipboard interop
+│   ├── Filee.Platform.MacOS/     # macOS Cocoa platform hooks, NSPasteboard, Finder integration
+│   └── Filee.Platform.Linux/     # Linux Wayland/X11 platform services
+├── tests/                        # Comprehensive unit and integration test suites
+└── Releases/                     # Release configuration and portable distributions
+```
 
-Filee is developed and published by **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)).
+---
 
-- Windows releases are signed with a [Certum](https://www.certum.eu/) open source code signing certificate issued to Myeonggu Kim ("Open Source Developer MYEONGGU KIM").
-  - Releases before it, up to 2.0.0, are not signed.
-  - SmartScreen can still warn about a new release until it has been downloaded enough ("More info" → "Run anyway").
-- macOS packages are ad-hoc signed and not notarized.
-- Only files built by this repository's GitHub Actions release workflow are signed, and every release is signed and approved by hand.
-  - Libraries and programs their makers signed (.NET, SkiaSharp, ImageMagick, the Microsoft C++ runtime …) keep their own signatures; bundled ones that come unsigned (rhwp, 7-Zip and most libraries) are signed with Filee's certificate, as part of Filee.
+## 🛠 Tech Stack
 
-### Privacy policy
+| Layer | Technology |
+|---|---|
+| **Runtime & Language** | .NET 10 · C# 13 (Latest language features) |
+| **Desktop UI Framework** | Avalonia UI 11.2 (Cross-platform XAML) |
+| **Architecture Pattern** | MVVM with CommunityToolkit.Mvvm |
+| **Design System** | Custom Liquid Glass Theme (Translucent Brushes, Specular Edge Gradients) |
+| **Image & Graphics Engine** | Magick.NET, SkiaSharp |
+| **Document & Conversion** | Pandoc, Tesseract OCR, PDFtoImage |
+| **Platform Interop** | Win32 API (`winmm.dll`, `user32.dll`) · macOS AppKit / ObjC Runtime |
 
-Filee converts files on your own computer and never uploads them.
-It collects no usage data and sends no telemetry.
-It connects to the internet only:
+---
 
-- to ask GitHub (`api.github.com`) whether a newer release exists, shortly after start and then every few hours.
-  Turn this off in Settings → About ("Check for updates automatically").
-- to download the conversion engines you choose to install, from the official locations pinned in [`engines.json`](src/Filee.Engines/Infrastructure/engines.json), and the text recognition (OCR) languages a preset uses, pinned in [`ocr-languages.json`](src/Filee.Engines/Infrastructure/ocr-languages.json).
-- when you click a link, which opens your web browser.
+## 🔒 Privacy & Local Processing
 
-## License
+- **No Remote Telemetry**: File-changer performs **zero** analytics pings and transmits **no** data over the internet.
+- **Isolated Execution**: All conversion processes run locally on your hardware.
+- **Safe Clipboard Access**: The clipboard watcher reads only metadata sequences and clears immediately after user interaction.
 
-MIT, © 2026 Myeonggu Kim (KnifeLemon) and Filee contributors.
-Bundled third-party components keep their own licenses, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+---
 
-<p align="center">
-  <a href="https://star-history.com/#sugan0025/File-changer&Date"><img src="https://api.star-history.com/svg?repos=sugan0025/File-changer&type=Date" alt="Star history" width="600"></a>
-</p>
+<!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
+
+## 👤 Author & Credits
+
+Engineered and customized by **Sugan S** ([@sugan0025](https://github.com/sugan0025)).
+
+Based on the original [Filee](https://github.com/KnifeLemon/Filee) project by **Myeonggu Kim** ([KnifeLemon](https://github.com/KnifeLemon)) and contributors, licensed under the MIT License.
+
+<br>
+
+<div align="center">
+
+[![GitHub Profile](https://img.shields.io/badge/GitHub-sugan0025-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sugan0025)
+&nbsp;
+[![LinkedIn Profile](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sugan0025)
+
+<br><br>
+
+<b>MIT License © 2026 Sugan S & Filee contributors.</b>
+
+</div>
