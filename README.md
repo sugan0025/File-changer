@@ -1,5 +1,5 @@
 <!-- ========================================================================= -->
-<!-- FILE-CHANGER: LIQUID GLASS OFFLINE CONVERTER FOR WINDOWS & MACOS           -->
+<!-- FILE-CHANGER: LIQUID GLASS OFFLINE CONVERTER FOR WINDOWS, MACOS & LINUX           -->
 <!-- ========================================================================= -->
 
 <div align="center">
@@ -18,7 +18,7 @@
 </a>
 &nbsp;
 <a href="https://github.com/sugan0025/File-changer/releases">
-  <img src="https://img.shields.io/badge/Platform-Windows_%7C_macOS-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows & macOS" />
+  <img src="https://img.shields.io/badge/Platform-Windows_%7C_macOS_%7C_Linux-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows & macOS" />
 </a>
 &nbsp;
 <a href="https://github.com/sugan0025/File-changer/tree/release-binaries">
@@ -34,7 +34,7 @@
 <br><br>
 
 <p align="center">
-  <b>A modern, high-performance offline desktop file converter engineered with a custom frosted Liquid Glass interface, Luffy Gear 5 backdrop scrim, synthesized audio chimes, clipboard auto-detection, and native multiplatform support for Windows and macOS.</b>
+  <b>A modern, high-performance offline desktop file converter engineered with a custom frosted Liquid Glass interface, Luffy Gear 5 backdrop scrim, synthesized audio chimes, clipboard auto-detection, and native multiplatform support for Windows, macOS, and Linux.</b>
 </p>
 
 [📥 Downloads](#-pre-built-downloads) &nbsp;•&nbsp; [✨ Features](#-features) &nbsp;•&nbsp; [🎯 How It Works](#-how-it-works) &nbsp;•&nbsp; [🚀 Quick Start](#-quick-start) &nbsp;•&nbsp; [📁 Architecture](#-project-architecture) &nbsp;•&nbsp; [🛠 Tech Stack](#-tech-stack) &nbsp;•&nbsp; [👤 Author & Credits](#-author--credits)
@@ -48,7 +48,7 @@
 **File-changer** brings effortless, private, and offline conversion directly to your mouse cursor. Hold <kbd>Ctrl</kbd> on Windows or <kbd>Option</kbd> on macOS, drag any file, and release it over an interactive donut menu wheel to convert documents, images, video, and audio instantly.
 
 ```yaml
-Application Status   : Production Ready (Windows x64 · macOS Apple Silicon · macOS Intel)
+Application Status   : Production Ready (Windows x64 · macOS Apple Silicon · Linux x64)
 Target Framework     : .NET 10 (C# 13 · Avalonia UI Cross-Platform)
 Visual Design System : Frosted Liquid Glass (Ambient Vignette · Translucent Cards · Gear 5 Art)
 Audio Feedback       : Synthesized Audio Ticks (Unmanaged Win32 Pinned Buffers · macOS afplay)
@@ -66,7 +66,7 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 | :--- | :--- | :--- | :--- |
 | **Windows** | [**Download for Windows (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-win-x64.zip) | Windows 10 & 11 (64-bit) | ~80 MB |
 | **macOS (Apple Silicon)** | [**Download for macOS (Apple Silicon)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-arm64.zip) | M1, M2, M3, M4 Macs | ~78 MB |
-| **macOS (Intel)** | [**Download for macOS (Intel)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-x64.zip) | Older Intel-based Macs | ~83 MB |
+| **Linux** | [**Download for Linux (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-linux-x64.tar.gz) | Ubuntu, Debian, Fedora, Arch (64-bit) | ~82 MB |
 
 > You can also browse all packages on the dedicated [**`release-binaries`**](https://github.com/sugan0025/File-changer/tree/release-binaries/binaries) branch or explore release tags under [**Releases**](https://github.com/sugan0025/File-changer/releases).
 

@@ -118,7 +118,7 @@ jobs:
       fail-fast: false
       # The Linux packages, plus the macOS ones unless the caller leaves them out.
       matrix:
-        include: ${{ fromJSON(inputs.macos == false && '[{"runner":"ubuntu-24.04","rid":"linux-x64"},{"runner":"ubuntu-24.04-arm","rid":"linux-arm64"}]' || '[{"runner":"ubuntu-24.04","rid":"linux-x64"},{"runner":"ubuntu-24.04-arm","rid":"linux-arm64"},{"runner":"macos-15","rid":"osx-arm64"},{"runner":"macos-15-intel","rid":"osx-x64"}]') }}
+        include: ${{ fromJSON(inputs.macos == false && '[{"runner":"ubuntu-24.04","rid":"linux-x64"},{"runner":"ubuntu-24.04-arm","rid":"linux-arm64"}]' || '[{"runner":"ubuntu-24.04","rid":"linux-x64"},{"runner":"ubuntu-24.04-arm","rid":"linux-arm64"},{"runner":"macos-15","rid":"osx-arm64"}]') }}
     runs-on: ${{ matrix.runner }}
     # macOS Intel runners take 50 minutes and more for the App tests alone (the render tests in every language), and
     # slow ones near two hours (#540).
