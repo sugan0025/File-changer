@@ -25,7 +25,7 @@ public sealed class PipelineDrawingCanvas : Control
 
     private static readonly DashStyle s_dashStyle = new([4, 4], 0);
 
-    // Geometry caches for the 5 SVG paths
+    // Geometry caches for the 5 SVG paths (Canvas: 1080 x 340)
     private readonly StreamGeometry _geomPath1 = new();
     private readonly StreamGeometry _geomPath2 = new();
     private readonly StreamGeometry _geomPathTop = new();
@@ -49,43 +49,43 @@ public sealed class PipelineDrawingCanvas : Control
 
     private void BuildGeometries()
     {
-        // Path 1: M 230 175 L 320 175
+        // Path 1: M 240 170 L 340 170 (between Input and Processing)
         using (var ctx = _geomPath1.Open())
         {
-            ctx.BeginFigure(new Point(230, 175), false);
-            ctx.LineTo(new Point(320, 175));
+            ctx.BeginFigure(new Point(240, 170), false);
+            ctx.LineTo(new Point(340, 170));
             ctx.EndFigure(false);
         }
 
-        // Path 2: M 480 175 L 570 175
+        // Path 2: M 520 170 L 620 170 (between Processing and Routing)
         using (var ctx = _geomPath2.Open())
         {
-            ctx.BeginFigure(new Point(480, 175), false);
-            ctx.LineTo(new Point(570, 175));
+            ctx.BeginFigure(new Point(520, 170), false);
+            ctx.LineTo(new Point(620, 170));
             ctx.EndFigure(false);
         }
 
-        // Path Top: M 730 175 C 760 175, 765 75, 800 75
+        // Path Top: M 800 170 C 830 170, 835 70, 865 70 (Routing to End Node 0)
         using (var ctx = _geomPathTop.Open())
         {
-            ctx.BeginFigure(new Point(730, 175), false);
-            ctx.CubicBezierTo(new Point(760, 175), new Point(765, 75), new Point(800, 75));
+            ctx.BeginFigure(new Point(800, 170), false);
+            ctx.CubicBezierTo(new Point(830, 170), new Point(835, 70), new Point(865, 70));
             ctx.EndFigure(false);
         }
 
-        // Path Mid: M 730 175 L 800 175
+        // Path Mid: M 800 170 L 865 170 (Routing to End Node 1)
         using (var ctx = _geomPathMid.Open())
         {
-            ctx.BeginFigure(new Point(730, 175), false);
-            ctx.LineTo(new Point(800, 175));
+            ctx.BeginFigure(new Point(800, 170), false);
+            ctx.LineTo(new Point(865, 170));
             ctx.EndFigure(false);
         }
 
-        // Path Bot: M 730 175 C 760 175, 765 275, 800 275
+        // Path Bot: M 800 170 C 830 170, 835 270, 865 270 (Routing to End Node 2)
         using (var ctx = _geomPathBot.Open())
         {
-            ctx.BeginFigure(new Point(730, 175), false);
-            ctx.CubicBezierTo(new Point(760, 175), new Point(765, 275), new Point(800, 275));
+            ctx.BeginFigure(new Point(800, 170), false);
+            ctx.CubicBezierTo(new Point(830, 170), new Point(835, 270), new Point(865, 270));
             ctx.EndFigure(false);
         }
     }
@@ -141,8 +141,8 @@ public sealed class PipelineDrawingCanvas : Control
         context.DrawGeometry(null, dashPen, _geomPathMid);
         context.DrawGeometry(null, dashPen, _geomPathBot);
 
-        // Particle configuration matching React:
-        // particleSpeed = 3.0s, particleCount = 3, size = 2.5
+        // Particle configuration:
+        // speed = 3.0s, count = 3 particles per path, size = 2.5
         const double speed = 3.0;
         const int count = 3;
         const double interval = 1.0 / count;
@@ -159,33 +159,33 @@ public sealed class PipelineDrawingCanvas : Control
         {
             double p = (baseProgress + i * interval) % 1.0;
 
-            // 1. Path 1: (230, 175) -> (320, 175)
-            Point pt1 = new(230 + 90 * p, 175);
+            // 1. Path 1: (240, 170) -> (340, 170)
+            Point pt1 = new(240 + 100 * p, 170);
             DrawParticle(context, pt1, activeCoreColor, activeGlowColor);
 
-            // 2. Path 2: (480, 175) -> (570, 175)
-            Point pt2 = new(480 + 90 * p, 175);
+            // 2. Path 2: (520, 170) -> (620, 170)
+            Point pt2 = new(520 + 100 * p, 170);
             DrawParticle(context, pt2, activeCoreColor, activeGlowColor);
 
-            // 3. Path Top: M 730 175 C 760 175, 765 75, 800 75
+            // 3. Path Top: M 800 170 C 830 170, 835 70, 865 70
             double u = 1.0 - p;
-            double xt = u * u * u * 730 + 3 * u * u * p * 760 + 3 * u * p * p * 765 + p * p * p * 800;
-            double yt = u * u * u * 175 + 3 * u * u * p * 175 + 3 * u * p * p * 75 + p * p * p * 75;
+            double xt = u * u * u * 800 + 3 * u * u * p * 830 + 3 * u * p * p * 835 + p * p * p * 865;
+            double yt = u * u * u * 170 + 3 * u * u * p * 170 + 3 * u * p * p * 70 + p * p * p * 70;
             bool isTopActive = ActiveIndex == 0;
             DrawParticle(context, new Point(xt, yt),
                 isTopActive ? activeCoreColor : normalCoreColor,
                 isTopActive ? activeGlowColor : normalGlowColor);
 
-            // 4. Path Mid: (730, 175) -> (800, 175)
-            Point pm = new(730 + 70 * p, 175);
+            // 4. Path Mid: (800, 170) -> (865, 170)
+            Point pm = new(800 + 65 * p, 170);
             bool isMidActive = ActiveIndex == 1;
             DrawParticle(context, pm,
                 isMidActive ? activeCoreColor : normalCoreColor,
                 isMidActive ? activeGlowColor : normalGlowColor);
 
-            // 5. Path Bot: M 730 175 C 760 175, 765 275, 800 275
-            double xb = u * u * u * 730 + 3 * u * u * p * 760 + 3 * u * p * p * 765 + p * p * p * 800;
-            double yb = u * u * u * 175 + 3 * u * u * p * 175 + 3 * u * p * p * 275 + p * p * p * 275;
+            // 5. Path Bot: M 800 170 C 830 170, 835 270, 865 270
+            double xb = u * u * u * 800 + 3 * u * u * p * 830 + 3 * u * p * p * 835 + p * p * p * 865;
+            double yb = u * u * u * 170 + 3 * u * u * p * 170 + 3 * u * p * p * 270 + p * p * p * 270;
             bool isBotActive = ActiveIndex == 2;
             DrawParticle(context, new Point(xb, yb),
                 isBotActive ? activeCoreColor : normalCoreColor,
@@ -208,4 +208,3 @@ public sealed class PipelineDrawingCanvas : Control
         context.DrawEllipse(coreBrush, null, center, 2.5, 2.5);
     }
 }
-

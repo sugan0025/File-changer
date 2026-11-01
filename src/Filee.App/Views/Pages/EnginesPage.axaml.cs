@@ -122,6 +122,15 @@ public partial class EnginesPage : UserControl
         Vm?.SavePriority();
     }
 
+    private void OnConsoleBarPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is EnginesPageViewModel vm)
+        {
+            vm.ToggleDropdown();
+            AppHost.TryGet<SoundService>()?.PlayFanOut();
+        }
+    }
+
     /// <summary>The LibreOffice switches, in their own window.</summary>
     private async void OnPackageSettings(object? sender, RoutedEventArgs e)
     {

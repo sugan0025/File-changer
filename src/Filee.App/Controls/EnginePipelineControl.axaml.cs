@@ -2,8 +2,8 @@ using System;
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -14,7 +14,12 @@ namespace Filee.App.Controls;
 public partial class EnginePipelineControl : UserControl
 {
     public static readonly StyledProperty<int> ActiveIndexProperty =
-        AvaloniaProperty.Register<EnginePipelineControl, int>(nameof(ActiveIndex), 1);
+        AvaloniaProperty.Register<EnginePipelineControl, int>(
+            nameof(ActiveIndex), 1, defaultBindingMode: BindingMode.TwoWay);
+
+    public static readonly StyledProperty<bool> IsDropdownOpenProperty =
+        AvaloniaProperty.Register<EnginePipelineControl, bool>(
+            nameof(IsDropdownOpen), false, defaultBindingMode: BindingMode.TwoWay);
 
     public int ActiveIndex
     {
@@ -22,17 +27,16 @@ public partial class EnginePipelineControl : UserControl
         set => SetValue(ActiveIndexProperty, value);
     }
 
+    public bool IsDropdownOpen
+    {
+        get => GetValue(IsDropdownOpenProperty);
+        set => SetValue(IsDropdownOpenProperty, value);
+    }
+
     private readonly DispatcherTimer _cycleTimer;
     private readonly Stopwatch _dotWatch = Stopwatch.StartNew();
     private TopLevel? _topLevel;
     private bool _isAnimRunning;
-
-    private static readonly string[] s_infoTexts =
-    [
-        "Database: ImageMagick & PDFium — 1,120 conversions committed and ready",
-        "Dashboard: FFmpeg Media Stream — Real-time audio and video pipeline active",
-        "Email Service: LibreOffice, Pandoc & rhwp — Document and markup dispatch active"
-    ];
 
     public EnginePipelineControl()
     {
@@ -40,7 +44,7 @@ public partial class EnginePipelineControl : UserControl
 
         _cycleTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(3.0)
+            Interval = TimeSpan.FromSeconds(3.5)
         };
         _cycleTimer.Tick += OnCycleTick;
     }
@@ -53,7 +57,18 @@ public partial class EnginePipelineControl : UserControl
             int index = change.GetNewValue<int>();
             Canvas.ActiveIndex = index;
             UpdateActiveNodeVisuals();
-            UpdateStatusText();
+        }
+        else if (change.Property == IsDropdownOpenProperty)
+        {
+            bool isOpen = change.GetNewValue<bool>();
+            if (isOpen)
+            {
+                _cycleTimer.Stop(); // Pause auto-rotation when user is inspecting engines
+            }
+            else
+            {
+                _cycleTimer.Start();
+            }
         }
     }
 
@@ -64,9 +79,10 @@ public partial class EnginePipelineControl : UserControl
 
         UpdateThemeVisuals();
         UpdateActiveNodeVisuals();
-        UpdateStatusText();
 
-        _cycleTimer.Start();
+        if (!IsDropdownOpen)
+            _cycleTimer.Start();
+
         StartDotAnimation();
     }
 
@@ -106,7 +122,8 @@ public partial class EnginePipelineControl : UserControl
 
     private void OnCycleTick(object? sender, EventArgs e)
     {
-        ActiveIndex = (ActiveIndex + 1) % 3;
+        if (!IsDropdownOpen)
+            ActiveIndex = (ActiveIndex + 1) % 3;
     }
 
     private void OnNode0Pressed(object? sender, PointerPressedEventArgs e) => SelectNode(0);
@@ -115,12 +132,9 @@ public partial class EnginePipelineControl : UserControl
 
     private void SelectNode(int index)
     {
-        if (ActiveIndex == index)
-            return;
-
+        // When clicking the category button, switch to it, open the dropdown, and play sound
         ActiveIndex = index;
-        _cycleTimer.Stop();
-        _cycleTimer.Start();
+        IsDropdownOpen = true;
 
         AppHost.TryGet<SoundService>()?.PlayFanOut();
     }
@@ -176,8 +190,8 @@ public partial class EnginePipelineControl : UserControl
             label.FontWeight = FontWeight.SemiBold;
             label.Foreground = isDark ? new SolidColorBrush(Color.Parse("#FFFFFF")) : new SolidColorBrush(Color.Parse("#111827"));
 
-            dot.Width = 10;
-            dot.Height = 10;
+            dot.Width = 11;
+            dot.Height = 11;
             dot.Background = isDark ? new SolidColorBrush(Color.Parse("#FFFFFF")) : new SolidColorBrush(Color.Parse("#111827"));
         }
         else
@@ -188,23 +202,9 @@ public partial class EnginePipelineControl : UserControl
             label.FontWeight = FontWeight.Medium;
             label.Foreground = isDark ? new SolidColorBrush(Color.Parse("#9CA3AF")) : new SolidColorBrush(Color.Parse("#6B7280"));
 
-            dot.Width = 8;
-            dot.Height = 8;
+            dot.Width = 9;
+            dot.Height = 9;
             dot.Background = isDark ? new SolidColorBrush(Color.Parse("#4B5563")) : new SolidColorBrush(Color.Parse("#D1D5DB"));
         }
     }
-
-    private void UpdateStatusText()
-    {
-        int idx = Math.Clamp(ActiveIndex, 0, s_infoTexts.Length - 1);
-        StatusInfoText.Opacity = 0.2;
-        StatusInfoText.Text = s_infoTexts[idx];
-
-        // Smooth quick fade-in
-        Dispatcher.UIThread.Post(() =>
-        {
-            StatusInfoText.Opacity = 1.0;
-        }, DispatcherPriority.Background);
-    }
 }
-

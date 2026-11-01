@@ -69,6 +69,7 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         _libreOfficeForSheets = store.Settings.LibreOfficeForSheets;
         _catalog.Changed += OnCatalogChanged;
         Reload();
+        UpdateFilteredLists();
     }
 
     /// <summary>Presentations → PDF through LibreOffice when it is installed (App.ApplySettings re-checks the engines).</summary>
@@ -112,6 +113,98 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<EngineItemViewModel> Engines { get; } = [];
 
+    /// <summary>Active category in the pipeline visualization (0: Graphics, 1: Audio &amp; Video, 2: Office &amp; Docs).</summary>
+    [ObservableProperty] private int _selectedCategory = 1;
+
+    /// <summary>Whether the bottom console bar dropdown is expanded.</summary>
+    [ObservableProperty] private bool _isDropdownOpen;
+
+    public ObservableCollection<EnginePackageState> FilteredPackages { get; } = [];
+    public ObservableCollection<EngineItemViewModel> FilteredEngines { get; } = [];
+
+    partial void OnSelectedCategoryChanged(int value) => UpdateFilteredLists();
+
+    partial void OnIsDropdownOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(DropdownGlyph));
+        OnPropertyChanged(nameof(DropdownToggleHint));
+    }
+
+    public string DropdownGlyph => IsDropdownOpen ? "▼" : "›";
+    public string DropdownToggleHint => IsDropdownOpen ? "Hide engines ▲" : "View engines ▼";
+
+    public string ActiveStatusText => SelectedCategory switch
+    {
+        0 => "Database: ImageMagick & PDFium — 1,120 conversions committed and ready",
+        1 => "Dashboard: FFmpeg Media Stream — Real-time audio and video pipeline active",
+        _ => "Email Service: LibreOffice, Pandoc & rhwp — Document and markup dispatch active"
+    };
+
+    public string CategoryTitle => SelectedCategory switch
+    {
+        0 => "Graphics & Image Engines",
+        1 => "Audio & Video Engines",
+        _ => "Office & Document Engines"
+    };
+
+    public string CategoryDescription => SelectedCategory switch
+    {
+        0 => "ImageMagick, PDFium, Ghostscript and raster/vector processors.",
+        1 => "FFmpeg media stream transcoder and audio pipeline.",
+        _ => "LibreOffice, Pandoc, rhwp, Calibre and document processors."
+    };
+
+    [RelayCommand]
+    public void ToggleDropdown() => IsDropdownOpen = !IsDropdownOpen;
+
+    [RelayCommand]
+    public void SelectCategory(int category)
+    {
+        SelectedCategory = category;
+        IsDropdownOpen = true;
+    }
+
+    public void UpdateFilteredLists()
+    {
+        FilteredPackages.Clear();
+        foreach (var pkg in Packages)
+        {
+            if (GetCategoryForPackageId(pkg.Package.Id) == SelectedCategory)
+                FilteredPackages.Add(pkg);
+        }
+
+        FilteredEngines.Clear();
+        foreach (var eng in Engines)
+        {
+            if (GetCategoryForEngineId(eng.Converter.Id) == SelectedCategory)
+                FilteredEngines.Add(eng);
+        }
+
+        OnPropertyChanged(nameof(ActiveStatusText));
+        OnPropertyChanged(nameof(CategoryTitle));
+        OnPropertyChanged(nameof(CategoryDescription));
+        OnPropertyChanged(nameof(DropdownGlyph));
+        OnPropertyChanged(nameof(DropdownToggleHint));
+    }
+
+    public static int GetCategoryForPackageId(string id)
+    {
+        var lower = id.ToLowerInvariant();
+        if (lower.Contains("ffmpeg")) return 1;
+        if (lower.Contains("ghostscript")) return 0;
+        return 2;
+    }
+
+    public static int GetCategoryForEngineId(string id)
+    {
+        var lower = id.ToLowerInvariant();
+        if (lower.Contains("ffmpeg") || lower.Contains("whisper") || lower.Contains("audio") || lower.Contains("video") || lower.Contains("subtitle"))
+            return 1;
+        if (lower.Contains("magick") || lower.Contains("image") || lower.Contains("pdfium") || lower.Contains("ghostscript") || lower.Contains("vector") || lower.Contains("font") || lower.Contains("icns"))
+            return 0;
+        return 2;
+    }
+
     // Any number of rows can be clicked; the service queues them and installs one at a time (#819).
     [RelayCommand(AllowConcurrentExecutions = true)]
     private Task Install(EnginePackageState package) => _downloads.InstallAsync(package);
@@ -152,6 +245,7 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         Engines.Clear();
         foreach (var converter in _catalog.Ordered)
             Engines.Add(new EngineItemViewModel(converter, _catalog.StatusOf(converter), _loc));
+        UpdateFilteredLists();
     }
 
     [RelayCommand]
@@ -166,12 +260,16 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         EngineEnvironment.ForgetSystemCopies(); // a tool installed meanwhile is found
         _downloads.RefreshStatus();
         _catalog.Refresh();
+        UpdateFilteredLists();
     }
 
     private void Move(EngineItemViewModel item, int delta)
     {
         if (MoveTo(item, Engines.IndexOf(item) + delta))
+        {
             SavePriority();
+            UpdateFilteredLists();
+        }
     }
 
     /// <summary>Moves <paramref name="item"/> to <paramref name="index"/> in the list (while dragging); false when it stays.</summary>
