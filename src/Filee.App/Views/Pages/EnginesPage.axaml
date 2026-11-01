@@ -26,7 +26,6 @@
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
           <BrushTransition Property="Background" Duration="0:0:0.2" />
-          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
         </Transitions>
       </Setter>
     </Style>
@@ -47,7 +46,6 @@
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.18" />
           <BrushTransition Property="Background" Duration="0:0:0.18" />
-          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18" />
         </Transitions>
       </Setter>
     </Style>
@@ -82,7 +80,7 @@
       </DockPanel>
 
       <!-- Unified Conversion Pipeline Interface: Liquid Morphed Glass Master Container -->
-      <Border Classes="liquid-glass-master" Padding="14,18,14,18" Margin="0,2,0,16">
+      <controls:GlassCard Classes="liquid-glass-master" Padding="14,18,14,18" Margin="0,2,0,16">
         <StackPanel Spacing="16">
 
           <!-- 1. The Vector Animated Diagram with Longer Node Lines (190px span ⚟) -->
@@ -91,7 +89,7 @@
                                           IsDropdownOpen="{Binding IsDropdownOpen, Mode=TwoWay}" />
 
           <!-- 2. The Bottom Console Bar with Dropdown Toggle ('>' rotates/becomes '▼' when open) -->
-          <Border x:Name="ConsoleBar" MaxWidth="1180" Margin="8,0,8,0" Padding="20,13"
+          <controls:GlassCard x:Name="ConsoleBar" MaxWidth="1180" Margin="8,0,8,0" Padding="20,13"
                   Classes="liquid-console-bar"
                   Cursor="Hand"
                   PointerPressed="OnConsoleBarPressed">
@@ -107,20 +105,20 @@
                          Foreground="{DynamicResource TextPrimaryBrush}"
                          VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </DockPanel>
-          </Border>
+          </controls:GlassCard>
 
           <!-- 3. The Expandable Dropdown Container (Merged Optional + All Engines in Liquid Glass) -->
           <StackPanel IsVisible="{Binding IsDropdownOpen}" Spacing="14" MaxWidth="1180" Margin="8,4,8,6">
 
             <!-- Category Header & Description in Liquid Frosted Glass -->
-            <Border Classes="liquid-glass-subcard" Padding="18,12">
+            <controls:GlassCard Classes="liquid-glass-subcard" Padding="18,12">
               <DockPanel>
                 <StackPanel Spacing="3">
                   <TextBlock FontWeight="SemiBold" FontSize="14" Text="{Binding CategoryTitle}" Foreground="{DynamicResource TextPrimaryBrush}" />
                   <TextBlock Classes="caption muted" Text="{Binding CategoryDescription}" />
                 </StackPanel>
               </DockPanel>
-            </Border>
+            </controls:GlassCard>
 
             <!-- Optional Engines matching this category (Install, Settings, Use own copy, Remove) -->
             <ItemsControl ItemsSource="{Binding FilteredPackages}">
@@ -131,7 +129,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="svc:EnginePackageState">
-                  <Border Classes="card engine liquid-glass-subcard" Padding="18,14">
+                  <controls:GlassCard Classes="card engine liquid-glass-subcard" Padding="18,14">
                     <DockPanel>
                       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="12,0,0,0">
                         <Button IsVisible="{Binding HasSettings}" Click="OnPackageSettings" ToolTip.Tip="{DynamicResource engines.lo_title}">
@@ -169,7 +167,7 @@
                         <TextBlock Classes="caption" Text="{Binding ProgressDetail}" IsVisible="{Binding ProgressDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                       </StackPanel>
                     </DockPanel>
-                  </Border>
+                  </controls:GlassCard>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -183,7 +181,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:EngineItemViewModel">
-                  <Border Classes="card engine liquid-glass-subcard" Classes.dragging="{Binding IsDragging}" Padding="18,14" Cursor="SizeNorthSouth"
+                  <controls:GlassCard Classes="card engine liquid-glass-subcard" Classes.dragging="{Binding IsDragging}" Padding="18,14" Cursor="SizeNorthSouth"
                           PointerPressed="OnEnginePressed">
                     <StackPanel Spacing="10">
                       <DockPanel>
@@ -218,7 +216,7 @@
                         </StackPanel>
                       </DockPanel>
                     </StackPanel>
-                  </Border>
+                  </controls:GlassCard>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -226,7 +224,7 @@
           </StackPanel>
 
         </StackPanel>
-      </Border>
+      </controls:GlassCard>
 
     </StackPanel>
   </ScrollViewer>

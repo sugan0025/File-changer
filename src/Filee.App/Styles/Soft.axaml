@@ -84,8 +84,16 @@
             <GradientStop Color="#B8FFFFFF" Offset="0.0" />
             <GradientStop Color="#8CEBF4FF" Offset="1.0" />
           </LinearGradientBrush>
-          <SolidColorBrush x:Key="GlassEdgeBrush" Color="#B3B4CDEB" />
-          <SolidColorBrush x:Key="GlassEdgeHoverBrush" Color="#E6FFFFFF" />
+          <LinearGradientBrush x:Key="GlassEdgeBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#E6FFFFFF" Offset="0.0" />
+            <GradientStop Color="#B3B4CDEB" Offset="0.45" />
+            <GradientStop Color="#73B4CDEB" Offset="1.0" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="GlassEdgeHoverBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#FFFFFFFF" Offset="0.0" />
+            <GradientStop Color="#D9CDE3FF" Offset="0.45" />
+            <GradientStop Color="#99B4CDEB" Offset="1.0" />
+          </LinearGradientBrush>
           <SolidColorBrush x:Key="GlassInnerHighlightBrush" Color="#F2FFFFFF" />
           <Color x:Key="GlassShadowColor">#2E284678</Color>
           <SolidColorBrush x:Key="AmbientReflectionBrush" Color="#59BFE0FF" />
@@ -175,8 +183,16 @@
             <GradientStop Color="#6E283042" Offset="0.0" />
             <GradientStop Color="#4D191D2E" Offset="1.0" />
           </LinearGradientBrush>
-          <SolidColorBrush x:Key="GlassEdgeBrush" Color="#40FFFFFF" />
-          <SolidColorBrush x:Key="GlassEdgeHoverBrush" Color="#65FFFFFF" />
+          <LinearGradientBrush x:Key="GlassEdgeBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#66B8C6FF" Offset="0.0" />
+            <GradientStop Color="#40FFFFFF" Offset="0.35" />
+            <GradientStop Color="#1AFFFFFF" Offset="1.0" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="GlassEdgeHoverBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Color="#99D0DCFF" Offset="0.0" />
+            <GradientStop Color="#66FFFFFF" Offset="0.35" />
+            <GradientStop Color="#30FFFFFF" Offset="1.0" />
+          </LinearGradientBrush>
           <SolidColorBrush x:Key="GlassInnerHighlightBrush" Color="#38FFFFFF" />
           <Color x:Key="GlassShadowColor">#59000000</Color>
           <SolidColorBrush x:Key="AmbientReflectionBrush" Color="#1F8E85F3" />
@@ -368,7 +384,6 @@
       <Transitions>
         <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
         <BrushTransition Property="Background" Duration="0:0:0.2" />
-        <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.2" />
       </Transitions>
     </Setter>
   </Style>

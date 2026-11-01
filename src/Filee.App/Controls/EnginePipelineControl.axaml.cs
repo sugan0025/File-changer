@@ -206,7 +206,7 @@ public partial class EnginePipelineControl : UserControl
         UpdateEndNode(EndNode2, DotNode2, TextNode2, ActiveIndex == 2, isDark);
     }
 
-    private void UpdateEndNode(Border card, Border dot, TextBlock label, bool isActive, bool isDark)
+    private void UpdateEndNode(GlassCard card, Border dot, TextBlock label, bool isActive, bool isDark)
     {
         if (isActive)
         {
