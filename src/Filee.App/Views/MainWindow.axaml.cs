@@ -31,7 +31,7 @@ public partial class MainWindow : Window
         {
             navList.AddHandler(InputElement.PointerPressedEvent, (_, _) =>
             {
-                AppHost.TryGet<SoundService>()?.PlayNav();
+                AppHost.TryGet<SoundService>()?.PlayFanOut();
             }, RoutingStrategies.Tunnel);
         }
     }

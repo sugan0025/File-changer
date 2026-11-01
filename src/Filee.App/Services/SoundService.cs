@@ -35,7 +35,7 @@ public sealed class SoundService : IDisposable
     private readonly IntPtr _toggleOn;
     private readonly IntPtr _toggleOff;
     private long _lastTickMs;
-    private long _lastNavMs;
+    private long _lastFanOutMs;
 
     public SoundService(UserDataStore store)
     {
@@ -129,8 +129,9 @@ public sealed class SoundService : IDisposable
             return;
 
         var now = Environment.TickCount64;
-        if (now - _lastNavMs < 100)
+        if (now - _lastFanOutMs < 120)
             return;
+        _lastFanOutMs = now;
 
         if (OperatingSystem.IsWindows())
             PlayWindows(_fanOut);
@@ -171,21 +172,7 @@ public sealed class SoundService : IDisposable
             PlayMacSound("Basso");
     }
 
-    public void PlayNav()
-    {
-        if (!_store.Settings.SoundEffects)
-            return;
-
-        var now = Environment.TickCount64;
-        if (now - _lastNavMs < 40)
-            return;
-        _lastNavMs = now;
-
-        if (OperatingSystem.IsWindows())
-            PlayWindows(_nav);
-        else if (OperatingSystem.IsMacOS())
-            PlayMacSound("Pop");
-    }
+    public void PlayNav() => PlayFanOut();
 
     public void PlayButtonClick()
     {

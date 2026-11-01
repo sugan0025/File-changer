@@ -176,7 +176,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!Choices.Restore(oldValue, newValue, v => SelectedItem = v))
         {
             if (oldValue is not null && oldValue != newValue)
-                _services.GetService<SoundService>()?.PlayNav();
+                _services.GetService<SoundService>()?.PlayFanOut();
             CurrentPage = CreatePage(newValue);
         }
     }
