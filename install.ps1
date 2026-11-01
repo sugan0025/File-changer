@@ -3,6 +3,13 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Ensure modern TLS 1.2 and 1.3 are enabled on Windows PowerShell 5.1
+try {
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
+} catch {
+    [System.Net.ServicePointManager]::SecurityProtocol = 3072
+}
+
 Write-Host ""
 Write-Host " ===================================================" -ForegroundColor Cyan
 Write-Host "            Filee - Desktop Installation            " -ForegroundColor White
@@ -46,9 +53,23 @@ if (-not $downloadUrl) {
 
 Write-Host "Downloading Filee ($downloadUrl)..." -ForegroundColor Cyan
 
-$webClient = New-Object System.Net.WebClient
-$webClient.Headers.Add("User-Agent", "Filee-Installer")
-$webClient.DownloadFile($downloadUrl, $tempZip)
+$downloaded = $false
+$curlExe = (Get-Command curl.exe -ErrorAction SilentlyContinue)?.Source
+if ($curlExe) {
+    try {
+        & $curlExe -fL "$downloadUrl" -o "$tempZip"
+        if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 10000) {
+            $downloaded = $true
+        }
+    }
+    catch { }
+}
+
+if (-not $downloaded) {
+    $webClient = New-Object System.Net.WebClient
+    $webClient.Headers.Add("User-Agent", "Filee-Installer")
+    $webClient.DownloadFile($downloadUrl, $tempZip)
+}
 
 Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $installDir | Out-Null
