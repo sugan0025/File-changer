@@ -4,18 +4,23 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Filee.App.Services;
 
 namespace Filee.App.Controls;
 
 /// <summary>
 /// Native high-performance vector canvas for the conversion pipeline.
-/// Draws static dashed connection lines and smooth 60 FPS glowing particles
-/// traveling continuously along straight and sweeping cubic Bézier paths (⚟).
+/// Draws static dashed connection lines, constant-velocity glowing comet particles
+/// via arc-length parameterization, and zero per-frame heap allocations.
+/// Automatically suspends the render loop when hidden, deactivated, or reduced motion is enabled.
 /// </summary>
 public sealed class PipelineDrawingCanvas : Control
 {
     public static readonly StyledProperty<int> ActiveIndexProperty =
         AvaloniaProperty.Register<PipelineDrawingCanvas, int>(nameof(ActiveIndex), 1);
+
+    public static readonly StyledProperty<bool> IsConvertingProperty =
+        AvaloniaProperty.Register<PipelineDrawingCanvas, bool>(nameof(IsConverting), false);
 
     public int ActiveIndex
     {
@@ -23,22 +28,165 @@ public sealed class PipelineDrawingCanvas : Control
         set => SetValue(ActiveIndexProperty, value);
     }
 
-    private static readonly DashStyle s_dashStyle = new([4, 4], 0);
+    public bool IsConverting
+    {
+        get => GetValue(IsConvertingProperty);
+        set => SetValue(IsConvertingProperty, value);
+    }
 
-    // Geometry caches for the SVG paths (Canvas: 1180 x 350)
+    // Static dashed pens & styles
+    private static readonly DashStyle s_dashStyle = new([4, 4], 0);
+    private static readonly Pen s_dashPenDark = new(new SolidColorBrush(Color.FromArgb(145, 95, 110, 135)), 1.5, s_dashStyle);
+    private static readonly Pen s_dashPenLight = new(new SolidColorBrush(Color.FromArgb(175, 195, 205, 220)), 1.5, s_dashStyle);
+    private static readonly Pen s_activeBranchPenDark = new(new SolidColorBrush(Color.FromArgb(200, 142, 133, 243)), 1.8);
+    private static readonly Pen s_activeBranchPenLight = new(new SolidColorBrush(Color.FromArgb(180, 127, 119, 221)), 1.8);
+
+    // Pre-allocated static brushes for zero GC pressure per frame
+    private static readonly IBrush s_activeCoreDark = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+    private static readonly IBrush s_normalCoreDark = new SolidColorBrush(Color.FromRgb(170, 185, 205));
+    private static readonly IBrush[] s_activeTrailDark =
+    [
+        new SolidColorBrush(Color.FromArgb(240, 255, 255, 255)),
+        new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)),
+        new SolidColorBrush(Color.FromArgb(120, 200, 210, 255)),
+        new SolidColorBrush(Color.FromArgb(70, 142, 133, 243)),
+        new SolidColorBrush(Color.FromArgb(25, 142, 133, 243))
+    ];
+    private static readonly IBrush[] s_normalTrailDark =
+    [
+        new SolidColorBrush(Color.FromArgb(160, 170, 185, 205)),
+        new SolidColorBrush(Color.FromArgb(110, 150, 165, 190)),
+        new SolidColorBrush(Color.FromArgb(70, 130, 145, 170)),
+        new SolidColorBrush(Color.FromArgb(40, 110, 125, 150)),
+        new SolidColorBrush(Color.FromArgb(18, 95, 110, 135))
+    ];
+
+    private static readonly IBrush s_activeCoreLight = new SolidColorBrush(Color.FromRgb(17, 24, 39));
+    private static readonly IBrush s_normalCoreLight = new SolidColorBrush(Color.FromRgb(75, 85, 99));
+    private static readonly IBrush[] s_activeTrailLight =
+    [
+        new SolidColorBrush(Color.FromArgb(240, 31, 41, 55)),
+        new SolidColorBrush(Color.FromArgb(180, 55, 65, 81)),
+        new SolidColorBrush(Color.FromArgb(120, 107, 114, 128)),
+        new SolidColorBrush(Color.FromArgb(70, 127, 119, 221)),
+        new SolidColorBrush(Color.FromArgb(25, 127, 119, 221))
+    ];
+    private static readonly IBrush[] s_normalTrailLight =
+    [
+        new SolidColorBrush(Color.FromArgb(160, 75, 85, 99)),
+        new SolidColorBrush(Color.FromArgb(110, 107, 114, 128)),
+        new SolidColorBrush(Color.FromArgb(70, 156, 163, 175)),
+        new SolidColorBrush(Color.FromArgb(40, 180, 185, 195)),
+        new SolidColorBrush(Color.FromArgb(18, 209, 213, 219))
+    ];
+
+    private static readonly double[] s_trailRadii = [2.5, 2.1, 1.7, 1.3, 0.9];
+    private static readonly double[] s_trailOffsets = [0.0, 3.5, 7.0, 10.5, 14.0];
+
+    // Arc-length parameterization for constant speed on lines and cubic Bézier curves
+    private sealed class PathTable
+    {
+        public Point[] Pts { get; }
+        public double[] Distances { get; }
+        public double TotalLength { get; }
+
+        private PathTable(Point[] pts, double[] dists, double total)
+        {
+            Pts = pts;
+            Distances = dists;
+            TotalLength = total;
+        }
+
+        public static PathTable SampleLine(Point start, Point end, int samples = 16)
+        {
+            var pts = new Point[samples + 1];
+            var dists = new double[samples + 1];
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+            double total = Math.Sqrt(dx * dx + dy * dy);
+
+            for (int i = 0; i <= samples; i++)
+            {
+                double t = (double)i / samples;
+                pts[i] = new Point(start.X + dx * t, start.Y + dy * t);
+                dists[i] = total * t;
+            }
+            return new PathTable(pts, dists, total);
+        }
+
+        public static PathTable SampleCubicBezier(Point p0, Point p1, Point p2, Point p3, int samples = 64)
+        {
+            var pts = new Point[samples + 1];
+            var dists = new double[samples + 1];
+            pts[0] = p0;
+            dists[0] = 0.0;
+            double total = 0.0;
+
+            for (int i = 1; i <= samples; i++)
+            {
+                double t = (double)i / samples;
+                double u = 1.0 - t;
+                double x = u * u * u * p0.X + 3 * u * u * t * p1.X + 3 * u * t * t * p2.X + t * t * t * p3.X;
+                double y = u * u * u * p0.Y + 3 * u * u * t * p1.Y + 3 * u * t * t * p2.Y + t * t * t * p3.Y;
+                pts[i] = new Point(x, y);
+
+                double segDx = x - pts[i - 1].X;
+                double segDy = y - pts[i - 1].Y;
+                total += Math.Sqrt(segDx * segDx + segDy * segDy);
+                dists[i] = total;
+            }
+            return new PathTable(pts, dists, total);
+        }
+
+        public Point GetPointAtDistance(double distance)
+        {
+            if (TotalLength <= 0.0001) return Pts[0];
+            double d = distance % TotalLength;
+            if (d < 0) d += TotalLength;
+
+            int idx = Array.BinarySearch(Distances, d);
+            if (idx >= 0) return Pts[idx];
+
+            int next = ~idx;
+            if (next <= 0) return Pts[0];
+            if (next >= Distances.Length) return Pts[^1];
+
+            int prev = next - 1;
+            double span = Distances[next] - Distances[prev];
+            if (span <= 0.0001) return Pts[prev];
+
+            double ratio = (d - Distances[prev]) / span;
+            return new Point(
+                Pts[prev].X + (Pts[next].X - Pts[prev].X) * ratio,
+                Pts[prev].Y + (Pts[next].Y - Pts[prev].Y) * ratio);
+        }
+    }
+
+    // Geometry caches
     private readonly StreamGeometry _geomPath1 = new();
     private readonly StreamGeometry _geomPath2 = new();
     private readonly StreamGeometry _geomPathTop = new();
     private readonly StreamGeometry _geomPathMid = new();
     private readonly StreamGeometry _geomPathBot = new();
 
+    // Arc-length tables
+    private readonly PathTable _tablePath1 = PathTable.SampleLine(new Point(220, 175), new Point(290, 175));
+    private readonly PathTable _tablePath2 = PathTable.SampleLine(new Point(460, 175), new Point(530, 175));
+    private readonly PathTable _tablePathTop = PathTable.SampleCubicBezier(new Point(700, 175), new Point(775, 175), new Point(815, 75), new Point(890, 75));
+    private readonly PathTable _tablePathMid = PathTable.SampleLine(new Point(700, 175), new Point(890, 175));
+    private readonly PathTable _tablePathBot = PathTable.SampleCubicBezier(new Point(700, 175), new Point(775, 175), new Point(815, 275), new Point(890, 275));
+
     private TopLevel? _topLevel;
+    private Window? _window;
     private bool _isLooping;
+    private double _lastRenderTime;
+    private double _revealStartTime = -10.0;
+    private int _lastActiveIndex = -1;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     static PipelineDrawingCanvas()
     {
-        AffectsRender<PipelineDrawingCanvas>(ActiveIndexProperty);
+        AffectsRender<PipelineDrawingCanvas>(ActiveIndexProperty, IsConvertingProperty);
     }
 
     public PipelineDrawingCanvas()
@@ -49,7 +197,7 @@ public sealed class PipelineDrawingCanvas : Control
 
     private void BuildGeometries()
     {
-        // Path 1: M 220 175 L 290 175 (Input right edge to Processing left edge)
+        // Path 1: M 220 175 L 290 175
         using (var ctx = _geomPath1.Open())
         {
             ctx.BeginFigure(new Point(220, 175), false);
@@ -57,15 +205,13 @@ public sealed class PipelineDrawingCanvas : Control
             ctx.EndFigure(false);
         }
 
-        // Path 2: M 460 175 L 530 175 (Processing right edge to Routing left edge)
+        // Path 2: M 460 175 L 530 175
         using (var ctx = _geomPath2.Open())
         {
             ctx.BeginFigure(new Point(460, 175), false);
             ctx.LineTo(new Point(530, 175));
             ctx.EndFigure(false);
         }
-
-        // Long Branching Lines ⚟ (Routing right edge at 700 to End Nodes left edge at 890: 190px span!)
 
         // Path Top: M 700 175 C 775 175, 815 75, 890 75
         using (var ctx = _geomPathTop.Open())
@@ -92,35 +238,114 @@ public sealed class PipelineDrawingCanvas : Control
         }
     }
 
+    private bool ShouldAnimate =>
+        IsEffectivelyVisible &&
+        Motion.Enabled &&
+        (_window == null || _window.IsActive);
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
         _topLevel = TopLevel.GetTopLevel(this);
-        StartLoop();
+        _window = _topLevel as Window;
+
+        if (_window != null)
+        {
+            _window.Activated += OnWindowActivated;
+            _window.Deactivated += OnWindowDeactivated;
+        }
+
+        Motion.Changed += OnMotionChanged;
+
+        CheckLoopState();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        _isLooping = false;
+        if (_window != null)
+        {
+            _window.Activated -= OnWindowActivated;
+            _window.Deactivated -= OnWindowDeactivated;
+        }
+
+        Motion.Changed -= OnMotionChanged;
+        StopLoop();
         _topLevel = null;
+        _window = null;
         base.OnDetachedFromVisualTree(e);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == IsVisibleProperty)
+        {
+            CheckLoopState();
+        }
+        else if (change.Property == ActiveIndexProperty)
+        {
+            int newIndex = change.GetNewValue<int>();
+            if (newIndex != _lastActiveIndex)
+            {
+                _lastActiveIndex = newIndex;
+                _revealStartTime = _stopwatch.Elapsed.TotalSeconds;
+            }
+        }
+    }
+
+    private void OnWindowActivated(object? sender, EventArgs e) => CheckLoopState();
+    private void OnWindowDeactivated(object? sender, EventArgs e) => CheckLoopState();
+    private void OnMotionChanged(object? sender, EventArgs e) => CheckLoopState();
+
+    private void CheckLoopState()
+    {
+        if (ShouldAnimate)
+        {
+            StartLoop();
+        }
+        else
+        {
+            StopLoop();
+            InvalidateVisual(); // Draw static wires when paused or reduced motion
+        }
     }
 
     private void StartLoop()
     {
-        if (_isLooping || _topLevel is null)
+        if (_isLooping || _topLevel == null)
             return;
 
         _isLooping = true;
         _topLevel.RequestAnimationFrame(OnFrame);
     }
 
+    private void StopLoop()
+    {
+        _isLooping = false;
+    }
+
     private void OnFrame(TimeSpan time)
     {
-        if (!_isLooping || _topLevel is null)
+        if (!_isLooping || _topLevel == null)
             return;
 
-        InvalidateVisual();
+        if (!ShouldAnimate)
+        {
+            _isLooping = false;
+            InvalidateVisual();
+            return;
+        }
+
+        // Throttle to 30 FPS when idle, ramp up to 60 FPS when actively converting
+        double now = _stopwatch.Elapsed.TotalSeconds;
+        double minFrameInterval = IsConverting ? (1.0 / 60.0) : (1.0 / 30.0);
+
+        if (now - _lastRenderTime >= minFrameInterval)
+        {
+            _lastRenderTime = now;
+            InvalidateVisual();
+        }
+
         _topLevel.RequestAnimationFrame(OnFrame);
     }
 
@@ -129,83 +354,89 @@ public sealed class PipelineDrawingCanvas : Control
         base.Render(context);
 
         bool isDark = ActualThemeVariant == ThemeVariant.Dark;
+        var dashPen = isDark ? s_dashPenDark : s_dashPenLight;
+        var activeBranchPen = isDark ? s_activeBranchPenDark : s_activeBranchPenLight;
 
-        // Subtle glowing dashed line pen (liquid glass aesthetic)
-        var dashColor = isDark
-            ? Color.FromArgb(145, 95, 110, 135)   // luminous slate
-            : Color.FromArgb(175, 195, 205, 220); // soft frosted grey
-        var dashPen = new Pen(new SolidColorBrush(dashColor), 1.5, s_dashStyle);
-
-        // Draw the static connecting paths
+        // Draw static connecting paths
         context.DrawGeometry(null, dashPen, _geomPath1);
         context.DrawGeometry(null, dashPen, _geomPath2);
-        context.DrawGeometry(null, dashPen, _geomPathTop);
-        context.DrawGeometry(null, dashPen, _geomPathMid);
-        context.DrawGeometry(null, dashPen, _geomPathBot);
+        context.DrawGeometry(null, ActiveIndex == 0 ? activeBranchPen : dashPen, _geomPathTop);
+        context.DrawGeometry(null, ActiveIndex == 1 ? activeBranchPen : dashPen, _geomPathMid);
+        context.DrawGeometry(null, ActiveIndex == 2 ? activeBranchPen : dashPen, _geomPathBot);
 
-        // Particle configuration: 3 particles per path, 3.0s cycle
-        const double speed = 3.0;
-        const int count = 3;
-        const double interval = 1.0 / count;
+        // Under reduced motion or when paused, draw static wires without particle animation
+        if (!Motion.Enabled)
+            return;
+
         double elapsed = _stopwatch.Elapsed.TotalSeconds;
-        double baseProgress = (elapsed / speed) % 1.0;
 
-        // Colors for particles
-        Color normalCoreColor = isDark ? Color.FromRgb(170, 185, 205) : Color.FromRgb(75, 85, 99);
-        Color activeCoreColor = isDark ? Color.FromRgb(255, 255, 255) : Color.FromRgb(17, 24, 39);
-        Color normalGlowColor = isDark ? Color.FromArgb(95, 160, 180, 215) : Color.FromArgb(70, 107, 114, 128);
-        Color activeGlowColor = isDark ? Color.FromArgb(200, 255, 255, 255) : Color.FromArgb(150, 31, 41, 55);
+        // Visuals wire to real state: converting = 95 px/s and 4 particles; idle = 45 px/s and 2 particles
+        double speedPxPerSec = IsConverting ? 95.0 : 45.0;
+        int particleCount = IsConverting ? 4 : 2;
 
-        for (int i = 0; i < count; i++)
+        var coreActive = isDark ? s_activeCoreDark : s_activeCoreLight;
+        var coreNormal = isDark ? s_normalCoreDark : s_normalCoreLight;
+        var trailActive = isDark ? s_activeTrailDark : s_activeTrailLight;
+        var trailNormal = isDark ? s_normalTrailDark : s_normalTrailLight;
+
+        // 1. Draw particles along straight input paths (Path 1 and Path 2)
+        DrawPathParticles(context, _tablePath1, elapsed, speedPxPerSec, particleCount, coreActive, trailActive);
+        DrawPathParticles(context, _tablePath2, elapsed, speedPxPerSec, particleCount, coreActive, trailActive);
+
+        // 2. Draw branch paths with active selection highlight
+        DrawPathParticles(context, _tablePathTop, elapsed, speedPxPerSec, particleCount,
+            ActiveIndex == 0 ? coreActive : coreNormal,
+            ActiveIndex == 0 ? trailActive : trailNormal);
+
+        DrawPathParticles(context, _tablePathMid, elapsed, speedPxPerSec, particleCount,
+            ActiveIndex == 1 ? coreActive : coreNormal,
+            ActiveIndex == 1 ? trailActive : trailNormal);
+
+        DrawPathParticles(context, _tablePathBot, elapsed, speedPxPerSec, particleCount,
+            ActiveIndex == 2 ? coreActive : coreNormal,
+            ActiveIndex == 2 ? trailActive : trailNormal);
+
+        // 3. Orchestrated moment: sweep highlight pulse when active category changes (< 0.35s)
+        double revealAge = elapsed - _revealStartTime;
+        if (revealAge >= 0.0 && revealAge < 0.35)
         {
-            double p = (baseProgress + i * interval) % 1.0;
-
-            // 1. Path 1: (220, 175) -> (290, 175)
-            Point pt1 = new(220 + 70 * p, 175);
-            DrawParticle(context, pt1, activeCoreColor, activeGlowColor);
-
-            // 2. Path 2: (460, 175) -> (530, 175)
-            Point pt2 = new(460 + 70 * p, 175);
-            DrawParticle(context, pt2, activeCoreColor, activeGlowColor);
-
-            // 3. Path Top: M 700 175 C 775 175, 815 75, 890 75 (190px span!)
-            double u = 1.0 - p;
-            double xt = u * u * u * 700 + 3 * u * u * p * 775 + 3 * u * p * p * 815 + p * p * p * 890;
-            double yt = u * u * u * 175 + 3 * u * u * p * 175 + 3 * u * p * p * 75 + p * p * p * 75;
-            bool isTopActive = ActiveIndex == 0;
-            DrawParticle(context, new Point(xt, yt),
-                isTopActive ? activeCoreColor : normalCoreColor,
-                isTopActive ? activeGlowColor : normalGlowColor);
-
-            // 4. Path Mid: M 700 175 L 890 175 (190px span!)
-            Point pm = new(700 + 190 * p, 175);
-            bool isMidActive = ActiveIndex == 1;
-            DrawParticle(context, pm,
-                isMidActive ? activeCoreColor : normalCoreColor,
-                isMidActive ? activeGlowColor : normalGlowColor);
-
-            // 5. Path Bot: M 700 175 C 775 175, 815 275, 890 275 (190px span!)
-            double xb = u * u * u * 700 + 3 * u * u * p * 775 + 3 * u * p * p * 815 + p * p * p * 890;
-            double yb = u * u * u * 175 + 3 * u * u * p * 175 + 3 * u * p * p * 275 + p * p * p * 275;
-            bool isBotActive = ActiveIndex == 2;
-            DrawParticle(context, new Point(xb, yb),
-                isBotActive ? activeCoreColor : normalCoreColor,
-                isBotActive ? activeGlowColor : normalGlowColor);
+            double sweepProgress = revealAge / 0.35;
+            PathTable activeTable = ActiveIndex switch
+            {
+                0 => _tablePathTop,
+                2 => _tablePathBot,
+                _ => _tablePathMid
+            };
+            double pulseDist = activeTable.TotalLength * sweepProgress;
+            DrawComet(context, activeTable, pulseDist, coreActive, trailActive);
         }
     }
 
-    private static void DrawParticle(DrawingContext context, Point center, Color coreColor, Color glowColor)
+    private static void DrawPathParticles(DrawingContext context, PathTable path, double elapsed,
+        double speedPxPerSec, int count, IBrush coreBrush, IBrush[] trailBrushes)
     {
-        // Outer soft glow (feGaussianBlur equivalent)
-        var outerGlowBrush = new SolidColorBrush(Color.FromArgb((byte)(glowColor.A * 0.35), glowColor.R, glowColor.G, glowColor.B));
-        context.DrawEllipse(outerGlowBrush, null, center, 7.0, 7.0);
+        double spacing = path.TotalLength / count;
+        double baseDist = elapsed * speedPxPerSec;
 
-        // Mid glow halo
-        var midGlowBrush = new SolidColorBrush(Color.FromArgb((byte)(glowColor.A * 0.70), glowColor.R, glowColor.G, glowColor.B));
-        context.DrawEllipse(midGlowBrush, null, center, 4.5, 4.5);
+        for (int i = 0; i < count; i++)
+        {
+            double dist = baseDist + i * spacing;
+            DrawComet(context, path, dist, coreBrush, trailBrushes);
+        }
+    }
 
-        // Solid inner core (size 2.5 radius)
-        var coreBrush = new SolidColorBrush(coreColor);
-        context.DrawEllipse(coreBrush, null, center, 2.5, 2.5);
+    private static void DrawComet(DrawingContext context, PathTable path, double headDist, IBrush coreBrush, IBrush[] trailBrushes)
+    {
+        // Draw tail points backwards from head
+        for (int i = trailBrushes.Length - 1; i >= 0; i--)
+        {
+            Point pt = path.GetPointAtDistance(headDist - s_trailOffsets[i]);
+            double r = s_trailRadii[i];
+            context.DrawEllipse(trailBrushes[i], null, pt, r, r);
+        }
+
+        // Bright solid core at head
+        Point head = path.GetPointAtDistance(headDist);
+        context.DrawEllipse(coreBrush, null, head, 1.8, 1.8);
     }
 }

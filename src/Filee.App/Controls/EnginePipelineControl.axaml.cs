@@ -96,8 +96,16 @@ public partial class EnginePipelineControl : UserControl
 
     private void StartDotAnimation()
     {
-        if (_isAnimRunning || _topLevel is null)
+        if (_isAnimRunning || _topLevel is null || !Motion.Enabled || !IsEffectivelyVisible)
+        {
+            if (!Motion.Enabled)
+            {
+                Dot0.Opacity = 0.8;
+                Dot1.Opacity = 0.8;
+                Dot2.Opacity = 0.8;
+            }
             return;
+        }
 
         _isAnimRunning = true;
         _topLevel.RequestAnimationFrame(OnAnimationFrame);
@@ -107,6 +115,15 @@ public partial class EnginePipelineControl : UserControl
     {
         if (!_isAnimRunning || _topLevel is null)
             return;
+
+        if (!Motion.Enabled || !IsEffectivelyVisible)
+        {
+            _isAnimRunning = false;
+            Dot0.Opacity = 0.8;
+            Dot1.Opacity = 0.8;
+            Dot2.Opacity = 0.8;
+            return;
+        }
 
         // Animate the 3 processing dots with staggered sinusoidal opacity
         // 1.5s wave period matching Framer Motion: [0.3, 1, 0.3]
