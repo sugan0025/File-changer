@@ -128,6 +128,10 @@ public sealed class SoundService : IDisposable
         if (!_store.Settings.SoundEffects)
             return;
 
+        var now = Environment.TickCount64;
+        if (now - _lastNavMs < 100)
+            return;
+
         if (OperatingSystem.IsWindows())
             PlayWindows(_fanOut);
         else if (OperatingSystem.IsMacOS())
@@ -180,7 +184,7 @@ public sealed class SoundService : IDisposable
         if (OperatingSystem.IsWindows())
             PlayWindows(_nav);
         else if (OperatingSystem.IsMacOS())
-            PlayMacSound("Ping");
+            PlayMacSound("Pop");
     }
 
     public void PlayButtonClick()
@@ -438,36 +442,7 @@ public sealed class SoundService : IDisposable
         return Finish(s, 0.30, 90);
     }
 
-    private static float[] RenderNav()
-    {
-        // 75ms modern fluid acoustic navigation pop (distinct warm chime with tactile woody attack)
-        var duration = 0.075;
-        var s = new float[(int)(SampleRate * duration)];
-        var phase1 = 0.0;
-        var phase2 = 0.0;
-        var bp = new Svf();
-        var rng = new Rng(0x7A91D3u);
-        for (var i = 0; i < s.Length; i++)
-        {
-            var t = i / (double)SampleRate;
-            // Warm acoustic tonal drop: 780 Hz -> 520 Hz fundamental + 1040 Hz harmonic
-            var f1 = 520.0 + 260.0 * Math.Exp(-t / 0.012);
-            var f2 = f1 * 2.0;
-            phase1 += Tau * f1 / SampleRate;
-            phase2 += Tau * f2 / SampleRate;
-
-            var attack = 1.0 - Math.Exp(-t / 0.0018);
-            var decay = Math.Exp(-t / 0.026);
-            var tone = (Math.Sin(phase1) * 0.70 + Math.Sin(phase2) * 0.25) * attack * decay;
-
-            // Crisp acoustic pop attack transient
-            bp.Process(rng.Next(), 2800, 1 / 1.6, out _, out var band);
-            var tap = band * Math.Exp(-t / 0.0020) * 0.40;
-
-            s[i] = (float)(tone + tap);
-        }
-        return Finish(s, 0.85, 10);
-    }
+    private static float[] RenderNav() => RenderFanOut();
 
     private static float[] RenderButtonClick()
     {
