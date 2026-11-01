@@ -360,7 +360,8 @@ public sealed class EngineInstaller
         _logger.LogInformation("Unpacking {Component} with msiexec: {Msi} to {Target}, log {Log}", id, msi, target, log);
         // msiexec parses its own command line: the property value must be quoted as TARGETDIR="...", so the
         // argument list escaping of ProcessRunner cannot be used here.
-        using var process = Process.Start(new ProcessStartInfo("msiexec.exe", $"/a \"{msi}\" /qn /l*v \"{log}\" TARGETDIR=\"{target}\"")
+        var msiExecPath = Path.Combine(Environment.SystemDirectory, "msiexec.exe");
+        using var process = Process.Start(new ProcessStartInfo(File.Exists(msiExecPath) ? msiExecPath : "msiexec.exe", $"/a \"{msi}\" /qn /l*v \"{log}\" TARGETDIR=\"{target}\"")
         {
             UseShellExecute = false,
             CreateNoWindow = true,

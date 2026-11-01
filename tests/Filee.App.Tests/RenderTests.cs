@@ -1142,14 +1142,14 @@ public class RenderTests
             Assert.Equal(Avalonia.Media.Color.Parse("#101820"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
             Assert.Equal(Avalonia.Media.Color.Parse("#E8E4D8"), BrushColor(window, "TextPrimaryBrush"));
             // Colours the file does not set, and the other variant, keep Filee's own.
-            Assert.Equal(Avalonia.Media.Color.Parse("#AEACA4"), BrushColor(window, "TextSecondaryBrush"));
+            Assert.Equal(Avalonia.Media.Color.Parse("#CBD1DE"), BrushColor(window, "TextSecondaryBrush"));
             Assert.Equal(Avalonia.Media.Color.Parse("#F6F5F1"), BrushColor(window, "PageBrush", Avalonia.Styling.ThemeVariant.Light));
             Save(window, "page-theme-custom.png");
 
             // Applying without a theme file (deleted, or emptied) restores the built-in colours on the open window.
             service.Apply(dark, "en");
             Pump();
-            Assert.Equal(Avalonia.Media.Color.Parse("#1B1B19"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
+            Assert.Equal(Avalonia.Media.Color.Parse("#10121A"), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(window.Background).Color);
             window.Close();
 
             service.Apply(dark, "en", custom);
@@ -1615,7 +1615,7 @@ public class RenderTests
         Assert.True(vm.ShowSaveEveryFrame);
         vm.SaveEveryFrame = true;
         vm.FrameInterval = 5;
-        Assert.Equal("One minute of 30 fps video gives 360 pictures, at most 100,000 per video.", vm.FrameEstimate);
+        Assert.Equal($"One minute of 30 fps video gives 360 pictures, at most {Filee.Core.Presets.MediaOptions.MaxFrames.ToString("N0", System.Globalization.CultureInfo.CurrentCulture)} per video.", vm.FrameEstimate);
         vm.FrameInterval = 5000; // out of range: clamped
         Assert.True(vm.Apply());
         Assert.True(preset.Media.SaveEveryFrame);

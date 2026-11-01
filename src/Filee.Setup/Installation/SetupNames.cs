@@ -19,7 +19,7 @@ public static class SetupNames
     public const string UserEnvironmentKey = "Environment";
 
     public const string AppName = "Filee";
-    public const string Publisher = "Filee contributors";
+    public const string Publisher = "Suganesan S.";
     public const string AppExe = "Filee.exe";
 
     /// <summary>The uninstaller next to Filee.exe (UpdateService.IsInstalled looks for it).</summary>

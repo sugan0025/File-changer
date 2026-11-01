@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -71,7 +72,7 @@ public class GeoPointTimesTests(EngineFixture fx) : IClassFixture<EngineFixture>
         {
             Assert.Equal(points[i].HasZ ? points[i].Z.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
                 trackPoints[i].Elements().FirstOrDefault(e => e.Name.LocalName == "ele")?.Value);
-            Assert.Equal(times?[i]?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"),
+            Assert.Equal(times?[i]?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
                 trackPoints[i].Elements().FirstOrDefault(e => e.Name.LocalName == "time")?.Value);
             Assert.Equal(new[] { "ele", "time" }.Where((_, n) => n == 0 ? points[i].HasZ : times?[i] is not null),
                 trackPoints[i].Elements().Select(e => e.Name.LocalName));
@@ -92,7 +93,7 @@ public class GeoPointTimesTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var coords = xml.Descendants().Where(e => e.Name.LocalName == "coord").Select(e => e.Value).ToArray();
         if (isTrack)
         {
-            Assert.Equal(times!.Select(t => t!.Value.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'")), when);
+            Assert.Equal(times!.Select(t => t!.Value.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture)), when);
             Assert.Equal(["10 20 100", "11 21 200", "12 22 300"], coords);
         }
         else
@@ -106,7 +107,7 @@ public class GeoPointTimesTests(EngineFixture fx) : IClassFixture<EngineFixture>
             && (string?)e.Attribute("name") == "coordTimes");
         Assert.Equal(times is not null && !isTrack, coordTimes is not null);
         if (coordTimes is not null)
-            Assert.Equal(JsonSerializer.Serialize(times!.Select(t => t?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"))),
+            Assert.Equal(JsonSerializer.Serialize(times!.Select(t => t?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture))),
                 coordTimes.Descendants().Single(e => e.Name.LocalName == "value").Value);
         SamePoints(KmlFormat.Read(kml, zipped: false, CancellationToken.None), points);
         SamePoints(KmlFormat.Read(kmz, zipped: true, CancellationToken.None), points);
@@ -121,7 +122,7 @@ public class GeoPointTimesTests(EngineFixture fx) : IClassFixture<EngineFixture>
             var actualTimes = properties.GetProperty("coordTimes");
             Assert.Equal(3, actualTimes.GetArrayLength());
             for (var i = 0; i < times.Length; i++)
-                Assert.Equal(times[i]?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'"), actualTimes[i].ValueKind == JsonValueKind.Null
+                Assert.Equal(times[i]?.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture), actualTimes[i].ValueKind == JsonValueKind.Null
                     ? null : actualTimes[i].GetString());
         }
         var positions = feature.GetProperty("geometry").GetProperty("coordinates");

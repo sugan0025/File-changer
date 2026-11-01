@@ -166,6 +166,8 @@ File-changer/
 
 ---
 
+<!-- sponsors: src/Filee.App/Assets/Sponsors/sponsors.json -->
+
 ## 👤 Author & Credits
 
 Engineered and customized by **Sugan S** ([@sugan0025](https://github.com/sugan0025)).

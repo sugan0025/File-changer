@@ -1109,22 +1109,23 @@ public sealed partial class DonutMenu : Control
         var hasHint = hint is not null;
         var hasText = hasTitle || hasSubtitle || hasHint;
 
+        var mascotSize = hasText ? Math.Clamp(radius * 0.92, 46.0, 62.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
+        var mascotTop = hasText ? center.Y - radius * 0.86 : center.Y - mascotSize / 2;
+
         if (ShowCenterMascot)
         {
-            var mascotSize = hasText ? Math.Clamp(radius * 0.68, 32.0, 48.0) : Math.Clamp(radius * 1.15, 44.0, 64.0);
-            var mascotTop = hasText ? center.Y - radius * 0.78 : center.Y - mascotSize / 2;
             var mascotRect = new Rect(center.X - mascotSize / 2, mascotTop, mascotSize, mascotSize);
             BlobatarRenderer.Render(context, mascotRect, _mascotState);
         }
 
         if (hasText)
         {
-            var title = CachedText(CenterTitle ?? "", bold, ShowCenterMascot ? 12.0 : 14, Foreground, maxWidth, maxLines: 2);
-            var subtitle = CachedText(CenterSubtitle ?? "", regular, ShowCenterMascot ? 10.0 : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
+            var title = CachedText(CenterTitle ?? "", bold, ShowCenterMascot ? 11.5 : 14, Foreground, maxWidth, maxLines: 2);
+            var subtitle = CachedText(CenterSubtitle ?? "", regular, ShowCenterMascot ? 9.5 : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
             var total = title.Height + (hasSubtitle ? subtitle.Height + 2 : 0) + (hasHint ? hint!.Height + 3 : 0);
 
             var y = ShowCenterMascot
-                ? center.Y - radius * 0.78 + Math.Clamp(radius * 0.68, 32.0, 48.0) + 2
+                ? mascotTop + mascotSize + 1
                 : center.Y - total / 2;
 
             if (hasTitle)

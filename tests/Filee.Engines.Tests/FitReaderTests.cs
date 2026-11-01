@@ -289,7 +289,7 @@ public class FitReaderTests(EngineFixture fx) : IClassFixture<EngineFixture>
         var bytes = File.ReadAllBytes(path);
         Assert.Equal([0xEF, 0xBB, 0xBF], bytes[..3]);
         Assert.Equal("time,longitude,latitude,elevation,heart_rate,cadence,power,speed,distance\r\n" +
-            $"{Time(0x1000003B):yyyy-MM-ddTHH:mm:ssZ},90,45,100,72,88,210,4.321,123.45\r\n" +
+            $"{Time(0x1000003B).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture)},90,45,100,72,88,210,4.321,123.45\r\n" +
             ",,,12,60,,,,\r\n", Encoding.UTF8.GetString(bytes[3..]));
         var noRows = Assert.Throws<ConversionRefusedException>(() =>
             FitFormat.WriteCsv(new FitActivity(), Path.Combine(fx.NewFolder(), "empty.csv")));

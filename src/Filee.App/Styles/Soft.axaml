@@ -108,9 +108,9 @@
 
           <SolidColorBrush x:Key="OnAccentBrush" Color="#FFFFFF" />
 
-          <SolidColorBrush x:Key="ButtonBackground" Color="#26FFFFFF" />
+          <SolidColorBrush x:Key="ButtonBackground" Color="#661C202E" />
 
-          <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#3DFFFFFF" />
+          <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#4D262B3D" />
 
           <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#50FFFFFF" />
 
@@ -586,6 +586,40 @@
     <Setter Property="Padding" Value="0" />
 
     <Setter Property="Margin" Value="0,1" />
+
+    <Setter Property="RenderTransform" Value="none" />
+
+    <Setter Property="Transitions">
+
+      <Transitions>
+
+        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="{StaticResource SoftEase}" />
+
+      </Transitions>
+
+    </Setter>
+
+  </Style>
+
+  <Style Selector="ListBox.nav ListBoxItem:pressed">
+
+    <Setter Property="RenderTransform" Value="scale(0.97)" />
+
+  </Style>
+
+  <Style Selector="ListBox.nav ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+
+    <Setter Property="Transitions">
+
+      <Transitions>
+
+        <BrushTransition Property="Background" Duration="0:0:0.2" Easing="{StaticResource SoftEase}" />
+
+        <BrushTransition Property="BorderBrush" Duration="0:0:0.2" Easing="{StaticResource SoftEase}" />
+
+      </Transitions>
+
+    </Setter>
 
   </Style>
 
@@ -1368,6 +1402,10 @@
 
 
   <!-- ───────── Reduced motion: remove every transition and animation above ───────── -->
+
+  <Style Selector="Window.reduced-motion TransitioningContentControl">
+    <Setter Property="PageTransition" Value="{x:Null}" />
+  </Style>
 
   <Style Selector="Window.reduced-motion :is(Button), Window.reduced-motion :is(ToggleButton), Window.reduced-motion Border.chip, Window.reduced-motion ListBoxItem, Window.reduced-motion Slider /template/ Thumb#PART_Thumb, Window.reduced-motion ToggleSwitch, Window.reduced-motion ToggleSwitch /template/ Border#SwitchKnobBounds, Window.reduced-motion ToggleSwitch /template/ Ellipse#SwitchKnob, Window.reduced-motion CheckBox /template/ Border#NormalRectangle, Window.reduced-motion CheckBox /template/ Path#CheckGlyph, Window.reduced-motion Button.choice-card, Window.reduced-motion Button.preset-pill, Window.reduced-motion Border.navpane, Window.reduced-motion ListBox.nav PathIcon.navicon">
 

@@ -810,7 +810,9 @@ internal static class SettingsMigrations
                 && !back.Contains("trim-transparent") && !images.PresetIds.Contains("trim-transparent")
                 && back.Count < ToolbarProfile.MaxSlices)
             {
-                var after = back.IndexOf("remove-background");
+                var after = back.IndexOf("tool-hide");
+                if (after < 0)
+                    after = back.IndexOf("remove-background");
                 back.Insert(after < 0 ? back.Count(id => id != "zip-all") : after + 1, "trim-transparent");
                 changed = true;
             }
@@ -1002,11 +1004,13 @@ internal static class SettingsMigrations
         {
             if (images.BackPresetIds is not null && !images.BackPresetIds.Contains("resizer-group"))
             {
-                if (images.BackPresetIds.Contains("merge-pdf"))
-                    images.BackPresetIds.Remove("merge-pdf");
+                if (images.BackPresetIds.Contains("compress-image"))
+                    images.BackPresetIds.Remove("compress-image");
                 else if (images.BackPresetIds.Count >= ToolbarProfile.MaxSlices)
                     images.BackPresetIds.RemoveAt(images.BackPresetIds.Count - 1);
-                var idx = images.BackPresetIds.IndexOf("merge-images");
+                var idx = images.BackPresetIds.IndexOf("merge-pdf");
+                if (idx < 0)
+                    idx = images.BackPresetIds.IndexOf("merge-images");
                 images.BackPresetIds.Insert(idx >= 0 ? idx + 1 : images.BackPresetIds.Count, "resizer-group");
                 changed = true;
             }

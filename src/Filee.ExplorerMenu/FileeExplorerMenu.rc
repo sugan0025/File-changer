@@ -23,7 +23,7 @@ BEGIN
     BEGIN
         BLOCK "040904B0"
         BEGIN
-            VALUE "CompanyName", "Filee contributors"
+            VALUE "CompanyName", "Suganesan S."
             VALUE "FileDescription", "Filee File Explorer context menu"
             VALUE "FileVersion", FILEE_VERSION_TEXT
             VALUE "InternalName", "FileeExplorerMenu"

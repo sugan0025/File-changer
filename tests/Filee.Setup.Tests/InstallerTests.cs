@@ -33,7 +33,7 @@ public class InstallerTests
         string? Value(string name) => registry.Get(Hive.LocalMachine, Key, name)?.Text;
         Assert.Equal("Filee", Value("DisplayName"));
         Assert.Equal("2.0.0", Value("DisplayVersion"));
-        Assert.Equal("Filee contributors", Value("Publisher"));
+        Assert.Equal("Suganesan S.", Value("Publisher"));
         Assert.Equal(Path.Combine(folder, "Filee.exe"), Value("DisplayIcon"));
         Assert.Equal(folder + "\\", Value("InstallLocation"));
         Assert.Equal($"\"{folder}\\uninstall.exe\"", Value("UninstallString"));

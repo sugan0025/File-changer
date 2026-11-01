@@ -80,7 +80,8 @@ public class MediaToolTests
         var profiles = BuiltInData.CreateProfiles();
         foreach (var profile in profiles)
             profile.BackPresetIds!.RemoveAll(ToolIds.Contains);
-        // The video donut's back face of schema 36, with the plain M4A slice.
+        // The images and video donuts' back faces of schema 36.
+        profiles.Single(p => p.Id == "images").BackPresetIds = ["tool-crop", "rotate", "flip", "tool-hide", "trim-transparent", "grayscale", "to-avif", "to-gif", "merge-pdf", "zip-all"];
         profiles.Single(p => p.Id == "video").BackPresetIds = ["mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg",
             "live-photo-iphone", "motion-photo-android", "to-m4a", "to-wav", "to-flac", "zip-all"];
         // A back face the user filled up stays as it is.
@@ -129,7 +130,7 @@ public class MediaToolTests
         Assert.True(SettingsMigrations.ApplyToLibrary(36, presets, profiles));
 
         Assert.Equal(ToolbarProfile.MaxSlices, images.BackPresetIds.Count);
-        Assert.Equal(["merge-pdf", "compress-image", "zip-all"], images.BackPresetIds[^3..]);
+        Assert.Equal(["merge-pdf", "resizer-group", "zip-all"], images.BackPresetIds[^3..]);
         Assert.DoesNotContain("remove-metadata", images.BackPresetIds); // no room left, still in the library
         Assert.Single(presets, p => p.Id == "remove-metadata");
         Assert.All(profiles, p => Assert.InRange(p.BackPresetIds!.Count, 0, ToolbarProfile.MaxSlices));

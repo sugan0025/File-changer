@@ -12,7 +12,7 @@ public class FitFormatTests(EngineFixture fx) : IClassFixture<EngineFixture>
 {
     private const uint First = 0x1000003B;
     private static DateTime Utc(uint seconds) => DateTime.UnixEpoch.AddSeconds(seconds + 631065600L);
-    private static string Stamp(uint seconds) => Utc(seconds).ToString("yyyy-MM-ddTHH:mm:ssZ");
+    private static string Stamp(uint seconds) => Utc(seconds).ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
 
     private string Save(FitBuilder builder) => FitBuilder.Save(fx.NewFolder(), builder.Build(), "ride.fit");
 

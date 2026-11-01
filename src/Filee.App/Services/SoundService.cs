@@ -19,7 +19,172 @@ public sealed class SoundService : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool PlaySound(IntPtr pszSound, IntPtr hmod, uint fdwSound);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WAVEFORMATEX
+    {
+        public ushort wFormatTag;
+        public ushort nChannels;
+        public uint nSamplesPerSec;
+        public uint nAvgBytesPerSec;
+        public ushort nBlockAlign;
+        public ushort wBitsPerSample;
+        public ushort cbSize;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WAVEHDR
+    {
+        public IntPtr lpData;
+        public uint dwBufferLength;
+        public uint dwBytesRecorded;
+        public IntPtr dwUser;
+        public uint dwFlags;
+        public uint dwLoops;
+        public IntPtr lpNext;
+        public IntPtr reserved;
+    }
+
+    private const uint WHDR_INQUEUE = 0x00000010;
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutOpen(out IntPtr hWaveOut, int uDeviceID, ref WAVEFORMATEX lpFormat, IntPtr dwCallback, IntPtr dwInstance, uint fdwOpen);
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutPrepareHeader(IntPtr hWaveOut, ref WAVEHDR lpWaveHdr, uint uSize);
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutUnprepareHeader(IntPtr hWaveOut, ref WAVEHDR lpWaveHdr, uint uSize);
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutWrite(IntPtr hWaveOut, ref WAVEHDR lpWaveHdr, uint uSize);
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutReset(IntPtr hWaveOut);
+
+    [DllImport("winmm.dll")]
+    private static extern int waveOutClose(IntPtr hWaveOut);
+
+    private sealed class FastTickPlayer : IDisposable
+    {
+        private const int PoolSize = 16;
+        private readonly IntPtr _hWaveOut;
+        private readonly IntPtr[] _ptrs = new IntPtr[PoolSize];
+        private readonly WAVEHDR[] _hdrs = new WAVEHDR[PoolSize];
+        private readonly int _hdrSize = Marshal.SizeOf<WAVEHDR>();
+        private int _ringIndex;
+        private bool _disposed;
+        public bool IsAvailable => !_disposed && _hWaveOut != IntPtr.Zero;
+
+        public FastTickPlayer()
+        {
+            try
+            {
+                var fmt = new WAVEFORMATEX
+                {
+                    wFormatTag = 1,
+                    nChannels = 1,
+                    nSamplesPerSec = (uint)SampleRate,
+                    nAvgBytesPerSec = (uint)(SampleRate * 2),
+                    nBlockAlign = 2,
+                    wBitsPerSample = 16,
+                    cbSize = 0
+                };
+
+                if (waveOutOpen(out _hWaveOut, -1, ref fmt, IntPtr.Zero, IntPtr.Zero, 0) != 0)
+                {
+                    _hWaveOut = IntPtr.Zero;
+                    return;
+                }
+
+                for (var i = 0; i < PoolSize; i++)
+                {
+                    var variant = i % 3;
+                    var samples = RenderTick(variant, 0.022);
+                    var byteLen = samples.Length * 2;
+                    _ptrs[i] = Marshal.AllocHGlobal(byteLen);
+
+                    var raw = new short[samples.Length];
+                    for (var s = 0; s < samples.Length; s++)
+                    {
+                        var clamped = Math.Clamp(samples[s], -1.0f, 1.0f);
+                        raw[s] = (short)(clamped * 32767);
+                    }
+                    Marshal.Copy(raw, 0, _ptrs[i], raw.Length);
+
+                    _hdrs[i] = new WAVEHDR
+                    {
+                        lpData = _ptrs[i],
+                        dwBufferLength = (uint)byteLen,
+                        dwFlags = 0
+                    };
+                    waveOutPrepareHeader(_hWaveOut, ref _hdrs[i], (uint)_hdrSize);
+                }
+            }
+            catch
+            {
+                _hWaveOut = IntPtr.Zero;
+            }
+        }
+
+        public bool PlayTick()
+        {
+            if (!IsAvailable)
+                return false;
+
+            lock (_hdrs)
+            {
+                for (var attempt = 0; attempt < PoolSize; attempt++)
+                {
+                    var idx = (_ringIndex + attempt) % PoolSize;
+                    if ((_hdrs[idx].dwFlags & WHDR_INQUEUE) == 0)
+                    {
+                        _ringIndex = (idx + 1) % PoolSize;
+                        var res = waveOutWrite(_hWaveOut, ref _hdrs[idx], (uint)_hdrSize);
+                        return res == 0;
+                    }
+                }
+
+                var fallback = _ringIndex;
+                _ringIndex = (_ringIndex + 1) % PoolSize;
+                if ((_hdrs[fallback].dwFlags & WHDR_INQUEUE) == 0)
+                {
+                    return waveOutWrite(_hWaveOut, ref _hdrs[fallback], (uint)_hdrSize) == 0;
+                }
+                return true;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            try
+            {
+                if (_hWaveOut != IntPtr.Zero)
+                {
+                    waveOutReset(_hWaveOut);
+                    for (var i = 0; i < PoolSize; i++)
+                    {
+                        if (_ptrs[i] != IntPtr.Zero)
+                        {
+                            waveOutUnprepareHeader(_hWaveOut, ref _hdrs[i], (uint)_hdrSize);
+                            Marshal.FreeHGlobal(_ptrs[i]);
+                            _ptrs[i] = IntPtr.Zero;
+                        }
+                    }
+                    waveOutClose(_hWaveOut);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
     private readonly UserDataStore _store;
+    private readonly FastTickPlayer? _fastTickPlayer;
     private readonly IntPtr[] _ticks = new IntPtr[3];
     private int _tickIndex;
     private readonly IntPtr _flipSound;
@@ -34,6 +199,7 @@ public sealed class SoundService : IDisposable
         _store = store;
         if (OperatingSystem.IsWindows())
         {
+            _fastTickPlayer = new FastTickPlayer();
             for (var v = 0; v < 3; v++)
                 _ticks[v] = AllocateWav(CreateWav(RenderTick(v), SampleRate));
 
@@ -73,6 +239,11 @@ public sealed class SoundService : IDisposable
 
         if (OperatingSystem.IsWindows())
         {
+            if (_fastTickPlayer is not null && _fastTickPlayer.IsAvailable && _fastTickPlayer.PlayTick())
+            {
+                return;
+            }
+
             PlayWindows(_ticks[_tickIndex]);
             _tickIndex = (_tickIndex + 1) % 3;
         }
@@ -222,9 +393,9 @@ public sealed class SoundService : IDisposable
         return s;
     }
 
-    private static float[] RenderTick(int variant)
+    private static float[] RenderTick(int variant, double durationSec = 0.030)
     {
-        var s = new float[(int)(SampleRate * 0.030)];
+        var s = new float[(int)(SampleRate * durationSec)];
         var pitch = 1 + (variant - 1) * 0.035;
         var bp = new Svf();
         var rng = new Rng(0x9E3779B9u + (uint)variant * 7919u);
@@ -238,7 +409,7 @@ public sealed class SoundService : IDisposable
             var thock = Math.Sin(Tau * 170 * t) * Math.Exp(-t / 0.0075) * 0.40;
             s[i] = (float)(noise * 0.9 + tink + thock);
         }
-        return Finish(s, 0.16, 4);
+        return Finish(s, 0.32, 4);
     }
 
     private static float[] RenderFlip()
@@ -391,6 +562,7 @@ public sealed class SoundService : IDisposable
 
     public void Dispose()
     {
+        _fastTickPlayer?.Dispose();
         for (var v = 0; v < 3; v++)
             if (_ticks[v] != IntPtr.Zero) Marshal.FreeHGlobal(_ticks[v]);
         if (_flipSound != IntPtr.Zero) Marshal.FreeHGlobal(_flipSound);

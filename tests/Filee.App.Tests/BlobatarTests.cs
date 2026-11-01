@@ -96,10 +96,186 @@ public class BlobatarTests
         Assert.InRange(state.ScaleY, 0.95, 1.05);
     }
 
+    [Fact]
+    public void Blob_stays_still_while_eyes_track_gaze()
+    {
+        var state = new BlobatarState();
+        state.LookAt(new Point(600, 0));
+        for (var i = 0; i < 30; i++)
+            state.Update(1 / 60.0);
+
+        // Eyes pursue the target smoothly
+        Assert.True(state.GazeX > 2.0, $"Eyes should gaze right: {state.GazeX}");
+        // Body stays completely still around all sides: no tilt, no squish
+        Assert.Equal(0.0, state.TiltAngle);
+        Assert.Equal(1.0, state.ScaleX);
+        Assert.Equal(1.0, state.ScaleY);
+        Assert.Equal(0.0, state.FloatY);
+    }
+
+    [Fact]
+    public void Tilt_wobble_animates_on_trigger()
+    {
+        var state = new BlobatarState();
+        state.TriggerTiltWobble(8.0);
+        state.Update(0.02);
+        Assert.True(Math.Abs(state.TiltAngle) > 0.5, "Tilt angle should wobble when triggered");
+    }
+
+    [Fact]
+    public void Winking_animates_single_eye_differently()
+    {
+        var state = new BlobatarState();
+        state.TriggerWink(leftEye: true);
+        state.Update(0.065);
+
+        Assert.True(state.LeftBlinkScaleY < 0.4, $"Left eye should be closed in left wink: {state.LeftBlinkScaleY}");
+        Assert.Equal(1.0, state.RightBlinkScaleY);
+    }
+
+    [Fact]
+    public void Celebration_tone_triggers_happy_expression()
+    {
+        var state = new BlobatarState();
+        state.SetTone(BlobatarTone.Celebration);
+        state.Update(0.1);
+
+        Assert.True(state.HappyCurve > 0.4, $"Happy curve should be active on celebration: {state.HappyCurve}");
+    }
+
+    [Fact]
+    public void Independent_eyes_converge_when_cursor_is_between_them()
+    {
+        var state = new BlobatarState();
+        // Cursor placed at X=52.5, Y=45.0 (between the eyes: Left Eye is at 41.8, Right Eye is at 63.3)
+        state.LookAtCursor(new Point(52.5, 45.0));
+
+        for (var i = 0; i < 30; i++)
+            state.Update(1 / 60.0);
+
+        // Left eye should gaze right toward center (+X)
+        Assert.True(state.LeftGazeX > 0.5, $"Left eye should look right: {state.LeftGazeX}");
+        // Right eye should gaze left toward center (-X)
+        Assert.True(state.RightGazeX < -0.5, $"Right eye should look left: {state.RightGazeX}");
+    }
+
+    [Fact]
+    public void Gaze_is_confined_within_elliptical_bounds_at_all_angles()
+    {
+        var state = new BlobatarState();
+
+        // Test extreme cursor positions in 16 directions around the screen
+        for (var a = 0; a < 16; a++)
+        {
+            var angle = a * Math.PI / 8.0;
+            var target = new Point(50.0 + Math.Cos(angle) * 5000.0, 52.5 + Math.Sin(angle) * 5000.0);
+            state.LookAtCursor(target);
+
+            for (var i = 0; i < 40; i++)
+                state.Update(1 / 60.0);
+
+            // Elliptical boundary constraint check for Left Eye (MaxX=4.8, MaxY=4.0)
+            var leftNorm = Math.Pow(state.LeftGazeX / 4.8, 2) + Math.Pow(state.LeftGazeY / 4.0, 2);
+            Assert.True(leftNorm <= 1.002, $"Left eye exceeded boundary at angle {angle}: norm={leftNorm}");
+
+            // Elliptical boundary constraint check for Right Eye (MaxX=4.6, MaxY=3.8)
+            var rightNorm = Math.Pow(state.RightGazeX / 4.6, 2) + Math.Pow(state.RightGazeY / 3.8, 2);
+            Assert.True(rightNorm <= 1.002, $"Right eye exceeded boundary at angle {angle}: norm={rightNorm}");
+        }
+    }
+
+    [Fact]
+    public void Eye_spring_settles_and_goes_idle_when_cursor_stationary()
+    {
+        var state = new BlobatarState();
+        state.LookAtCursor(new Point(90, 80));
+
+        // Advance 35 frames (approx 0.58s)
+        for (var i = 0; i < 35; i++)
+            state.Update(1 / 60.0);
+
+        // Eyes have settled and should report inactive when blinking is not running
+        var active = state.Update(1 / 60.0, motionEnabled: false);
+        Assert.False(active, "State should be idle when springs have settled");
+    }
+
+    [Fact]
+    public void Near_field_deadzone_eases_singularity_at_eye_center()
+    {
+        var state = new BlobatarState();
+        // Cursor placed directly at Left Eye center (41.8, 44.8)
+        state.LookAtCursor(new Point(41.8, 44.8));
+
+        for (var i = 0; i < 30; i++)
+            state.Update(1 / 60.0);
+
+        // Near-field deadzone eases gaze to 0
+        Assert.True(Math.Abs(state.LeftGazeX) < 0.05, $"Left eye gaze should be eased to near 0: {state.LeftGazeX}");
+        Assert.True(Math.Abs(state.LeftGazeY) < 0.05, $"Left eye gaze should be eased to near 0: {state.LeftGazeY}");
+    }
+
     [AvaloniaFact]
     public void Donut_menu_shows_mascot_by_default()
     {
         var donut = new DonutMenu();
         Assert.True(donut.ShowCenterMascot);
+    }
+
+    [Fact]
+    public void Left_gaze_expresses_natural_directional_attitude_and_3D_foreshortening()
+    {
+        var state = new BlobatarState();
+        state.LookAt(new Point(-500, 0));
+        for (var i = 0; i < 40; i++)
+            state.Update(1 / 60.0);
+
+        Assert.True(state.GazeX < -2.0, "Gaze should move left");
+        Assert.True(state.LeftEyeTiltDeg < -3.0, $"Left eye should tilt counter-clockwise: {state.LeftEyeTiltDeg}");
+        Assert.True(state.RightEyeTiltDeg < -3.0, $"Right eye should tilt counter-clockwise: {state.RightEyeTiltDeg}");
+        Assert.True(state.RightForeshortenX < 0.95, $"Trailing right eye should foreshorten: {state.RightForeshortenX}");
+        Assert.True(state.LeftForeshortenX >= 1.0, $"Leading left eye should retain full width: {state.LeftForeshortenX}");
+    }
+
+    [Fact]
+    public void Right_gaze_expresses_natural_directional_attitude_and_3D_foreshortening()
+    {
+        var state = new BlobatarState();
+        state.LookAt(new Point(500, 0));
+        for (var i = 0; i < 40; i++)
+            state.Update(1 / 60.0);
+
+        Assert.True(state.GazeX > 2.0, "Gaze should move right");
+        Assert.True(state.LeftEyeTiltDeg > 3.0, $"Left eye should tilt clockwise: {state.LeftEyeTiltDeg}");
+        Assert.True(state.RightEyeTiltDeg > 3.0, $"Right eye should tilt clockwise: {state.RightEyeTiltDeg}");
+        Assert.True(state.LeftForeshortenX < 0.95, $"Trailing left eye should foreshorten: {state.LeftForeshortenX}");
+        Assert.True(state.RightForeshortenX >= 1.0, $"Leading right eye should retain full width: {state.RightForeshortenX}");
+    }
+
+    [Fact]
+    public void Diagonal_gaze_tilts_smoothly_without_exceeding_natural_bounds()
+    {
+        var state = new BlobatarState();
+        // Upper-right diagonal target
+        state.LookAt(new Point(400, -300));
+        for (var i = 0; i < 40; i++)
+            state.Update(1 / 60.0);
+
+        Assert.True(state.GazeX > 1.5, "Gaze X should be positive");
+        Assert.True(state.GazeY < -1.0, "Gaze Y should be negative (upwards)");
+        Assert.InRange(Math.Abs(state.LeftEyeTiltDeg), 0.5, 12.0);
+        Assert.InRange(Math.Abs(state.RightEyeTiltDeg), 0.5, 12.0);
+    }
+
+    [AvaloniaFact]
+    public void Renderer_renders_directional_gaze_at_extreme_angles_without_error()
+    {
+        var state = new BlobatarState();
+        state.LookAt(new Point(-1000, 800)); // Extreme bottom-left
+        for (var i = 0; i < 40; i++)
+            state.Update(1 / 60.0);
+
+        var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(100, 100));
+        using var context = bitmap.CreateDrawingContext();
+        BlobatarRenderer.Render(context, new Rect(0, 0, 100, 100), state);
     }
 }

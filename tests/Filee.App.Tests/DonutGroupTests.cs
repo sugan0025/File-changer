@@ -404,7 +404,7 @@ public class DonutGroupTests
             Assert.True(vm.ReserveSubRing);
             Assert.True(vm.ToggleFace());
             Assert.True(vm.Items[0].IsGroup);
-            Assert.Equal(Preset.MaxSubPresets, vm.Items[0].Children!.Count);
+            Assert.Equal(6, vm.Items[0].Children!.Count);
             Assert.Equal("tool-pdf-crop", vm.PresetShownAt(0, 0)!.Id);
             Assert.Equal("tool-pdf-add", vm.PresetShownAt(0, 5)!.Id);
 

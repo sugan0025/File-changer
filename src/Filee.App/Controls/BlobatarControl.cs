@@ -75,6 +75,7 @@ public class BlobatarControl : Control
         if (_topLevel is not null)
         {
             _topLevel.PointerMoved += OnWindowPointerMoved;
+            _topLevel.PointerExited += OnWindowPointerExited;
         }
 
         State.SetTone(Tone);
@@ -86,6 +87,7 @@ public class BlobatarControl : Control
         if (_topLevel is not null)
         {
             _topLevel.PointerMoved -= OnWindowPointerMoved;
+            _topLevel.PointerExited -= OnWindowPointerExited;
             _topLevel = null;
         }
         _isLooping = false;
@@ -97,9 +99,32 @@ public class BlobatarControl : Control
         if (!TrackWindowPointer || !IsVisible)
             return;
 
-        var pos = e.GetPosition(this);
-        var center = new Point(Bounds.Width / 2, Bounds.Height / 2);
-        State.LookAt(new Point(pos.X - center.X, pos.Y - center.Y));
+        var bounds = Bounds;
+        var size = Math.Min(bounds.Width, bounds.Height);
+        if (size <= 1.0)
+            return;
+
+        var posInControl = e.GetPosition(this);
+        var scale = size / 70.0;
+        var cx = bounds.Center.X;
+        var cy = bounds.Center.Y;
+
+        // Visual centroid in viewBox is at (50.0, 52.5)
+        var cursorInViewBox = new Point(
+            50.0 + (posInControl.X - cx) / scale,
+            52.5 + (posInControl.Y - cy) / scale
+        );
+
+        State.LookAtCursor(cursorInViewBox);
+        StartLoop();
+    }
+
+    private void OnWindowPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (!TrackWindowPointer)
+            return;
+
+        State.LookAt(null);
         StartLoop();
     }
 
@@ -107,7 +132,8 @@ public class BlobatarControl : Control
     {
         base.OnPointerEntered(e);
         _isHovered = true;
-        State.TriggerBounce(0.48);
+        State.TriggerBounce(0.55);
+        State.TriggerTiltWobble(9.0);
         State.SetTone(BlobatarTone.Alert);
         StartLoop();
     }
@@ -123,8 +149,16 @@ public class BlobatarControl : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        State.TriggerBounce(0.65);
-        State.TriggerBlink(2); // double celebration blink on tap
+        State.TriggerBounce(0.85); // deep squish on poke
+        State.TriggerWink(Random.Shared.NextDouble() > 0.5); // playful wink on tap
+        State.SetHappy(1.0, 1.6); // happy expression!
+        StartLoop();
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        State.TriggerBounce(0.35); // bouncy spring pop recovery
         StartLoop();
     }
 

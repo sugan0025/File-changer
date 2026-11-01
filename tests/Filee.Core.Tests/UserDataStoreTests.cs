@@ -662,6 +662,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "pdf-long-image" or "to-heic");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var pdf = profiles.Single(p => p.Id == "pdf");
         pdf.PresetIds.Remove("pdf-long-image");
 
@@ -682,6 +687,12 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "remove-background");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles) { p.PresetIds.Remove("remove-background"); p.BackPresetIds?.Remove("remove-background"); }
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(9, presets, profiles));
 
@@ -698,6 +709,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "extract-frames-png" or "extract-frames-jpg");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(18, presets, profiles));
 
@@ -727,6 +743,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => BuiltInData.DataPresets().Any(d => d.Id == p.Id));
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         profiles.RemoveAll(p => p.Id == "data");
         profiles.Single(p => p.Id == "office").Extensions.Remove("msg");
         profiles.Single(p => p.Id == "spreadsheets").PresetIds.Remove("to-json");
@@ -774,6 +795,11 @@ public class UserDataStoreTests
         // As written with schema 12: the images donut knows no APNG, QOI, DICOM or .hif; a donut of the user takes DDS.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var images = profiles.Single(p => p.Id == "images");
         images.Extensions.RemoveAll(e => e is "apng" or "qoi" or "dcm" or "hif" or "dds");
         profiles.Insert(0, new ToolbarProfile { Id = "game", Name = "Game textures", Extensions = ["dds"] });
@@ -894,6 +920,11 @@ public class UserDataStoreTests
         // As written with schema 21: no FBX, and the user took PLY off the 3D donut.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var models = profiles.Single(p => p.Id == "models");
         models.Extensions.RemoveAll(e => e is "fbx" or "ply");
 
@@ -916,6 +947,11 @@ public class UserDataStoreTests
         // As written with schema 22: no MHTML, and the user took Markdown off the text donut.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var text = profiles.Single(p => p.Id == "text");
         text.Extensions.RemoveAll(e => e is "mhtml" or "mht" or "md" or "markdown");
 
@@ -940,6 +976,11 @@ public class UserDataStoreTests
         // As written with schema 23: no POTM, and the user took ODP off the presentation donut.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var slides = profiles.Single(p => p.Id == "presentations");
         slides.Extensions.RemoveAll(e => e is "potm" or "odp");
 
@@ -963,6 +1004,11 @@ public class UserDataStoreTests
         // As written with schema 26: no OFD, and the user took RTF off the office donut.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var office = profiles.Single(p => p.Id == "office");
         office.Extensions.RemoveAll(e => e is "ofd" or "rtf");
 
@@ -1027,6 +1073,11 @@ public class UserDataStoreTests
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var mine = profiles.Single(p => p.Id == "geo");
         mine.PresetIds = ["to-kml"];
         mine.Extensions = ["kml"];
@@ -1073,6 +1124,11 @@ public class UserDataStoreTests
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var archives = profiles.Single(p => p.Id == "archives");
         archives.PresetIds.Remove("zip-all");
 
@@ -1100,6 +1156,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "extract-motion");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var images = profiles.Single(p => p.Id == "images");
         images.Extensions.RemoveAll(e => e is "livp" or "heic");
 
@@ -1130,6 +1191,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "live-photo-iphone" or "motion-photo-android");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var video = profiles.Single(p => p.Id == "video");
         video.BackPresetIds!.RemoveAll(id => id is "live-photo-iphone" or "motion-photo-android");
 
@@ -1299,6 +1365,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id is "rotate-left" or "rotate-right" or "rotate-180" or "flip-horizontal" or "flip-vertical" or "rotate" or "flip");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
 
@@ -1320,6 +1391,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "pdf-slides");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         profiles.Single(p => p.Id == "pdf").PresetIds = [.. BuiltInData.PdfDonutBefore18];
         return (presets, profiles);
     }
@@ -1399,6 +1475,11 @@ public class UserDataStoreTests
         // As written with schema 20: no JPEG XR yet; the user took PSD off the images donut and has a donut for .wdp.
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var images = profiles.Single(p => p.Id == "images");
         images.Extensions.RemoveAll(e => e is "jxr" or "wdp" or "hdp" or "psd");
         profiles.Insert(0, new ToolbarProfile { Id = "photos", Name = "Windows Photo Gallery", Extensions = ["wdp"] });
@@ -1470,6 +1551,11 @@ public class UserDataStoreTests
         rotate.Kind = PresetKind.Convert;
         rotate.SubPresetIds = [];
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(16, presets, profiles));
 
@@ -1487,6 +1573,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "compress-pdf");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(17, presets, profiles));
 
@@ -1504,6 +1595,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "tool-crop");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
 
         Assert.True(SettingsMigrations.ApplyToLibrary(25, presets, profiles));
 
@@ -1520,6 +1616,11 @@ public class UserDataStoreTests
         var presets = BuiltInData.CreatePresets();
         presets.RemoveAll(p => p.Id == "tool-sheet-studio");
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         profiles.Single(p => p.Id == "spreadsheets").BackPresetIds!.Remove("tool-sheet-studio");
 
         Assert.True(SettingsMigrations.ApplyToLibrary(41, presets, profiles));
@@ -1536,6 +1637,11 @@ public class UserDataStoreTests
     {
         var presets = BuiltInData.CreatePresets();
         var profiles = BuiltInData.CreateProfiles();
+        foreach (var p in profiles)
+        {
+            p.PresetIds.Remove("remove-background");
+            p.BackPresetIds?.Remove("remove-background");
+        }
         var spreadsheets = profiles.Single(p => p.Id == "spreadsheets");
         spreadsheets.BackPresetIds!.Remove("tool-sheet-studio");
         spreadsheets.PresetIds.Add("tool-sheet-studio"); // the user put it on the front

@@ -69,12 +69,12 @@
 
         <StackPanel DockPanel.Dock="Top" Classes="navheader" Orientation="Horizontal" Spacing="10">
 
-          <c:BlobatarControl Width="34" Height="34" VerticalAlignment="Center" Margin="0,0,2,0"
+          <c:BlobatarControl Width="44" Height="44" VerticalAlignment="Center" Margin="0,0,2,0"
                              ToolTip.Tip="OWL Mascot" />
 
           <StackPanel VerticalAlignment="Center" IsVisible="{Binding !IsNavCollapsed}">
 
-            <TextBlock Text="Filee-changer" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="Filee" FontSize="18" FontWeight="Bold" />
 
             <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
 
@@ -222,11 +222,15 @@
 
     <!-- Page -->
 
-    <ScrollViewer Grid.Column="1" x:Name="PageScroller" VerticalScrollBarVisibility="{Binding PageScroll}">
+    <c:SmoothScrollViewer Grid.Column="1" x:Name="PageScroller" VerticalScrollBarVisibility="{Binding PageScroll}">
 
-      <ContentControl Classes="page" Content="{Binding CurrentPage}" Margin="32,26,32,32" MaxWidth="980" HorizontalAlignment="Stretch" />
+      <TransitioningContentControl Classes="page" Content="{Binding CurrentPage}" Margin="32,26,32,32" MaxWidth="980" HorizontalAlignment="Stretch">
+        <TransitioningContentControl.PageTransition>
+          <CrossFade Duration="0:0:0.22" />
+        </TransitioningContentControl.PageTransition>
+      </TransitioningContentControl>
 
-    </ScrollViewer>
+    </c:SmoothScrollViewer>
 
   </Grid>
 

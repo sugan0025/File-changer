@@ -274,6 +274,22 @@ public partial class App : Application
         // Optional: no card, the sidebar button only. Frequent releases no longer ask every day.
         updates.UpdateFound += (_, version) =>
         {
+            if (store.Settings.CheckForUpdates && !updates.IsBusy && updates.InstallsItself)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await updates.UpdateAsync();
+                    }
+                    catch
+                    {
+                        // UpdateService handles and logs errors via Step = Failed
+                    }
+                });
+                return;
+            }
+
             if (updates.Level == UpdateLevel.Optional
                 || updates.Level == UpdateLevel.Recommended && store.Settings.NotifiedUpdateVersion == version)
                 return;

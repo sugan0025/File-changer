@@ -15,7 +15,7 @@ public class MergeImagesTests
 
     /// <summary>The images donut's back face of settings schema 37 to 52.</summary>
     private static readonly string[] BackBefore53 =
-        ["tool-crop", "rotate", "flip", "remove-background", "trim-transparent", "grayscale", "to-avif", "to-gif", "merge-pdf",
+        ["tool-crop", "rotate", "flip", "tool-hide", "trim-transparent", "grayscale", "to-avif", "to-gif", "merge-pdf",
             "compress-image", "remove-metadata", "zip-all"];
 
     [Fact]
@@ -72,7 +72,8 @@ public class MergeImagesTests
         var presets = BuiltInData.CreatePresets().Where(p => p.Id != "merge-images").ToList();
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
-        images.BackPresetIds = [.. BackBefore53];
+        var backCurrent = BackBefore53.Select(id => id == "compress-image" ? "resizer-group" : id).ToArray();
+        images.BackPresetIds = [.. backCurrent];
 
         Assert.True(SettingsMigrations.ApplyToLibrary(50, presets, profiles));
 
@@ -89,11 +90,11 @@ public class MergeImagesTests
         var presets = BuiltInData.CreatePresets().Where(p => p.Id != "merge-images").ToList();
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
-        images.BackPresetIds = ["tool-crop", "to-gif", "merge-pdf", "zip-all"];
+        images.BackPresetIds = ["tool-crop", "to-gif", "merge-pdf", "tool-hide", "zip-all"];
 
         Assert.True(SettingsMigrations.ApplyToLibrary(50, presets, profiles));
 
-        Assert.Equal(["tool-crop", "to-gif", "merge-images", "merge-pdf", "zip-all"], images.BackPresetIds);
+        Assert.Equal(["tool-crop", "to-gif", "merge-images", "merge-pdf", "resizer-group", "tool-hide", "zip-all"], images.BackPresetIds);
     }
 
     [Fact]
@@ -103,14 +104,15 @@ public class MergeImagesTests
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
         images.PresetIds = ["merge-images", "to-png"];
-        images.BackPresetIds = [.. BackBefore53];
+        var backCurrent = BackBefore53.Select(id => id == "compress-image" ? "resizer-group" : id).ToArray();
+        images.BackPresetIds = [.. backCurrent];
 
         Assert.False(SettingsMigrations.ApplyToLibrary(50, presets, profiles));
-        Assert.Equal(BackBefore53, images.BackPresetIds);
+        Assert.Equal(backCurrent, images.BackPresetIds);
 
         // A full face the user laid out without GIF: nothing of theirs goes.
         images.PresetIds = ["to-png"];
-        images.BackPresetIds = [.. BackBefore53.Select(id => id == "to-gif" ? "to-bmp" : id)];
+        images.BackPresetIds = [.. backCurrent.Select(id => id == "to-gif" ? "to-bmp" : id)];
         Assert.False(SettingsMigrations.ApplyToLibrary(50, presets, profiles));
         Assert.DoesNotContain("merge-images", images.BackPresetIds);
     }

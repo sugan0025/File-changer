@@ -16,7 +16,8 @@
 
     <Version>2.2.0</Version>
     <Product>Filee</Product>
-    <Authors>Filee contributors</Authors>
+    <Authors>Suganesan S.</Authors>
+    <Company>Suganesan S.</Company>
     <Copyright>Copyright (c) Filee contributors</Copyright>
 
     <!-- Single source of truth for the GitHub repository (used by the updater and the About page). -->

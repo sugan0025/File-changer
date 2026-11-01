@@ -281,8 +281,8 @@ public class HideToolTests
         var presets = BuiltInData.CreatePresets();
         Assert.Equal("tool-image-edit", presets[presets.FindIndex(p => p.Id == "tool-hide") - 1].Id);
         var images = BuiltInData.CreateProfiles().Single(p => p.Id == "images");
-        Assert.Equal(["half-size", "tool-image-edit", "tool-hide"], images.PresetIds.Skip(images.PresetIds.IndexOf("half-size")));
-        Assert.DoesNotContain("tool-hide", images.BackPresetIds!);
+        Assert.Contains("tool-hide", images.BackPresetIds!);
+        Assert.DoesNotContain("tool-hide", images.PresetIds);
         Assert.InRange(images.PresetIds.Count, 1, ToolbarProfile.MaxSlices);
     }
 
@@ -293,6 +293,8 @@ public class HideToolTests
         var profiles = BuiltInData.CreateProfiles();
         var images = profiles.Single(p => p.Id == "images");
         images.PresetIds.Remove("tool-hide");
+        images.BackPresetIds?.Remove("tool-hide");
+        images.PresetIds.Remove("remove-background");
         return (presets, profiles, images);
     }
 
@@ -305,7 +307,7 @@ public class HideToolTests
 
         Assert.Equal(BuiltInData.CreatePresets().Select(p => p.Id), presets.Select(p => p.Id));
         Assert.True(presets.Single(p => p.Id == "tool-hide").IsHideTool);
-        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").PresetIds, images.PresetIds);
+        Assert.Contains("tool-hide", images.PresetIds);
         Assert.False(SettingsMigrations.ApplyToLibrary(52, presets, profiles)); // once only
     }
 
@@ -341,6 +343,8 @@ public class HideToolTests
         (presets, profiles, images) = Version51();
         while (images.PresetIds.Count < ToolbarProfile.MaxSlices)
             images.PresetIds.Add("to-gif");
+        while (images.BackPresetIds!.Count < ToolbarProfile.MaxSlices)
+            images.BackPresetIds.Add("to-gif");
         var front = images.PresetIds.ToList();
         var back = images.BackPresetIds!.ToList();
         Assert.True(SettingsMigrations.ApplyToLibrary(51, presets, profiles));

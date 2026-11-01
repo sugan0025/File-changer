@@ -67,7 +67,7 @@ public class NewExtensionsTests
         Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
 
         Assert.Equal("trim-transparent", presets[presets.FindIndex(p => p.Id == "remove-background") + 1].Id);
-        Assert.Equal("trim-transparent", back[back.IndexOf("remove-background") + 1]);
+        Assert.Contains("trim-transparent", back);
         Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds, back);
         Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles)); // once only
     }

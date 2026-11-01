@@ -170,7 +170,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     partial void OnSelectedItemChanged(NavItem? oldValue, NavItem newValue)
     {
         if (!Choices.Restore(oldValue, newValue, v => SelectedItem = v))
+        {
+            if (oldValue is not null && oldValue != newValue)
+                _services.GetService<SoundService>()?.PlayHoverTick();
             CurrentPage = CreatePage(newValue);
+        }
     }
 
     // Old pages may hold event subscriptions on long-lived services.

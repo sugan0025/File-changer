@@ -87,7 +87,7 @@ public sealed partial class UpdateService : ObservableObject
     public static string LatestReleaseUrl => RepositoryUrl.TrimEnd('/') + "/releases/latest";
 
     /// <summary>The website: one big download button, friendlier than the GitHub release page.</summary>
-    public const string WebsiteUrl = "https://filee.sh/";
+    public static string WebsiteUrl => LatestReleaseUrl;
 
     /// <summary>
     /// True when this copy was installed by Setup on Windows (uninstall.exe; the Inno Setup installer of 1.x put unins000.exe there)
@@ -98,8 +98,24 @@ public sealed partial class UpdateService : ObservableObject
         OperatingSystem.IsWindows() && IsInstalledIn(AppContext.BaseDirectory)
         || OperatingSystem.IsLinux() && IsLinuxInstalled(AppContext.BaseDirectory);
 
-    internal static bool IsInstalledIn(string folder) =>
-        File.Exists(Path.Combine(folder, "uninstall.exe")) || File.Exists(Path.Combine(folder, "unins000.exe"));
+    internal static bool IsInstalledIn(string folder)
+    {
+        if (File.Exists(Path.Combine(folder, "uninstall.exe")) || File.Exists(Path.Combine(folder, "unins000.exe")))
+            return true;
+        if (File.Exists(Path.Combine(folder, ".filee-package")) || File.Exists(Path.Combine(folder, ".installed")))
+            return true;
+        try
+        {
+            var defaultLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Filee");
+            if (string.Equals(Path.GetFullPath(folder).TrimEnd('\\', '/'), Path.GetFullPath(defaultLocal).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        catch
+        {
+            // Ignore path resolution errors
+        }
+        return false;
+    }
 
     internal static bool IsLinuxInstalled(string baseDirectory)
     {
@@ -361,6 +377,76 @@ public sealed partial class UpdateService : ObservableObject
                 return;
             }
 
+            if (installer.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            {
+                var stagingDir = Path.Combine(folder, "staging");
+                try
+                {
+                    if (Directory.Exists(stagingDir))
+                        Directory.Delete(stagingDir, true);
+                    Directory.CreateDirectory(stagingDir);
+                    ZipFile.ExtractToDirectory(installer, stagingDir, overwriteFiles: true);
+                }
+                catch (Exception ex)
+                {
+                    Fail("extract", ex);
+                    return;
+                }
+
+                var payloadDir = stagingDir;
+                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                {
+                    var candidates = Directory.GetDirectories(stagingDir, "*", SearchOption.AllDirectories)
+                        .Where(d => File.Exists(Path.Combine(d, "Filee.exe")))
+                        .ToList();
+                    if (candidates.Count > 0)
+                        payloadDir = candidates[0];
+                }
+
+                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                {
+                    Fail("payload", new InvalidDataException("Extracted update archive does not contain Filee.exe"));
+                    return;
+                }
+
+                var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
+                var currentPid = Environment.ProcessId;
+                var targetExe = Path.Combine(appDir, "Filee.exe");
+
+                var script =
+                    $"$pidToWait = {currentPid}; " +
+                    $"$appDir = '{appDir.Replace("'", "''")}'; " +
+                    $"$payload = '{payloadDir.Replace("'", "''")}'; " +
+                    $"$exe = '{targetExe.Replace("'", "''")}'; " +
+                    "for ($i = 0; $i -lt 120; $i++) { " +
+                    "    if (-not (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue)) { break; } " +
+                    "    Start-Sleep -Milliseconds 100; " +
+                    "} " +
+                    "Copy-Item -Path (Join-Path $payload '*') -Destination $appDir -Recurse -Force; " +
+                    "Start-Process -FilePath $exe; " +
+                    $"Remove-Item -Path '{folder.Replace("'", "''")}' -Recurse -Force -ErrorAction SilentlyContinue;";
+
+                try
+                {
+                    var psi = new ProcessStartInfo("powershell.exe", $"-NoProfile -NonInteractive -WindowStyle Hidden -Command \"{script}\"")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                    };
+                    StartProcess(psi);
+                }
+                catch (Exception ex)
+                {
+                    Fail("start", ex);
+                    return;
+                }
+
+                _log.LogInformation("Started Windows zip update helper for {Version}, exiting current process", LatestVersion);
+                Step = UpdateStep.Installing;
+                RequestApplicationShutdown?.Invoke();
+                return;
+            }
+
             Process? setup;
             try
             {
@@ -527,6 +613,8 @@ public sealed partial class UpdateService : ObservableObject
     /// </summary>
     internal void CheckPublisher(string installer)
     {
+        if (installer.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            return;
         var publisher = OwnProgram is null ? null : SignerOf(OwnProgram, false);
         if (publisher is null)
         {
@@ -587,7 +675,7 @@ public sealed partial class UpdateService : ObservableObject
     /// <summary>Opens a download page: the website for installed copies, the release page (portable zip) otherwise.</summary>
     public void OpenDownloadPage()
     {
-        var url = IsInstalled ? WebsiteUrl : LatestReleaseUrl;
+        var url = LatestReleaseUrl;
         try
         {
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
@@ -682,6 +770,7 @@ public sealed partial class UpdateService : ObservableObject
         if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
             return (null, null);
 
+        ReleaseFile? zipFallback = null;
         var isLinux = target.StartsWith("linux-", StringComparison.OrdinalIgnoreCase);
         var expectedInstallerSuffix = isLinux ? $"-{target}.tar.gz" : "-win-Setup.exe";
         var expectedChecksumsSuffix = isLinux ? $"-{target}-SHA256SUMS.txt" : "-SHA256SUMS.txt";
@@ -698,6 +787,15 @@ public sealed partial class UpdateService : ObservableObject
             {
                 installer = new ReleaseFile(name, url, size);
             }
+            else if (!isLinux && (name.EndsWith("-win-Portable.zip", StringComparison.OrdinalIgnoreCase)
+                                 || name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase)
+                                 || (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                                     && !name.Contains("-linux-", StringComparison.OrdinalIgnoreCase)
+                                     && !name.Contains("-osx-", StringComparison.OrdinalIgnoreCase)
+                                     && !name.Contains("-mac-", StringComparison.OrdinalIgnoreCase))))
+            {
+                zipFallback ??= new ReleaseFile(name, url, size);
+            }
             else if (name.EndsWith(expectedChecksumsSuffix, StringComparison.OrdinalIgnoreCase))
             {
                 // When targeting Windows, exclude platform-specific checksum files (e.g. -linux-x64-SHA256SUMS.txt, -osx-...)
@@ -707,6 +805,7 @@ public sealed partial class UpdateService : ObservableObject
                 checksums = new ReleaseFile(name, url, size);
             }
         }
+        installer ??= zipFallback;
         return (installer, checksums);
     }
 

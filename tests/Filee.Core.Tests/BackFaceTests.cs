@@ -1,4 +1,4 @@
-// The back face of a donut (Tab flips the open donut to it): the built-in ones, settings schema 30 that gives existing
+﻿// The back face of a donut (Tab flips the open donut to it): the built-in ones, settings schema 30 that gives existing
 // libraries theirs, a round trip through a Filee from before back faces, "Reset to default" and import.
 
 using System.Text.Json.Nodes;
@@ -100,7 +100,7 @@ public class BackFaceTests
         Assert.Equal(["to-pdf", "to-hwpx", "to-hwp", "to-docx", "to-odt", "to-txt", "to-html", "to-epub", "to-png", "merge-pdf"],
             BuiltIn("office").PresetIds);
         Assert.Equal(["to-pdf", "merge-pdf", "zip-all", "to-png", "to-txt"], BuiltIn("mixed").PresetIds);
-        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "extract-audio", "to-mp3", "extract-subtitles", "caption-video", "to-mkv"],
+        Assert.Equal(["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "caption-video", "to-mkv", "to-avi"],
             BuiltIn("video").PresetIds);
     }
 

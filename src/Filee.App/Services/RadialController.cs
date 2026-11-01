@@ -1218,17 +1218,19 @@ public sealed class RadialController(
 
 
 
-        var lastHover = (Index: -1, Sub: -1);
+        var lastHover = (Index: -1, Sub: -1, Center: false);
         long quietUntil = 0;
 
         donut.ActiveIndexChanged += (_, index) =>
         {
-            var now = (Index: index, Sub: donut.ActiveSubIndex);
+            var centerHot = donut.IsCenterHot;
+            var subIndex = donut.ActiveSubIndex;
+            var now = (Index: index, Sub: subIndex, Center: centerHot);
             var changed = now != lastHover;
             lastHover = now;
-            if (index >= 0 && changed && Environment.TickCount64 >= quietUntil)
+            if ((index >= 0 || subIndex >= 0 || centerHot) && changed && Environment.TickCount64 >= quietUntil)
                 sounds?.PlayHoverTick();
-            viewModel.ShowHint(index, donut.ActiveSubIndex, donut.IsCenterHot);
+            viewModel.ShowHint(index, subIndex, centerHot);
         };
 
         donut.FaceSwapping += (_, _) =>

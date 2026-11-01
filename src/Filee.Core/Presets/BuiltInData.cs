@@ -732,12 +732,12 @@ public static class BuiltInData
         {
             Id = "video", NameKey = "profile.video",
             Extensions = ExtensionsOf(FormatCategory.Video),
-            PresetIds = ["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "extract-audio", "to-mp3", "extract-subtitles", "caption-video", "to-mkv"],
+            PresetIds = ["to-mp4", "mp4-720", "mp4-hevc", "to-webm", "to-mov", "to-gif", "to-mp3", "extract-subtitles", "caption-video", "to-mkv", "to-avi"],
             // Every frame as pictures is on no front (a long video gives thousands of files): behind a flip, a drop that
             // misses its slice doesn't start it. Live / Motion Photos of a clip are there too, and "Cut a clip" first
             // (in place of FLAC, which stays in the library).
             BackPresetIds = ["tool-clip", "mp4-av1", "to-webp", "extract-frames-png", "extract-frames-jpg", "live-photo-iphone", "motion-photo-android",
-                "to-avi", "to-wav", "compress-video", "merge-videos", "zip-all"],
+                "extract-audio", "to-wav", "compress-video", "merge-videos", "zip-all"],
         },
         new()
         {
