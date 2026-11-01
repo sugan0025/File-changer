@@ -152,6 +152,27 @@ public class DonutGeometryTests
         Assert.True(wider.CornerRadius > thin.CornerRadius);
     }
 
+    [Fact]
+    public void PickWithDetent_preserves_current_slice_within_hysteresis_band()
+    {
+        const int count = 4;
+        var span = DonutGeometry.Span(count);
+        var mid0 = DonutGeometry.MidAngle(0, count);
+        var boundary01 = mid0 + span / 2;
+
+        // Slightly past boundary into slice 1, within 12% detent:
+        var slightlyPast = boundary01 + span * 0.05;
+        Assert.Equal(1, DonutGeometry.IndexAt(slightlyPast, count));
+        Assert.Equal(0, DonutGeometry.PickWithDetent(slightlyPast, count, current: 0, detent: 0.12));
+
+        // Well past boundary (> 12% detent):
+        var wellPast = boundary01 + span * 0.15;
+        Assert.Equal(1, DonutGeometry.PickWithDetent(wellPast, count, current: 0, detent: 0.12));
+
+        // Negative current (-1) immediately picks raw index:
+        Assert.Equal(1, DonutGeometry.PickWithDetent(slightlyPast, count, current: -1, detent: 0.12));
+    }
+
     /// <summary>The outline's corners plus the middle of each rounded corner's arc.</summary>
     private static List<Point> OutlinePoints(WedgeOutline outline)
     {

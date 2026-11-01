@@ -20,7 +20,8 @@ public sealed class SoundService : IDisposable
     private static extern bool PlaySound(IntPtr pszSound, IntPtr hmod, uint fdwSound);
 
     private readonly UserDataStore _store;
-    private readonly IntPtr[] _ticks = new IntPtr[3];
+    private readonly IntPtr[] _ticks = new IntPtr[5];
+    private static readonly double[] PentatonicPitches = [1.0, 1.122462, 1.259921, 1.498307, 1.681793];
     private int _tickIndex;
     private readonly IntPtr _flipSound;
     private readonly IntPtr _completeChime;
@@ -42,7 +43,7 @@ public sealed class SoundService : IDisposable
         _store = store;
         if (OperatingSystem.IsWindows())
         {
-            for (var v = 0; v < 3; v++)
+            for (var v = 0; v < 5; v++)
                 _ticks[v] = AllocateWav(CreateWav(RenderTick(v), SampleRate));
 
             _flipSound = AllocateWav(CreateWav(RenderFlip(), SampleRate));
@@ -80,20 +81,21 @@ public sealed class SoundService : IDisposable
         }
     }
 
-    public void PlayHoverTick()
+    public void PlayHoverTick(int sliceIndex = -1)
     {
         if (!_store.Settings.SoundEffects)
             return;
 
         var now = Environment.TickCount64;
-        if (now - _lastTickMs < 20)
+        if (now - _lastTickMs < 35)
             return;
         _lastTickMs = now;
 
         if (OperatingSystem.IsWindows())
         {
-            PlayWindows(_ticks[_tickIndex]);
-            _tickIndex = (_tickIndex + 1) % 3;
+            var idx = sliceIndex >= 0 ? (sliceIndex % _ticks.Length) : _tickIndex;
+            PlayWindows(_ticks[idx]);
+            _tickIndex = (_tickIndex + 1) % _ticks.Length;
         }
         else if (OperatingSystem.IsMacOS())
         {
@@ -295,7 +297,7 @@ public sealed class SoundService : IDisposable
     private static float[] RenderTick(int variant, double durationSec = 0.040)
     {
         var s = new float[(int)(SampleRate * durationSec)];
-        var pitch = 1.0 + (variant - 1) * 0.045;
+        var pitch = variant >= 0 && variant < PentatonicPitches.Length ? PentatonicPitches[variant] : (1.0 + (variant - 1) * 0.045);
         var bp = new Svf();
         var rng = new Rng(0x9E3779B9u + (uint)variant * 7919u);
         for (var i = 0; i < s.Length; i++)

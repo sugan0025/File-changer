@@ -70,6 +70,16 @@ public static class DonutGeometry
         return (int)Math.Floor((angle + span / 2) / span) % count;
     }
 
+    /// <summary>Picks the slice at <paramref name="angle"/> with hysteresis/detent against flickering on slice borders.</summary>
+    public static int PickWithDetent(double angle, int count, int current, double detent = 0.12)
+    {
+        var raw = IndexAt(angle, count);
+        if (current < 0 || current >= count || raw == current)
+            return raw;
+        var off = Math.Abs(Math.IEEERemainder(angle - MidAngle(current, count), 2 * Math.PI));
+        return off < Span(count) * (0.5 + detent) ? current : raw;
+    }
+
     /// <summary>How far a group's fan reaches into each neighbouring slice, as a share of a slice.</summary>
     public const double SubOverhang = 0.25;
 
@@ -113,7 +123,7 @@ public static class DonutGeometry
     }
 
     /// <summary>Classifies a point. <paramref name="slack"/> extends the outer radius to include popped-out slices.</summary>
-    public static DonutHit HitTest(Point center, Point p, double innerRadius, double outerRadius, int count, double slack = 0)
+    public static DonutHit HitTest(Point center, Point p, double innerRadius, double outerRadius, int count, double slack = 0, int currentIndex = -1, double detent = 0.12)
     {
         var distance = Math.Sqrt(Math.Pow(p.X - center.X, 2) + Math.Pow(p.Y - center.Y, 2));
         if (distance < innerRadius)
@@ -122,7 +132,9 @@ public static class DonutGeometry
             return new DonutHit(DonutHitKind.Outside);
         if (count == 0)
             return new DonutHit(DonutHitKind.EmptyRing);
-        return new DonutHit(DonutHitKind.Segment, IndexAt(AngleOf(center, p), count));
+        var angle = AngleOf(center, p);
+        var index = currentIndex >= 0 ? PickWithDetent(angle, count, currentIndex, detent) : IndexAt(angle, count);
+        return new DonutHit(DonutHitKind.Segment, index);
     }
 
     /// <summary>Rounding below this (in pixels) is not visible: the slice stays sharp.</summary>
