@@ -81,7 +81,7 @@ try {
     $downloaded = $false
     if ($curlExe) {
         try {
-            & $curlExe -fL "$downloadUrl" -o "$tempZip"
+            & $curlExe -sSfL "$downloadUrl" -o "$tempZip" 2>$null
             if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 10000) {
                 $downloaded = $true
             }
@@ -89,9 +89,14 @@ try {
     }
 
     if (-not $downloaded) {
-        $webClient = New-Object System.Net.WebClient
-        $webClient.Headers.Add("User-Agent", "Filee-Installer")
-        $webClient.DownloadFile($downloadUrl, $tempZip)
+        try {
+            $webClient = New-Object System.Net.WebClient
+            $webClient.Headers.Add("User-Agent", "Filee-Installer")
+            $webClient.DownloadFile($downloadUrl, $tempZip)
+            if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 10000) {
+                $downloaded = $true
+            }
+        } catch { }
     }
 
     if (-not (Test-Path $tempZip) -or (Get-Item $tempZip).Length -lt 1000) {
