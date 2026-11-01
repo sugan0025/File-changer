@@ -1228,7 +1228,7 @@ public sealed class RadialController(
             var now = (Index: index, Sub: subIndex, Center: centerHot);
             var changed = now != lastHover;
             lastHover = now;
-            if ((index >= 0 || subIndex >= 0 || centerHot) && changed && Environment.TickCount64 >= quietUntil)
+            if ((subIndex >= 0 || centerHot) && changed && Environment.TickCount64 >= quietUntil)
                 sounds?.PlayHoverTick();
             viewModel.ShowHint(index, subIndex, centerHot);
         };

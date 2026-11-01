@@ -104,7 +104,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public string NavToggleTip => _loc[IsNavCollapsed ? "nav.expand" : "nav.collapse"];
 
     [RelayCommand]
-    private void ToggleNav() => IsNavCollapsed = !IsNavCollapsed;
+    private void ToggleNav()
+    {
+        IsNavCollapsed = !IsNavCollapsed;
+        _services.GetService<SoundService>()?.PlayToggle(!IsNavCollapsed);
+    }
 
     partial void OnIsNavCollapsedChanged(bool value)
     {
@@ -172,7 +176,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!Choices.Restore(oldValue, newValue, v => SelectedItem = v))
         {
             if (oldValue is not null && oldValue != newValue)
-                _services.GetService<SoundService>()?.PlayHoverTick();
+                _services.GetService<SoundService>()?.PlayNav();
             CurrentPage = CreatePage(newValue);
         }
     }

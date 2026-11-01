@@ -21,6 +21,31 @@ public partial class MainWindow : Window
         InitializeComponent();
         Motion.Track(this);
         UiZoom.Track(this);
+
+        AddHandler(Button.ClickEvent, OnAnyButtonClicked, RoutingStrategies.Bubble);
+        AddHandler(ToggleSwitch.IsCheckedChangedEvent, OnAnyToggleChanged, RoutingStrategies.Bubble);
+    }
+
+    private void OnAnyButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is Button btn)
+        {
+            if (btn.Classes.Contains("navtoggle"))
+                return;
+
+            if (btn.Classes.Contains("accent") || btn.Name?.Contains("Save", StringComparison.OrdinalIgnoreCase) == true)
+                AppHost.Get<SoundService>()?.PlayConfirm();
+            else
+                AppHost.Get<SoundService>()?.PlayButtonClick();
+        }
+    }
+
+    private void OnAnyToggleChanged(object? sender, RoutedEventArgs e)
+    {
+        if (e.Source is ToggleSwitch toggle && toggle.IsLoaded)
+        {
+            AppHost.Get<SoundService>()?.PlayToggle(toggle.IsChecked == true);
+        }
     }
 
     private async void OnOpenGitHub(object? sender, RoutedEventArgs e)

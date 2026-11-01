@@ -67,6 +67,8 @@ public sealed class SoundService : IDisposable
     private sealed class FastTickPlayer : IDisposable
     {
         private const int PoolSize = 16;
+        private const uint WHDR_DONE = 0x00000001;
+        private const uint WHDR_INQUEUE = 0x00000010;
         private readonly IntPtr _hWaveOut;
         private readonly IntPtr[] _ptrs = new IntPtr[PoolSize];
         private readonly WAVEHDR[] _hdrs = new WAVEHDR[PoolSize];
@@ -136,21 +138,18 @@ public sealed class SoundService : IDisposable
                 for (var attempt = 0; attempt < PoolSize; attempt++)
                 {
                     var idx = (_ringIndex + attempt) % PoolSize;
-                    if ((_hdrs[idx].dwFlags & WHDR_INQUEUE) == 0)
+                    var isAvailable = (_hdrs[idx].dwFlags & WHDR_INQUEUE) == 0 || (_hdrs[idx].dwFlags & WHDR_DONE) != 0;
+                    if (isAvailable)
                     {
                         _ringIndex = (idx + 1) % PoolSize;
+                        _hdrs[idx].dwFlags &= ~WHDR_DONE;
                         var res = waveOutWrite(_hWaveOut, ref _hdrs[idx], (uint)_hdrSize);
                         return res == 0;
                     }
                 }
 
-                var fallback = _ringIndex;
-                _ringIndex = (_ringIndex + 1) % PoolSize;
-                if ((_hdrs[fallback].dwFlags & WHDR_INQUEUE) == 0)
-                {
-                    return waveOutWrite(_hWaveOut, ref _hdrs[fallback], (uint)_hdrSize) == 0;
-                }
-                return true;
+                // If all buffers are currently in queue, return false to allow fallback to PlayWindows
+                return false;
             }
         }
 
@@ -193,6 +192,12 @@ public sealed class SoundService : IDisposable
     private readonly IntPtr _dropCatch;
     private readonly IntPtr _cancel;
     private readonly IntPtr _error;
+    private readonly IntPtr _nav;
+    private readonly IntPtr _buttonClick;
+    private readonly IntPtr _tab;
+    private readonly IntPtr _confirm;
+    private readonly IntPtr _toggleOn;
+    private readonly IntPtr _toggleOff;
 
     public SoundService(UserDataStore store)
     {
@@ -209,6 +214,12 @@ public sealed class SoundService : IDisposable
             _dropCatch = AllocateWav(CreateWav(RenderDropCatch(), SampleRate));
             _cancel = AllocateWav(CreateWav(RenderCancel(), SampleRate));
             _error = AllocateWav(CreateWav(RenderError(), SampleRate));
+            _nav = AllocateWav(CreateWav(RenderNav(), SampleRate));
+            _buttonClick = AllocateWav(CreateWav(RenderButtonClick(), SampleRate));
+            _tab = AllocateWav(CreateWav(RenderTab(), SampleRate));
+            _confirm = AllocateWav(CreateWav(RenderConfirm(), SampleRate));
+            _toggleOn = AllocateWav(CreateWav(RenderToggle(true), SampleRate));
+            _toggleOff = AllocateWav(CreateWav(RenderToggle(false), SampleRate));
         }
     }
 
@@ -317,6 +328,61 @@ public sealed class SoundService : IDisposable
             PlayWindows(_error);
         else if (OperatingSystem.IsMacOS())
             PlayMacSound("Basso");
+    }
+
+    public void PlayNav()
+    {
+        if (!_store.Settings.SoundEffects)
+            return;
+
+        if (OperatingSystem.IsWindows())
+            PlayWindows(_nav);
+        else if (OperatingSystem.IsMacOS())
+            PlayMacSound("Ping");
+    }
+
+    public void PlayButtonClick()
+    {
+        if (!_store.Settings.SoundEffects)
+            return;
+
+        if (OperatingSystem.IsWindows())
+            PlayWindows(_buttonClick);
+        else if (OperatingSystem.IsMacOS())
+            PlayMacSound("Tink");
+    }
+
+    public void PlayTab()
+    {
+        if (!_store.Settings.SoundEffects)
+            return;
+
+        if (OperatingSystem.IsWindows())
+            PlayWindows(_tab);
+        else if (OperatingSystem.IsMacOS())
+            PlayMacSound("Pop");
+    }
+
+    public void PlayConfirm()
+    {
+        if (!_store.Settings.SoundEffects)
+            return;
+
+        if (OperatingSystem.IsWindows())
+            PlayWindows(_confirm);
+        else if (OperatingSystem.IsMacOS())
+            PlayMacSound("Hero");
+    }
+
+    public void PlayToggle(bool on)
+    {
+        if (!_store.Settings.SoundEffects)
+            return;
+
+        if (OperatingSystem.IsWindows())
+            PlayWindows(on ? _toggleOn : _toggleOff);
+        else if (OperatingSystem.IsMacOS())
+            PlayMacSound(on ? "Blow" : "Bottle");
     }
 
     private static void PlayMacSound(string soundName)
@@ -530,6 +596,100 @@ public sealed class SoundService : IDisposable
         return Finish(s, 0.30, 90);
     }
 
+    private static float[] RenderNav()
+    {
+        // 50ms modern fluid UI navigation tab transition (warm, resonant, micro-tap)
+        var s = new float[(int)(SampleRate * 0.050)];
+        var phase = 0.0;
+        var bp = new Svf();
+        var rng = new Rng(0x51DEB4u);
+        for (var i = 0; i < s.Length; i++)
+        {
+            var t = i / (double)SampleRate;
+            var f = 560.0 - 180.0 * Math.Pow(t / 0.050, 0.6);
+            phase += Tau * f / SampleRate;
+            var env = Math.Sin(Math.PI * Math.Min(1.0, t / 0.050)) * Math.Exp(-t / 0.020);
+            var tone = Math.Sin(phase) + 0.20 * Math.Sin(2 * phase);
+            bp.Process(rng.Next(), 1900, 1 / 1.5, out _, out var band);
+            var noiseTap = band * Math.Exp(-t / 0.002) * 0.35;
+            s[i] = (float)(tone * env * 0.85 + noiseTap);
+        }
+        return Finish(s, 0.26, 6);
+    }
+
+    private static float[] RenderButtonClick()
+    {
+        // 22ms tactile micro-switch button click
+        var s = new float[(int)(SampleRate * 0.022)];
+        var phase = 0.0;
+        var bp = new Svf();
+        var rng = new Rng(0xB0770u);
+        for (var i = 0; i < s.Length; i++)
+        {
+            var t = i / (double)SampleRate;
+            var f = 1100.0 * Math.Exp(-t / 0.004);
+            phase += Tau * f / SampleRate;
+            var env = Math.Exp(-t / 0.007);
+            bp.Process(rng.Next(), 2600, 1 / 1.4, out _, out var band);
+            s[i] = (float)((Math.Sin(phase) * 0.5 + band * 0.65) * env);
+        }
+        return Finish(s, 0.22, 3);
+    }
+
+    private static float[] RenderTab()
+    {
+        // 28ms gentle pill/tab switch pop
+        var s = new float[(int)(SampleRate * 0.028)];
+        var phase = 0.0;
+        for (var i = 0; i < s.Length; i++)
+        {
+            var t = i / (double)SampleRate;
+            phase += Tau * 640 * Math.Exp(-t / 0.010) / SampleRate;
+            var env = Math.Exp(-t / 0.009);
+            s[i] = (float)(Math.Sin(phase) * env);
+        }
+        return Finish(s, 0.18, 4);
+    }
+
+    private static float[] RenderConfirm()
+    {
+        // 110ms warm dual-tone confirmation chime
+        var s = new float[(int)(SampleRate * 0.11)];
+        double[] freqs = [659.25, 880.0];
+        foreach (var f in freqs)
+        {
+            for (var i = 0; i < s.Length; i++)
+            {
+                var t = i / (double)SampleRate;
+                var env = (1 - Math.Exp(-t / 0.001)) * Math.Exp(-t / 0.032);
+                s[i] += (float)(Math.Sin(Tau * f * t) * env * 0.45);
+            }
+        }
+        return Finish(s, 0.25, 12);
+    }
+
+    private static float[] RenderToggle(bool on)
+    {
+        // 35ms mechanical toggle switch snap
+        var s = new float[(int)(SampleRate * 0.035)];
+        var phase = 0.0;
+        var f0 = on ? 680.0 : 420.0;
+        var f1 = on ? 920.0 : 320.0;
+        var bp = new Svf();
+        var rng = new Rng(on ? 0x010101u : 0x0F0F0Fu);
+        for (var i = 0; i < s.Length; i++)
+        {
+            var t = i / (double)SampleRate;
+            var u = t / 0.035;
+            var f = f0 + (f1 - f0) * u;
+            phase += Tau * f / SampleRate;
+            var env = Math.Sin(Math.PI * Math.Pow(u, 0.4)) * Math.Exp(-t / 0.014);
+            bp.Process(rng.Next(), on ? 3400 : 2100, 1 / 1.8, out _, out var band);
+            s[i] = (float)((Math.Sin(phase) + 0.25 * Math.Sin(2 * phase)) * env * 0.7 + band * Math.Exp(-t / 0.003) * 0.45);
+        }
+        return Finish(s, 0.24, 4);
+    }
+
     private static byte[] CreateWav(float[] samples, int sampleRate)
     {
         using var stream = new MemoryStream();
@@ -571,5 +731,11 @@ public sealed class SoundService : IDisposable
         if (_dropCatch != IntPtr.Zero) Marshal.FreeHGlobal(_dropCatch);
         if (_cancel != IntPtr.Zero) Marshal.FreeHGlobal(_cancel);
         if (_error != IntPtr.Zero) Marshal.FreeHGlobal(_error);
+        if (_nav != IntPtr.Zero) Marshal.FreeHGlobal(_nav);
+        if (_buttonClick != IntPtr.Zero) Marshal.FreeHGlobal(_buttonClick);
+        if (_tab != IntPtr.Zero) Marshal.FreeHGlobal(_tab);
+        if (_confirm != IntPtr.Zero) Marshal.FreeHGlobal(_confirm);
+        if (_toggleOn != IntPtr.Zero) Marshal.FreeHGlobal(_toggleOn);
+        if (_toggleOff != IntPtr.Zero) Marshal.FreeHGlobal(_toggleOff);
     }
 }

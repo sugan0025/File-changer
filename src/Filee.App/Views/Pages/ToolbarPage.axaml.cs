@@ -18,6 +18,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using Filee.App.Controls;
+using Filee.App.Services;
 using Filee.App.ViewModels;
 using Filee.App.ViewModels.Pages;
 
@@ -57,6 +58,8 @@ public partial class ToolbarPage : UserControl
         Root.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Tunnel, handledEventsToo: true);
         // Before the list box, which doesn't move between the rows of its wrap panel.
         PaletteTabs.AddHandler(KeyDownEvent, OnTabsKeyDown, RoutingStrategies.Tunnel);
+        ProfileList.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.Get<SoundService>()?.PlayTab(); };
+        PaletteTabs.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.Get<SoundService>()?.PlayTab(); };
 
         Donut.SegmentDragStarted += (_, e) =>
         {
@@ -89,6 +92,7 @@ public partial class ToolbarPage : UserControl
         {
             EndDrag();
             Donut.PlayFlipIn();
+            AppHost.Get<SoundService>()?.PlayFlipSound();
         }
     }
 
@@ -255,7 +259,10 @@ public partial class ToolbarPage : UserControl
     private void OnChipDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Border { DataContext: PaletteChip { CanAdd: true } chip } && Vm is { } vm)
+        {
             vm.Insert(chip.PresetId, vm.SliceCount);
+            AppHost.Get<SoundService>()?.PlayDropCatch();
+        }
     }
 
     /// <summary>The keyboard's double- and right-click on a chip: Enter appends it, Shift+F10 or the menu key edits it.</summary>
@@ -308,12 +315,15 @@ public partial class ToolbarPage : UserControl
             {
                 case Source.Chip when drag.CanAdd && sliceTarget >= 0:
                     vm.Insert(drag.PresetId!, sliceTarget);
+                    AppHost.Get<SoundService>()?.PlayDropCatch();
                     break;
                 case Source.Slice when overPalette:
                     vm.RemoveAt(drag.SliceIndex);
+                    AppHost.Get<SoundService>()?.PlayCancel();
                     break;
                 case Source.Slice when sliceTarget >= 0 && sliceTarget < vm.SliceCount:
                     vm.Move(drag.SliceIndex, sliceTarget);
+                    AppHost.Get<SoundService>()?.PlayHoverTick();
                     break;
             }
         }
