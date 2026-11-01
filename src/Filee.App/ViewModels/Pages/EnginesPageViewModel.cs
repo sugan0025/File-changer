@@ -135,9 +135,9 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
 
     public string ActiveStatusText => SelectedCategory switch
     {
-        0 => "Database: ImageMagick & PDFium — 1,120 conversions committed and ready",
-        1 => "Dashboard: FFmpeg Media Stream — Real-time audio and video pipeline active",
-        _ => "Email Service: LibreOffice, Pandoc & rhwp — Document and markup dispatch active"
+        0 => "Graphics & Images: ImageMagick & PDFium — 1,120 conversions ready",
+        1 => "Audio & Video: FFmpeg Engine — Real-time stream transcoding & audio pipeline active",
+        _ => "Office & Documents: LibreOffice, Pandoc & rhwp — High-fidelity document pipeline active"
     };
 
     public string CategoryTitle => SelectedCategory switch

@@ -132,7 +132,6 @@ public partial class EnginePipelineControl : UserControl
 
     private void SelectNode(int index)
     {
-        // When clicking the category button, switch to it, open the dropdown, and play sound
         ActiveIndex = index;
         IsDropdownOpen = true;
 
@@ -145,22 +144,27 @@ public partial class EnginePipelineControl : UserControl
 
         if (isDark)
         {
-            // Routing Hero card is high-contrast INVERTED (White in Dark mode)
-            RoutingCard.Background = new SolidColorBrush(Color.Parse("#FFFFFF"));
-            RoutingCard.BorderBrush = new SolidColorBrush(Color.Parse("#E5E7EB"));
-            RoutingLabel.Foreground = new SolidColorBrush(Color.Parse("#6B7280"));
+            // Routing Hero card is high-contrast liquid white glass in Dark mode
+            RoutingCard.Background = new SolidColorBrush(Color.FromArgb(240, 255, 255, 255));
+            RoutingCard.BorderBrush = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255));
+            RoutingLabel.Foreground = new SolidColorBrush(Color.Parse("#4B5563"));
             RoutingTitle.Foreground = new SolidColorBrush(Color.Parse("#111827"));
 
-            var dotBrush = new SolidColorBrush(Color.Parse("#4B5563"));
+            var dotBrush = new SolidColorBrush(Color.Parse("#374151"));
             Dot0.Fill = dotBrush;
             Dot1.Fill = dotBrush;
             Dot2.Fill = dotBrush;
+
+            Node1Card.Background = new SolidColorBrush(Color.FromArgb(55, 24, 28, 40));
+            Node1Card.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255));
+            Node2Card.Background = new SolidColorBrush(Color.FromArgb(55, 24, 28, 40));
+            Node2Card.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255));
         }
         else
         {
-            // Routing Hero card is high-contrast INVERTED (Charcoal in Light mode)
-            RoutingCard.Background = new SolidColorBrush(Color.Parse("#111111"));
-            RoutingCard.BorderBrush = new SolidColorBrush(Color.Parse("#222222"));
+            // Routing Hero card is liquid charcoal glass in Light mode
+            RoutingCard.Background = new SolidColorBrush(Color.FromArgb(230, 18, 22, 32));
+            RoutingCard.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0));
             RoutingLabel.Foreground = new SolidColorBrush(Color.Parse("#9CA3AF"));
             RoutingTitle.Foreground = new SolidColorBrush(Color.Parse("#FFFFFF"));
 
@@ -168,6 +172,11 @@ public partial class EnginePipelineControl : UserControl
             Dot0.Fill = dotBrush;
             Dot1.Fill = dotBrush;
             Dot2.Fill = dotBrush;
+
+            Node1Card.Background = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255));
+            Node1Card.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 0, 0, 0));
+            Node2Card.Background = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255));
+            Node2Card.BorderBrush = new SolidColorBrush(Color.FromArgb(70, 0, 0, 0));
         }
     }
 
@@ -184,27 +193,53 @@ public partial class EnginePipelineControl : UserControl
     {
         if (isActive)
         {
-            card.Background = isDark ? new SolidColorBrush(Color.Parse("#1A1D2B")) : new SolidColorBrush(Color.Parse("#FFFFFF"));
-            card.BorderBrush = isDark ? new SolidColorBrush(Color.Parse("#E5E7EB")) : new SolidColorBrush(Color.Parse("#1F2937"));
+            // Active Liquid Glass highlight
+            card.Background = isDark
+                ? new SolidColorBrush(Color.FromArgb(140, 36, 44, 62))
+                : new SolidColorBrush(Color.FromArgb(240, 255, 255, 255));
+            card.BorderBrush = isDark
+                ? new SolidColorBrush(Color.FromArgb(220, 255, 255, 255))
+                : new SolidColorBrush(Color.FromArgb(180, 17, 24, 39));
             card.BorderThickness = new Thickness(1.5);
+            card.BoxShadow = BoxShadows.Parse(isDark
+                ? "0 10 24 0 #40000000, 0 1 0 0 #80FFFFFF, inset 0 1 1 0 #40FFFFFF"
+                : "0 8 20 0 #25000000, 0 1 0 0 #35000000");
+
             label.FontWeight = FontWeight.SemiBold;
-            label.Foreground = isDark ? new SolidColorBrush(Color.Parse("#FFFFFF")) : new SolidColorBrush(Color.Parse("#111827"));
+            label.Foreground = isDark
+                ? new SolidColorBrush(Color.Parse("#FFFFFF"))
+                : new SolidColorBrush(Color.Parse("#111827"));
 
             dot.Width = 11;
             dot.Height = 11;
-            dot.Background = isDark ? new SolidColorBrush(Color.Parse("#FFFFFF")) : new SolidColorBrush(Color.Parse("#111827"));
+            dot.Background = isDark
+                ? new SolidColorBrush(Color.Parse("#FFFFFF"))
+                : new SolidColorBrush(Color.Parse("#111827"));
         }
         else
         {
-            card.Background = isDark ? new SolidColorBrush(Color.Parse("#10121A")) : new SolidColorBrush(Color.Parse("#F8F9FA"));
-            card.BorderBrush = isDark ? new SolidColorBrush(Color.Parse("#2D3748")) : new SolidColorBrush(Color.Parse("#E5E7EB"));
+            // Inactive Liquid Glass surface
+            card.Background = isDark
+                ? new SolidColorBrush(Color.FromArgb(45, 20, 25, 36))
+                : new SolidColorBrush(Color.FromArgb(160, 245, 247, 250));
+            card.BorderBrush = isDark
+                ? new SolidColorBrush(Color.FromArgb(50, 255, 255, 255))
+                : new SolidColorBrush(Color.FromArgb(40, 0, 0, 0));
             card.BorderThickness = new Thickness(1.0);
+            card.BoxShadow = BoxShadows.Parse(isDark
+                ? "0 6 16 0 #20000000, 0 1 0 0 #25FFFFFF, inset 0 1 0 0 #10FFFFFF"
+                : "0 4 12 0 #15000000");
+
             label.FontWeight = FontWeight.Medium;
-            label.Foreground = isDark ? new SolidColorBrush(Color.Parse("#9CA3AF")) : new SolidColorBrush(Color.Parse("#6B7280"));
+            label.Foreground = isDark
+                ? new SolidColorBrush(Color.FromArgb(200, 156, 163, 175))
+                : new SolidColorBrush(Color.Parse("#6B7280"));
 
             dot.Width = 9;
             dot.Height = 9;
-            dot.Background = isDark ? new SolidColorBrush(Color.Parse("#4B5563")) : new SolidColorBrush(Color.Parse("#D1D5DB"));
+            dot.Background = isDark
+                ? new SolidColorBrush(Color.FromArgb(120, 156, 163, 175))
+                : new SolidColorBrush(Color.Parse("#D1D5DB"));
         }
     }
 }

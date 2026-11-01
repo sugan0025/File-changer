@@ -5,70 +5,75 @@
 
   <UserControl.Styles>
     <Style Selector="Border.pipeline-node">
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="CornerRadius" Value="18" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
           <BrushTransition Property="Background" Duration="0:0:0.25" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.25" />
         </Transitions>
       </Setter>
     </Style>
 
     <Style Selector="Border.pipeline-endnode">
-      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="CornerRadius" Value="16" />
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
           <BrushTransition Property="Background" Duration="0:0:0.25" />
           <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+          <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.25" />
         </Transitions>
       </Setter>
     </Style>
     <Style Selector="Border.pipeline-endnode:pointerover">
-      <Setter Property="Opacity" Value="0.92" />
+      <Setter Property="Opacity" Value="0.95" />
     </Style>
   </UserControl.Styles>
 
-  <!-- Responsive Canvas Container: scales gracefully across all screen sizes up to 1080px -->
-  <Viewbox MaxWidth="1080" Stretch="Uniform" HorizontalAlignment="Center">
-    <Canvas Width="1080" Height="340">
+  <!-- Responsive Canvas Container: scales gracefully up to 1180px with long sweeping branch lines ⚟ -->
+  <Viewbox MaxWidth="1180" Stretch="Uniform" HorizontalAlignment="Center">
+    <Canvas Width="1180" Height="350">
 
-      <!-- 1. Native High-Performance Animated Particle Vector Canvas -->
-      <controls:PipelineDrawingCanvas x:Name="Canvas" Width="1080" Height="340" />
+      <!-- 1. Native High-Performance Animated Particle Vector Canvas with 190px Branch Lines ⚟ -->
+      <controls:PipelineDrawingCanvas x:Name="Canvas" Width="1180" Height="350" />
 
-      <!-- 2. Node 1: Input (Length increased to 180px) -->
-      <Border x:Name="Node1Card" Canvas.Left="60" Canvas.Top="130" Width="180" Height="80"
+      <!-- 2. Node 1: Input (Liquid Frosted Glass) -->
+      <Border x:Name="Node1Card" Canvas.Left="50" Canvas.Top="135" Width="170" Height="80"
               Classes="pipeline-node"
-              Background="{DynamicResource SurfaceAltBrush}"
-              BorderBrush="{DynamicResource SubtleBorderBrush}">
+              Background="#2B161B28"
+              BorderBrush="#40FFFFFF"
+              BoxShadow="0 10 24 0 #35000000, 0 1 0 0 #40FFFFFF, inset 0 1 0 0 #18FFFFFF">
         <StackPanel VerticalAlignment="Center" Margin="18,0">
           <TextBlock Text="INPUT" FontSize="9" FontWeight="Bold" Foreground="#9CA3AF" LetterSpacing="1.5" Margin="0,0,0,4" />
           <TextBlock Text="File Sources" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
         </StackPanel>
       </Border>
       <TextBlock Text="documents · images · media"
-                 Canvas.Left="50" Canvas.Top="222" Width="200" TextAlignment="Center"
+                 Canvas.Left="35" Canvas.Top="228" Width="200" TextAlignment="Center"
                  FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
 
-      <!-- 3. Node 2: Processing (Length increased to 180px) -->
-      <Border x:Name="Node2Card" Canvas.Left="340" Canvas.Top="130" Width="180" Height="80"
+      <!-- 3. Node 2: Processing (Liquid Frosted Glass) -->
+      <Border x:Name="Node2Card" Canvas.Left="290" Canvas.Top="135" Width="170" Height="80"
               Classes="pipeline-node"
-              Background="{DynamicResource SurfaceAltBrush}"
-              BorderBrush="{DynamicResource SubtleBorderBrush}">
+              Background="#2B161B28"
+              BorderBrush="#40FFFFFF"
+              BoxShadow="0 10 24 0 #35000000, 0 1 0 0 #40FFFFFF, inset 0 1 0 0 #18FFFFFF">
         <StackPanel VerticalAlignment="Center" Margin="18,0">
           <TextBlock Text="PROCESSING" FontSize="9" FontWeight="Bold" Foreground="#9CA3AF" LetterSpacing="1.5" Margin="0,0,0,4" />
           <TextBlock Text="Transformation" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
         </StackPanel>
       </Border>
       <TextBlock Text="clean · parse · validate"
-                 Canvas.Left="330" Canvas.Top="222" Width="200" TextAlignment="Center"
+                 Canvas.Left="275" Canvas.Top="228" Width="200" TextAlignment="Center"
                  FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
 
-      <!-- 4. Node 3: Routing (Inverted Accent Hero Card, Length increased to 180px) -->
-      <Border x:Name="RoutingCard" Canvas.Left="620" Canvas.Top="130" Width="180" Height="80"
-              Classes="pipeline-node" BoxShadow="0 10 25 0 #40000000">
+      <!-- 4. Node 3: Routing (Liquid Morphed Hero Card) -->
+      <Border x:Name="RoutingCard" Canvas.Left="530" Canvas.Top="135" Width="170" Height="80"
+              Classes="pipeline-node"
+              BoxShadow="0 14 36 0 #50000000, 0 1 0 0 #60FFFFFF, inset 0 1 1 0 #30FFFFFF">
         <StackPanel VerticalAlignment="Center" Margin="18,0">
           <TextBlock x:Name="RoutingLabel" Text="ROUTING" FontSize="9" FontWeight="Bold" LetterSpacing="1.5" Margin="0,0,0,3" />
           <TextBlock x:Name="RoutingTitle" Text="Logic Engine" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,6" />
@@ -81,31 +86,31 @@
         </StackPanel>
       </Border>
       <TextBlock Text="filter · map · dispatch"
-                 Canvas.Left="610" Canvas.Top="222" Width="200" TextAlignment="Center"
+                 Canvas.Left="515" Canvas.Top="228" Width="200" TextAlignment="Center"
                  FontSize="10" FontFamily="Consolas, monospace" Foreground="#9CA3AF" />
 
-      <!-- 5. End Node 0: Graphics & Images (Length increased to 210px for generous breathing room) -->
-      <Border x:Name="EndNode0" Canvas.Left="865" Canvas.Top="45" Width="210" Height="50"
+      <!-- 5. End Node 0: Graphics & Images (Longer Liquid Glass Card: 220px) -->
+      <Border x:Name="EndNode0" Canvas.Left="890" Canvas.Top="49" Width="220" Height="52"
               Classes="pipeline-endnode" PointerPressed="OnNode0Pressed">
-        <DockPanel Margin="16,0">
+        <DockPanel Margin="18,0">
           <Border x:Name="DotNode0" DockPanel.Dock="Right" Width="9" Height="9" CornerRadius="99" VerticalAlignment="Center" />
           <TextBlock x:Name="TextNode0" Text="Graphics &amp; Images" FontSize="13" VerticalAlignment="Center" />
         </DockPanel>
       </Border>
 
-      <!-- 6. End Node 1: Audio & Video (Length increased to 210px) -->
-      <Border x:Name="EndNode1" Canvas.Left="865" Canvas.Top="145" Width="210" Height="50"
+      <!-- 6. End Node 1: Audio & Video (Longer Liquid Glass Card: 220px) -->
+      <Border x:Name="EndNode1" Canvas.Left="890" Canvas.Top="149" Width="220" Height="52"
               Classes="pipeline-endnode" PointerPressed="OnNode1Pressed">
-        <DockPanel Margin="16,0">
+        <DockPanel Margin="18,0">
           <Border x:Name="DotNode1" DockPanel.Dock="Right" Width="9" Height="9" CornerRadius="99" VerticalAlignment="Center" />
           <TextBlock x:Name="TextNode1" Text="Audio &amp; Video" FontSize="13" VerticalAlignment="Center" />
         </DockPanel>
       </Border>
 
-      <!-- 7. End Node 2: Office & Docs (Length increased to 210px) -->
-      <Border x:Name="EndNode2" Canvas.Left="865" Canvas.Top="245" Width="210" Height="50"
+      <!-- 7. End Node 2: Office & Docs (Longer Liquid Glass Card: 220px) -->
+      <Border x:Name="EndNode2" Canvas.Left="890" Canvas.Top="249" Width="220" Height="52"
               Classes="pipeline-endnode" PointerPressed="OnNode2Pressed">
-        <DockPanel Margin="16,0">
+        <DockPanel Margin="18,0">
           <Border x:Name="DotNode2" DockPanel.Dock="Right" Width="9" Height="9" CornerRadius="99" VerticalAlignment="Center" />
           <TextBlock x:Name="TextNode2" Text="Office &amp; Docs" FontSize="13" VerticalAlignment="Center" />
         </DockPanel>
