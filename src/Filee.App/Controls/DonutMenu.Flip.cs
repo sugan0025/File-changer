@@ -288,6 +288,7 @@ public sealed partial class DonutMenu
         }
         if (!CanFlip)
             return false;
+        AppHost.TryGet<SoundService>()?.PlayFlipSound();
         if (!Motion.Enabled)
         {
             CollapseGroup();
@@ -323,6 +324,7 @@ public sealed partial class DonutMenu
     /// </summary>
     public void PlayFlipIn()
     {
+        AppHost.TryGet<SoundService>()?.PlayFlipSound();
         if (!Motion.Enabled)
             return;
         _oldFace = null;

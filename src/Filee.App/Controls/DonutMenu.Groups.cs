@@ -193,7 +193,10 @@ public sealed partial class DonutMenu
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
         if (opening)
+        {
+            AppHost.TryGet<SoundService>()?.PlayFanOut();
             GroupExpanded?.Invoke(this, group);
+        }
     }
 
     private void SetSub(int sub)
@@ -201,6 +204,8 @@ public sealed partial class DonutMenu
         if (_subHover == sub)
             return;
         _subHover = sub;
+        if (sub >= 0)
+            AppHost.TryGet<SoundService>()?.PlayHoverTick();
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
     }

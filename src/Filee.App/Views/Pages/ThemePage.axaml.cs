@@ -9,12 +9,12 @@ public partial class ThemePage : UserControl
     public ThemePage()
     {
         InitializeComponent();
-        PreviewPrimaryButton.Click += (_, _) => AppHost.Get<SoundService>()?.PlayConfirm();
-        PreviewSecondaryButton.Click += (_, _) => AppHost.Get<SoundService>()?.PlayCancel();
+        PreviewPrimaryButton.Click += (_, _) => AppHost.TryGet<SoundService>()?.PlayConfirm();
+        PreviewSecondaryButton.Click += (_, _) => AppHost.TryGet<SoundService>()?.PlayCancel();
         PreviewToggle.IsCheckedChanged += (_, _) =>
         {
             if (IsLoaded)
-                AppHost.Get<SoundService>()?.PlayToggle(PreviewToggle.IsChecked == true);
+                AppHost.TryGet<SoundService>()?.PlayToggle(PreviewToggle.IsChecked == true);
         };
     }
 
@@ -23,6 +23,6 @@ public partial class ThemePage : UserControl
     {
         base.OnLoaded(e);
         PreviewDonut.PlayOpenAnimation();
-        AppHost.Get<SoundService>()?.PlayFanOut();
+        AppHost.TryGet<SoundService>()?.PlayFanOut();
     }
 }

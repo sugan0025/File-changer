@@ -58,8 +58,8 @@ public partial class ToolbarPage : UserControl
         Root.AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Tunnel, handledEventsToo: true);
         // Before the list box, which doesn't move between the rows of its wrap panel.
         PaletteTabs.AddHandler(KeyDownEvent, OnTabsKeyDown, RoutingStrategies.Tunnel);
-        ProfileList.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.Get<SoundService>()?.PlayTab(); };
-        PaletteTabs.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.Get<SoundService>()?.PlayTab(); };
+        ProfileList.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.TryGet<SoundService>()?.PlayTab(); };
+        PaletteTabs.SelectionChanged += (_, _) => { if (IsLoaded) AppHost.TryGet<SoundService>()?.PlayTab(); };
 
         Donut.SegmentDragStarted += (_, e) =>
         {
@@ -92,7 +92,7 @@ public partial class ToolbarPage : UserControl
         {
             EndDrag();
             Donut.PlayFlipIn();
-            AppHost.Get<SoundService>()?.PlayFlipSound();
+            AppHost.TryGet<SoundService>()?.PlayFlipSound();
         }
     }
 
@@ -261,7 +261,7 @@ public partial class ToolbarPage : UserControl
         if (sender is Border { DataContext: PaletteChip { CanAdd: true } chip } && Vm is { } vm)
         {
             vm.Insert(chip.PresetId, vm.SliceCount);
-            AppHost.Get<SoundService>()?.PlayDropCatch();
+            AppHost.TryGet<SoundService>()?.PlayDropCatch();
         }
     }
 
@@ -315,15 +315,15 @@ public partial class ToolbarPage : UserControl
             {
                 case Source.Chip when drag.CanAdd && sliceTarget >= 0:
                     vm.Insert(drag.PresetId!, sliceTarget);
-                    AppHost.Get<SoundService>()?.PlayDropCatch();
+                    AppHost.TryGet<SoundService>()?.PlayDropCatch();
                     break;
                 case Source.Slice when overPalette:
                     vm.RemoveAt(drag.SliceIndex);
-                    AppHost.Get<SoundService>()?.PlayCancel();
+                    AppHost.TryGet<SoundService>()?.PlayCancel();
                     break;
                 case Source.Slice when sliceTarget >= 0 && sliceTarget < vm.SliceCount:
                     vm.Move(drag.SliceIndex, sliceTarget);
-                    AppHost.Get<SoundService>()?.PlayHoverTick();
+                    AppHost.TryGet<SoundService>()?.PlayHoverTick();
                     break;
             }
         }

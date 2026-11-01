@@ -34,6 +34,8 @@ public sealed class SoundService : IDisposable
     private readonly IntPtr _confirm;
     private readonly IntPtr _toggleOn;
     private readonly IntPtr _toggleOff;
+    private long _lastTickMs;
+    private long _lastNavMs;
 
     public SoundService(UserDataStore store)
     {
@@ -82,6 +84,11 @@ public sealed class SoundService : IDisposable
     {
         if (!_store.Settings.SoundEffects)
             return;
+
+        var now = Environment.TickCount64;
+        if (now - _lastTickMs < 20)
+            return;
+        _lastTickMs = now;
 
         if (OperatingSystem.IsWindows())
         {
@@ -164,6 +171,11 @@ public sealed class SoundService : IDisposable
     {
         if (!_store.Settings.SoundEffects)
             return;
+
+        var now = Environment.TickCount64;
+        if (now - _lastNavMs < 40)
+            return;
+        _lastNavMs = now;
 
         if (OperatingSystem.IsWindows())
             PlayWindows(_nav);
@@ -289,23 +301,23 @@ public sealed class SoundService : IDisposable
         return s;
     }
 
-    private static float[] RenderTick(int variant, double durationSec = 0.030)
+    private static float[] RenderTick(int variant, double durationSec = 0.040)
     {
         var s = new float[(int)(SampleRate * durationSec)];
-        var pitch = 1 + (variant - 1) * 0.035;
+        var pitch = 1.0 + (variant - 1) * 0.045;
         var bp = new Svf();
         var rng = new Rng(0x9E3779B9u + (uint)variant * 7919u);
         for (var i = 0; i < s.Length; i++)
         {
             var t = i / (double)SampleRate;
-            bp.Process(rng.Next(), 3200 * pitch, 1 / 1.4, out _, out var band);
-            var noise = band * Math.Exp(-t / 0.0012);
-            var tink = Math.Sin(Tau * 2350 * pitch * t) * Math.Exp(-t / 0.0042) * 0.55
-                     + Math.Sin(Tau * 3720 * pitch * t) * Math.Exp(-t / 0.0026) * 0.30;
-            var thock = Math.Sin(Tau * 170 * t) * Math.Exp(-t / 0.0075) * 0.40;
-            s[i] = (float)(noise * 0.9 + tink + thock);
+            bp.Process(rng.Next(), 3800 * pitch, 1 / 1.5, out _, out var band);
+            var noise = band * Math.Exp(-t / 0.0018);
+            var tink = Math.Sin(Tau * 2800 * pitch * t) * Math.Exp(-t / 0.0055) * 0.75
+                     + Math.Sin(Tau * 4400 * pitch * t) * Math.Exp(-t / 0.0035) * 0.45;
+            var thock = Math.Sin(Tau * 220 * t) * Math.Exp(-t / 0.0090) * 0.55;
+            s[i] = (float)(noise * 1.2 + tink + thock);
         }
-        return Finish(s, 0.32, 4);
+        return Finish(s, 0.82, 6);
     }
 
     private static float[] RenderFlip()
@@ -428,23 +440,33 @@ public sealed class SoundService : IDisposable
 
     private static float[] RenderNav()
     {
-        // 50ms modern fluid UI navigation tab transition (warm, resonant, micro-tap)
-        var s = new float[(int)(SampleRate * 0.050)];
-        var phase = 0.0;
+        // 75ms modern fluid acoustic navigation pop (distinct warm chime with tactile woody attack)
+        var duration = 0.075;
+        var s = new float[(int)(SampleRate * duration)];
+        var phase1 = 0.0;
+        var phase2 = 0.0;
         var bp = new Svf();
-        var rng = new Rng(0x51DEB4u);
+        var rng = new Rng(0x7A91D3u);
         for (var i = 0; i < s.Length; i++)
         {
             var t = i / (double)SampleRate;
-            var f = 560.0 - 180.0 * Math.Pow(t / 0.050, 0.6);
-            phase += Tau * f / SampleRate;
-            var env = Math.Sin(Math.PI * Math.Min(1.0, t / 0.050)) * Math.Exp(-t / 0.020);
-            var tone = Math.Sin(phase) + 0.20 * Math.Sin(2 * phase);
-            bp.Process(rng.Next(), 1900, 1 / 1.5, out _, out var band);
-            var noiseTap = band * Math.Exp(-t / 0.002) * 0.35;
-            s[i] = (float)(tone * env * 0.85 + noiseTap);
+            // Warm acoustic tonal drop: 780 Hz -> 520 Hz fundamental + 1040 Hz harmonic
+            var f1 = 520.0 + 260.0 * Math.Exp(-t / 0.012);
+            var f2 = f1 * 2.0;
+            phase1 += Tau * f1 / SampleRate;
+            phase2 += Tau * f2 / SampleRate;
+
+            var attack = 1.0 - Math.Exp(-t / 0.0018);
+            var decay = Math.Exp(-t / 0.026);
+            var tone = (Math.Sin(phase1) * 0.70 + Math.Sin(phase2) * 0.25) * attack * decay;
+
+            // Crisp acoustic pop attack transient
+            bp.Process(rng.Next(), 2800, 1 / 1.6, out _, out var band);
+            var tap = band * Math.Exp(-t / 0.0020) * 0.40;
+
+            s[i] = (float)(tone + tap);
         }
-        return Finish(s, 0.26, 6);
+        return Finish(s, 0.85, 10);
     }
 
     private static float[] RenderButtonClick()

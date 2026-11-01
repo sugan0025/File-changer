@@ -272,6 +272,8 @@ public sealed partial class DonutMenu : Control
             return;
         _externalHighlight = index;
         _externalCenterHot = centerHot;
+        if (index >= 0)
+            AppHost.TryGet<SoundService>()?.PlayHoverTick();
         if (ShowCenterMascot)
         {
             if (_externalCenterHot)
@@ -594,21 +596,27 @@ public sealed partial class DonutMenu : Control
         switch (hit.Kind)
         {
             case DonutHitKind.EditButton:
+                AppHost.TryGet<SoundService>()?.PlayButtonClick();
                 SegmentContextRequested?.Invoke(this, hit.Index);
                 break;
             case DonutHitKind.Segment when !IsEditMode && Items![hit.Index] is { IsEnabled: true, IsGroup: false }:
+                AppHost.TryGet<SoundService>()?.PlayButtonClick();
                 SegmentInvoked?.Invoke(this, hit.Index);
                 break;
             case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].Children is { Count: > 0 }:
+                AppHost.TryGet<SoundService>()?.PlayFanOut();
                 Expand(hit.Index); // no waiting when clicked; a tap has no hover to rest on at all
                 break;
             case DonutHitKind.Outside when !IsEditMode && _expanded >= 0:
+                AppHost.TryGet<SoundService>()?.PlayCancel();
                 CollapseGroup(); // clicked past the ring
                 break;
             case DonutHitKind.SubSegment when !IsEditMode && Items![hit.Index].Children![hit.Sub].IsEnabled:
+                AppHost.TryGet<SoundService>()?.PlayButtonClick();
                 SubSegmentInvoked?.Invoke(this, (hit.Index, hit.Sub));
                 break;
             case DonutHitKind.Center when !IsEditMode:
+                AppHost.TryGet<SoundService>()?.PlayConfirm();
                 CenterInvoked?.Invoke(this, EventArgs.Empty);
                 break;
         }
@@ -620,6 +628,8 @@ public sealed partial class DonutMenu : Control
         if (_hoverIndex == index)
             return;
         _hoverIndex = index;
+        if (index >= 0)
+            AppHost.TryGet<SoundService>()?.PlayHoverTick();
         if (ShowCenterMascot)
         {
             if (_externalCenterHot)

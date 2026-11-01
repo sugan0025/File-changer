@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Filee.App.Services;
@@ -24,6 +25,15 @@ public partial class MainWindow : Window
 
         AddHandler(Button.ClickEvent, OnAnyButtonClicked, RoutingStrategies.Bubble);
         AddHandler(ToggleSwitch.IsCheckedChangedEvent, OnAnyToggleChanged, RoutingStrategies.Bubble);
+
+        var navList = this.FindControl<ListBox>("NavList");
+        if (navList is not null)
+        {
+            navList.AddHandler(InputElement.PointerPressedEvent, (_, _) =>
+            {
+                AppHost.TryGet<SoundService>()?.PlayNav();
+            }, RoutingStrategies.Tunnel);
+        }
     }
 
     private void OnAnyButtonClicked(object? sender, RoutedEventArgs e)
@@ -34,9 +44,9 @@ public partial class MainWindow : Window
                 return;
 
             if (btn.Classes.Contains("accent") || btn.Name?.Contains("Save", StringComparison.OrdinalIgnoreCase) == true)
-                AppHost.Get<SoundService>()?.PlayConfirm();
+                AppHost.TryGet<SoundService>()?.PlayConfirm();
             else
-                AppHost.Get<SoundService>()?.PlayButtonClick();
+                AppHost.TryGet<SoundService>()?.PlayButtonClick();
         }
     }
 
@@ -44,7 +54,7 @@ public partial class MainWindow : Window
     {
         if (e.Source is ToggleSwitch toggle && toggle.IsLoaded)
         {
-            AppHost.Get<SoundService>()?.PlayToggle(toggle.IsChecked == true);
+            AppHost.TryGet<SoundService>()?.PlayToggle(toggle.IsChecked == true);
         }
     }
 

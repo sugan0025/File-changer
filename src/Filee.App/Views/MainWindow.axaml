@@ -186,7 +186,7 @@
 
         </Button>
 
-        <ListBox Classes="nav" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+        <ListBox x:Name="NavList" Classes="nav" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
 
           <ListBox.ItemTemplate>
 

@@ -25,6 +25,8 @@ public static class AppHost
 
     public static T Get<T>() where T : notnull => Services.GetRequiredService<T>();
 
+    public static T? TryGet<T>() where T : class => _services?.GetService<T>();
+
     public static IServiceProvider Build(string? dataDirectory = null, UserDataStore? preloadedStore = null)
     {
         var dataDir = dataDirectory ?? UserDataStore.DefaultDirectory;
