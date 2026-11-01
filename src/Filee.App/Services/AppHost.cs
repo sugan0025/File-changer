@@ -46,6 +46,7 @@ public static class AppHost
         services.AddSingleton<LocalizationService>();
         services.AddSingleton<ILocalizer>(sp => sp.GetRequiredService<LocalizationService>());
         services.AddSingleton<ThemeService>();
+        services.AddSingleton<CircadianService>();
         services.AddSingleton<SystemIntegrationService>();
         services.AddSingleton<ElevationService>();
 

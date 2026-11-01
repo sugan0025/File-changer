@@ -21,6 +21,9 @@ namespace Filee.Core.Settings;
 [JsonSerializable(typeof(PresetBundle))]
 [JsonSerializable(typeof(List<HistoryEntry>))]
 [JsonSerializable(typeof(CustomTheme))]
+[JsonSerializable(typeof(CircadianSettings))]
+[JsonSerializable(typeof(CircadianMode))]
+[JsonSerializable(typeof(CircadianPhase))]
 internal sealed partial class FileeJsonContext : JsonSerializerContext;
 
 /// <summary>File format used to import / export presets and profiles.</summary>

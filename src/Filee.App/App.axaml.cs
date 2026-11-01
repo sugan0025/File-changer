@@ -67,6 +67,7 @@ public partial class App : Application
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
+        AppHost.Get<CircadianService>().Attach(this.Resources, this);
         ApplySettings(store.Settings);
         // Window zoom: set once here, not with the other settings, since the zoom saves itself (UiZoom) without
         // raising SettingsChanged.

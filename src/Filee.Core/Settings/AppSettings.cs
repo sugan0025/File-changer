@@ -54,7 +54,14 @@ public sealed class ThemeSettings
     /// </summary>
     public bool? ReduceMotion { get; set; }
 
-    public ThemeSettings Clone() => (ThemeSettings)MemberwiseClone();
+    public CircadianSettings Circadian { get; set; } = new();
+
+    public ThemeSettings Clone()
+    {
+        var clone = (ThemeSettings)MemberwiseClone();
+        clone.Circadian = Circadian.Clone();
+        return clone;
+    }
 }
 
 /// <summary>Geometry and appearance of the donut toolbar.</summary>

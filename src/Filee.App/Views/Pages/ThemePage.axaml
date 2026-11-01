@@ -316,18 +316,62 @@
 
 
 
-        <!-- Appearance Mode: System / Light / Dark -->
-
+        <!-- Circadian Glass & Dynamic Lighting -->
         <Border Classes="card">
+          <StackPanel Spacing="12">
+            <DockPanel>
+              <Border DockPanel.Dock="Right" CornerRadius="{DynamicResource SoftRadiusPill}"
+                      Background="{DynamicResource AmbientReflectionBrush}" Padding="8,2"
+                      IsVisible="{Binding IsCircadianActive}">
+                <TextBlock Text="{Binding CurrentPhaseText}" FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+              </Border>
+              <TextBlock Classes="label" Text="{DynamicResource theme.circadian}" VerticalAlignment="Center" Margin="0" />
+            </DockPanel>
 
-          <StackPanel Spacing="8">
+            <TextBlock Classes="caption" Text="{DynamicResource theme.circadian_desc}" TextWrapping="Wrap" />
 
-            <TextBlock Classes="label" Text="{DynamicResource theme.mode}" />
+            <Grid ColumnDefinitions="*,10,*" RowDefinitions="Auto">
+              <ComboBox ItemsSource="{Binding CircadianModes}" SelectedItem="{Binding CircadianMode}"
+                        HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource theme.circadian.mode}" />
 
-            <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" MinWidth="220" AutomationProperties.Name="{DynamicResource theme.mode}" />
+              <ComboBox Grid.Column="2" ItemsSource="{Binding CircadianPhases}" SelectedItem="{Binding PinnedPhase}"
+                        HorizontalAlignment="Stretch" IsVisible="{Binding IsPinnedMode}"
+                        AutomationProperties.Name="{DynamicResource theme.circadian.phase}" />
+            </Grid>
 
+            <!-- Preview Scrubber (Slider) -->
+            <StackPanel Spacing="6" IsVisible="{Binding IsCircadianActive}" Margin="0,4,0,0">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="preset-pill" Command="{Binding ResetScrubberCommand}"
+                        Content="{DynamicResource theme.circadian.reset_time}" Padding="8,3" FontSize="11" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <CheckBox Content="{DynamicResource theme.circadian.preview_scrubber}" IsChecked="{Binding IsScrubbing}"
+                            FontWeight="SemiBold" FontSize="12" />
+                  <TextBlock Text="{Binding ScrubberTimeText}" FontWeight="Bold" FontSize="12"
+                             VerticalAlignment="Center" Foreground="{DynamicResource AccentStrongBrush}"
+                             IsVisible="{Binding IsScrubbing}" />
+                </StackPanel>
+              </DockPanel>
+
+              <Slider Minimum="0" Maximum="1439" Value="{Binding ScrubberMinute}"
+                      TickFrequency="1" IsSnapToTickEnabled="True"
+                      IsEnabled="{Binding IsScrubbing}"
+                      AutomationProperties.Name="{DynamicResource theme.circadian.preview_scrubber}" />
+            </StackPanel>
           </StackPanel>
+        </Border>
 
+        <!-- Appearance Mode: System / Light / Dark -->
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label" Text="{DynamicResource theme.mode}" />
+            <ComboBox ItemsSource="{Binding Modes}" SelectedItem="{Binding Mode}" MinWidth="220"
+                      IsEnabled="{Binding !IsCircadianActive}"
+                      AutomationProperties.Name="{DynamicResource theme.mode}" />
+            <TextBlock Classes="caption" Text="{DynamicResource theme.circadian.controlled_by_time}"
+                       IsVisible="{Binding IsCircadianActive}" Foreground="{DynamicResource TextSecondaryBrush}" />
+          </StackPanel>
         </Border>
 
 

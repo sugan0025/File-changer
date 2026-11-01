@@ -161,6 +161,7 @@ public sealed class ThemeService(IPlatformServices platform)
         }
 
         Motion.Configure(theme.ReduceMotion, () => _platform.PrefersReducedMotion);
+        AppHost.TryGet<CircadianService>()?.Configure(theme.Circadian);
     }
 
     /// <summary>The UI font chain for <paramref name="language"/> (see <see cref="SoftPalette.FontFamilies"/>).</summary>

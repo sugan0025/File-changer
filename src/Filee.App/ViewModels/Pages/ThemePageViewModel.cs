@@ -31,6 +31,19 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
         Style = Styles.FirstOrDefault(s => s.Value == theme.Style) ?? Styles[0];
         Modes = Enum.GetValues<ThemeMode>().Select(m => new Choice<ThemeMode>(m, loc[$"theme.mode.{m}"])).ToList();
         Mode = Modes.First(m => m.Value == theme.Mode);
+
+        CircadianModes = Enum.GetValues<CircadianMode>().Select(m => new Choice<CircadianMode>(m, loc[$"theme.circadian.mode.{m}"])).ToList();
+        CircadianMode = CircadianModes.FirstOrDefault(m => m.Value == theme.Circadian.Mode) ?? CircadianModes[0];
+        CircadianPhases = Enum.GetValues<CircadianPhase>().Select(p => new Choice<CircadianPhase>(p, loc[$"theme.circadian.phase.{p}"])).ToList();
+        PinnedPhase = CircadianPhases.FirstOrDefault(p => p.Value == (theme.Circadian.Pinned ?? CircadianPhase.Morning));
+
+        var now = DateTime.Now;
+        _scrubberMinute = now.Hour * 60 + now.Minute;
+        UpdatePhaseText();
+
+        if (AppHost.TryGet<CircadianService>() is { } circadian)
+            circadian.PhaseChanged += OnCircadianPhaseChanged;
+
         if (!string.IsNullOrEmpty(theme.PresetKey) &&
             ThemeService.Presets.FirstOrDefault(p => string.Equals(p.Key, theme.PresetKey, StringComparison.OrdinalIgnoreCase)) is { } initialPreset)
         {
@@ -62,6 +75,8 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<Choice<ThemeStyle>> Styles { get; }
     public IReadOnlyList<Choice<ThemeMode>> Modes { get; }
+    public IReadOnlyList<Choice<CircadianMode>> CircadianModes { get; }
+    public IReadOnlyList<Choice<CircadianPhase>> CircadianPhases { get; }
     public IReadOnlyList<Color> Swatches { get; } = ThemeService.Swatches.Select(Color.Parse).ToList();
     public IReadOnlyList<DonutItem> PreviewItems { get; }
 
@@ -78,9 +93,17 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
         (Mode?.Value == ThemeMode.System && Application.Current?.ActualThemeVariant == ThemeVariant.Dark);
 
     public bool IsMaterialYou => Style?.Value == ThemeStyle.MaterialYou;
+    public bool IsCircadianActive => CircadianMode?.Value != Filee.Core.Settings.CircadianMode.Off;
+    public bool IsPinnedMode => CircadianMode?.Value == Filee.Core.Settings.CircadianMode.Pinned;
+    public string ScrubberTimeText => TimeSpan.FromMinutes(ScrubberMinute).ToString(@"hh\:mm");
 
     [ObservableProperty] private Choice<ThemeStyle> _style = null!;
     [ObservableProperty] private Choice<ThemeMode> _mode = null!;
+    [ObservableProperty] private Choice<CircadianMode> _circadianMode = null!;
+    [ObservableProperty] private Choice<CircadianPhase>? _pinnedPhase;
+    [ObservableProperty] private double _scrubberMinute;
+    [ObservableProperty] private bool _isScrubbing;
+    [ObservableProperty] private string _currentPhaseText = "";
     [ObservableProperty, NotifyPropertyChangedFor(nameof(AccentBrush), nameof(PreviewBackdrop))] private Color _accent;
     [ObservableProperty] private string _accentHex = "";
 
@@ -138,12 +161,30 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
         ResetZoomCommand.NotifyCanExecuteChanged();
     }
 
-    private void OnLanguageChanged(object? sender, EventArgs e) => OnPropertyChanged(nameof(WindowSizeHint));
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(WindowSizeHint));
+        UpdatePhaseText();
+    }
+
+    private void OnCircadianPhaseChanged(object? sender, EventArgs e) => UpdatePhaseText();
+
+    private void UpdatePhaseText()
+    {
+        var service = AppHost.TryGet<CircadianService>();
+        var phase = service?.CurrentPhase ?? CircadianPhase.Night;
+        CurrentPhaseText = _loc[$"theme.circadian.phase.{phase}"];
+    }
 
     public void Dispose()
     {
         UiZoom.Changed -= OnZoomChanged;
         _loc.LanguageChanged -= OnLanguageChanged;
+        if (AppHost.TryGet<CircadianService>() is { } circadian)
+        {
+            circadian.PhaseChanged -= OnCircadianPhaseChanged;
+            circadian.SetPreviewMinute(null);
+        }
     }
 
     partial void OnStyleChanged(Choice<ThemeStyle>? oldValue, Choice<ThemeStyle> newValue)
@@ -151,6 +192,52 @@ public sealed partial class ThemePageViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsMaterialYou));
         if (!Choices.Restore(oldValue, newValue, v => Style = v))
             Save(t => t.Style = newValue.Value);
+    }
+
+    partial void OnCircadianModeChanged(Choice<CircadianMode>? oldValue, Choice<CircadianMode> newValue)
+    {
+        OnPropertyChanged(nameof(IsCircadianActive));
+        OnPropertyChanged(nameof(IsPinnedMode));
+        if (!Choices.Restore(oldValue, newValue, v => CircadianMode = v))
+        {
+            Save(t => t.Circadian.Mode = newValue.Value);
+            AppHost.TryGet<CircadianService>()?.Configure(_store.Settings.Theme.Circadian);
+            UpdatePhaseText();
+        }
+    }
+
+    partial void OnPinnedPhaseChanged(Choice<CircadianPhase>? oldValue, Choice<CircadianPhase>? newValue)
+    {
+        if (newValue != null && !_loading)
+        {
+            Save(t => t.Circadian.Pinned = newValue.Value);
+            AppHost.TryGet<CircadianService>()?.Configure(_store.Settings.Theme.Circadian);
+            UpdatePhaseText();
+        }
+    }
+
+    partial void OnScrubberMinuteChanged(double value)
+    {
+        OnPropertyChanged(nameof(ScrubberTimeText));
+        if (IsScrubbing)
+            AppHost.TryGet<CircadianService>()?.SetPreviewMinute(value);
+    }
+
+    partial void OnIsScrubbingChanged(bool value)
+    {
+        if (value)
+            AppHost.TryGet<CircadianService>()?.SetPreviewMinute(ScrubberMinute);
+        else
+            AppHost.TryGet<CircadianService>()?.SetPreviewMinute(null);
+    }
+
+    [RelayCommand]
+    private void ResetScrubber()
+    {
+        IsScrubbing = false;
+        var now = DateTime.Now;
+        ScrubberMinute = now.Hour * 60 + now.Minute;
+        AppHost.TryGet<CircadianService>()?.SetPreviewMinute(null);
     }
 
     partial void OnModeChanged(Choice<ThemeMode>? oldValue, Choice<ThemeMode> newValue)
