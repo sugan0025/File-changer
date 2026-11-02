@@ -223,8 +223,8 @@ public sealed class BlobatarPhysics
         }
         p = MathF.Max(p, Math.Clamp(inp.Hover, 0f, 1f));
         if (drag) p = 1f;
-        _prox.Target = drag ? -.09f : -.06f * p;
-        _lean.Target = Math.Clamp(dx / lay.ProxFar, -1f, 1f) * 6f * p;
+        _prox.Target = 0f; // Keep natural body aspect ratio; do not stretch vertically on proximity/drag
+        _lean.Target = Math.Clamp(dx / lay.ProxFar, -1f, 1f) * 4f * p;
 
         // expressions
         _blend.Set(BlobatarExpression.Curious, drag ? 1f : 0f);

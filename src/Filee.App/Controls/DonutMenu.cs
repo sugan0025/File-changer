@@ -1292,8 +1292,8 @@ public sealed partial class DonutMenu : Control
         var hasHint = hint is not null;
         var hasText = hasTitle || hasSubtitle || hasHint;
 
-        var mascotSize = hasText ? Math.Clamp(radius * 0.92, 46.0, 62.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
-        var mascotTop = hasText ? center.Y - radius * 0.86 : center.Y - mascotSize / 2;
+        var mascotSize = hasText ? Math.Clamp(radius * 0.88, 44.0, 58.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
+        var mascotTop = hasText ? center.Y - radius * 0.78 : center.Y - mascotSize / 2;
 
         if (ShowCenterMascot)
         {
