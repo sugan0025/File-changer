@@ -1,4 +1,4 @@
-<!--
+﻿<!--
   Filee.Cli: the "filee" command line. Converts files and watches folders without the tray app, with the same
   engines, presets and settings. Published next to Filee.exe as filee-cli.exe (one runtime for both); the installer
   puts a "filee" shim on PATH (cli\filee.cmd).
@@ -11,6 +11,13 @@
     <ApplicationIcon>..\Filee.App\Assets\Icons\filee.ico</ApplicationIcon>
     <!-- The Recycle Bin is IFileOperation, a COM interface (Filee.Platform.Windows). -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+  <!-- Published release configuration: self-contained single-file binary with bundled runtime -->
+  <PropertyGroup Condition="'$(FileeRelease)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>

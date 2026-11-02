@@ -88,13 +88,13 @@ elseif (-not $PublishDir) {
     }
     Invoke-Checked 'dotnet publish' {
         dotnet publish (Join-Path $root 'src\Filee.App\Filee.App.csproj') -c Release -r $Runtime --self-contained `
-            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true @native -o $PublishDir
+            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true @native -o $PublishDir
     }
     # The command line, in the same folder so it shares the runtime and the engines (filee-cli.exe). Its name can't
     # be filee.exe next to Filee.exe, so the "filee" command is cli\filee.cmd, which Setup can put on PATH.
     Invoke-Checked 'dotnet publish (cli)' {
         dotnet publish (Join-Path $root 'src\Filee.Cli\Filee.Cli.csproj') -c Release -r $Runtime --self-contained `
-            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true @native -o $PublishDir
+            "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true @native -o $PublishDir
     }
     # Native debug symbols from NuGet packages (libSkiaSharp.pdb, libHarfBuzzSharp.pdb: ~105 MB) are useless to users.
     # Filee.App's publish removes them, but publishing the command line into the same folder brings them back.

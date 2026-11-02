@@ -14,6 +14,22 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.4.1
+
+<!-- update
+level: required
+en: Fix launcher startup error by publishing single-file self-contained binary with bundled runtime
+en: Organic Blobatar overhaul with 120 Hz spring physics, continuous pose blending, and procedural sound
+en: Circadian day/night dynamic lighting and OKLCH palettes for mascot
+en: Custom app background wallpaper support
+-->
+
+- **Self-Contained Single-File Packaging**: Bundled the entire .NET runtime and all dependencies directly into `Filee.exe`, completely eliminating the "You must install or update .NET to run this application" dialog on clean systems.
+- **Blobatar Physics & Expressiveness Overhaul**: Replaced stepped state machine with a continuous 120 Hz spring physics simulation, procedural micro-saccades, breathing, heartbeat wobble, ballistic jump trajectory, and natural eyelid blink/wink blending.
+- **Circadian Mascot Illumination**: Body and rim colors dynamically adjust across Morning, Afternoon, and Night with OKLCH color palettes, angle-driven key light tracking, contact shadows, and neon underglow.
+- **Procedural Sound Generation**: Mascot reactions now produce real-time synthesized acoustic chirps and pop sounds via the native Windows multimedia subsystem without external audio engine dependencies.
+- **Custom Background Wallpaper**: Added personalized desktop wallpaper support.
+
 ## 2.4.0
 
 <!-- update

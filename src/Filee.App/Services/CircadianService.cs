@@ -143,6 +143,9 @@ public sealed class CircadianService
     public double CurrentKeyLightAngle { get; private set; } = 0.0;
     public double CurrentSpecularGain { get; private set; } = 1.0;
 
+    /// <summary>True while the circadian theme is on (any mode but Off, or a preview). Mascots follow it; Off keeps the flat look.</summary>
+    public bool IsActive => _settings.Mode != CircadianMode.Off || _previewMinute != null;
+
     public event EventHandler? PhaseChanged;
 
     public CircadianService()

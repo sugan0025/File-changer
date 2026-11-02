@@ -63,6 +63,14 @@
     <Delete Files="@(_FileeNativePdb)" />
   </Target>
 
+  <!-- Published release configuration: self-contained single-file binary with bundled runtime -->
+  <PropertyGroup Condition="'$(FileeRelease)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
   <!-- Repository URL for the updater / About page, taken from Directory.Build.props. -->
   <ItemGroup>
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

@@ -267,6 +267,8 @@ public sealed partial class DonutMenu : Control
         if (!Motion.Enabled)
             return;
         _centerPulse.Velocity = 6;
+        if (ShowCenterMascot)
+            _mascotState.Drop();          // gulp + little hop
         StartAnimation();
     }
 
@@ -277,6 +279,11 @@ public sealed partial class DonutMenu : Control
             return;
         _externalHighlight = index;
         _externalCenterHot = centerHot;
+        if (ShowCenterMascot)
+        {
+            _mascotState.SetDragOver(index >= 0 || centerHot);   // Curious: head tilt, uneven eyes, lean
+            _mascotState.SetHoverEnergy(index >= 0 ? 1.0 : centerHot ? 0.55 : 0.0);
+        }
         if (index >= 0)
         {
             AppHost.TryGet<SoundService>()?.PlayHoverTick(index);
@@ -519,6 +526,12 @@ public sealed partial class DonutMenu : Control
         if (ShowCenterMascot)
         {
             var rel = new Point(p.X - Center.X, p.Y - Center.Y);
+            _mascotState.SetHoverEnergy(hit.Kind switch
+            {
+                DonutHitKind.Segment or DonutHitKind.SubSegment or DonutHitKind.EditButton => 1.0,
+                DonutHitKind.Center => 0.55,
+                _ => 0.0,
+            });
             if (hit.Kind is DonutHitKind.Center)
             {
                 _mascotState.LookAt(new Point(0, 0));
@@ -554,6 +567,8 @@ public sealed partial class DonutMenu : Control
         if (ShowCenterMascot)
         {
             _mascotState.LookAt(null);
+            _mascotState.SetHoverEnergy(0.0);
+            _mascotState.SetDragOver(false);
             _mascotState.SetTone(BlobatarTone.Idle);
             StartAnimation();
         }
