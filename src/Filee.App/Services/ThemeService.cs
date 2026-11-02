@@ -74,12 +74,16 @@ public sealed class ThemeService(IPlatformServices platform)
 
         CurrentStyle = theme.Style;
 
-        app.RequestedThemeVariant = theme.Mode switch
+        // Only override RequestedThemeVariant directly when circadian automation is inactive
+        if (theme.Circadian.Mode == CircadianMode.Off)
         {
-            ThemeMode.Light => ThemeVariant.Light,
-            ThemeMode.Dark => ThemeVariant.Dark,
-            _ => ThemeVariant.Default,
-        };
+            app.RequestedThemeVariant = theme.Mode switch
+            {
+                ThemeMode.Light => ThemeVariant.Light,
+                ThemeMode.Dark => ThemeVariant.Dark,
+                _ => ThemeVariant.Default,
+            };
+        }
 
         // Determine effective accent colors:
         // If a coordinated light/dark preset is active, use its respective variant colors.

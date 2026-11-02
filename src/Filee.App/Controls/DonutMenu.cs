@@ -498,6 +498,11 @@ public sealed partial class DonutMenu : Control
         }
         _lastPointer = p;
         _targetPointerAngle = DonutGeometry.AngleOf(Center, p);
+        if (_pointerAngle.Value == 0)
+        {
+            _pointerAngle.Value = _targetPointerAngle;
+            _pointerAngle.Velocity = 0;
+        }
         var hit = HitTest(p);
         if (IsFlipping)
             PointAtAngle(DonutGeometry.AngleOf(Center, p), hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment);
@@ -615,6 +620,7 @@ public sealed partial class DonutMenu : Control
                 break;
             case DonutHitKind.Segment when !IsEditMode && Items![hit.Index] is { IsEnabled: true, IsGroup: false }:
                 AppHost.TryGet<SoundService>()?.PlayButtonClick();
+                StartAnimation();
                 SegmentInvoked?.Invoke(this, hit.Index);
                 break;
             case DonutHitKind.Segment when !IsEditMode && Items![hit.Index].Children is { Count: > 0 }:
@@ -643,7 +649,7 @@ public sealed partial class DonutMenu : Control
             return;
         _hoverIndex = index;
         if (index >= 0)
-            AppHost.TryGet<SoundService>()?.PlayHoverTick();
+            AppHost.TryGet<SoundService>()?.PlayHoverTick(index);
         if (ShowCenterMascot)
         {
             if (_externalCenterHot)
@@ -1014,9 +1020,25 @@ public sealed partial class DonutMenu : Control
             var pressInward = isPressedSlice ? -3.0 * _pressSpring.Value : 0.0;
             var pressScale = isPressedSlice ? 1.0 - 0.03 * _pressSpring.Value : 1.0;
 
-            var leanPop = i < _lean.Length && i != ActiveIndex ? _lean[i].Value * (PopOut * 0.28) : 0.0;
+            double leanAngularOffset = 0.0;
+            double leanPop = 0.0;
+            if (i < _lean.Length && ActiveIndex >= 0 && _lean.Length > 2 && i != ActiveIndex)
+            {
+                var prev = (ActiveIndex - 1 + _lean.Length) % _lean.Length;
+                var next = (ActiveIndex + 1) % _lean.Length;
+                if (i == prev)
+                {
+                    leanAngularOffset = 0.022 * _lean[i].Value; // lean clockwise towards active
+                    leanPop = _lean[i].Value * (PopOut * 0.20);
+                }
+                else if (i == next)
+                {
+                    leanAngularOffset = -0.022 * _lean[i].Value; // lean counter-clockwise towards active
+                    leanPop = _lean[i].Value * (PopOut * 0.20);
+                }
+            }
             var pop = hover * PopOut + leanPop + pressInward;
-            var offset = DonutGeometry.PointAt(new Point(0, 0), pop, mid);
+            var offset = DonutGeometry.PointAt(new Point(0, 0), pop, mid + leanAngularOffset);
 
             // Open animation: scale up from the centre with a small twist, plus 4% 3D lift during flip
             var flipLift = IsFlipping ? (1.0 + 0.04 * Math.Sin(Progress(false, i) * Math.PI)) : 1.0;

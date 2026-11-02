@@ -538,7 +538,7 @@ public sealed class SoundService : IDisposable
 
     public void Dispose()
     {
-        for (var v = 0; v < 3; v++)
+        for (var v = 0; v < _ticks.Length; v++)
             if (_ticks[v] != IntPtr.Zero) Marshal.FreeHGlobal(_ticks[v]);
         if (_flipSound != IntPtr.Zero) Marshal.FreeHGlobal(_flipSound);
         if (_completeChime != IntPtr.Zero) Marshal.FreeHGlobal(_completeChime);

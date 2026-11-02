@@ -56,6 +56,7 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     private readonly ConverterCatalog _catalog;
     private readonly ILocalizer _loc;
     private readonly EngineDownloadService _downloads;
+    private readonly JobQueue? _queue;
 
     public EnginesPageViewModel(UserDataStore store, ConverterCatalog catalog, ILocalizer loc, EngineDownloadService downloads)
     {
@@ -68,6 +69,15 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
         _libreOfficeForDocuments = store.Settings.LibreOfficeForDocuments;
         _libreOfficeForSheets = store.Settings.LibreOfficeForSheets;
         _catalog.Changed += OnCatalogChanged;
+
+        _queue = AppHost.TryGet<JobQueue>();
+        if (_queue != null)
+        {
+            _isConverting = _queue.IsBusy;
+            _queue.JobUpdated += OnJobQueueStateChanged;
+            _queue.JobFinished += OnJobQueueStateChanged;
+        }
+
         Reload();
         UpdateFilteredLists();
     }
@@ -118,6 +128,21 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
 
     /// <summary>Whether the bottom console bar dropdown is expanded.</summary>
     [ObservableProperty] private bool _isDropdownOpen = true;
+
+    /// <summary>Active conversion state forwarded from JobQueue to accelerate pipeline particle animations.</summary>
+    [ObservableProperty] private bool _isConverting;
+
+    private void OnJobQueueStateChanged(object? sender, ConversionJob e)
+    {
+        if (_queue != null)
+        {
+            var busy = _queue.IsBusy;
+            if (IsConverting != busy)
+            {
+                Dispatcher.UIThread.Post(() => IsConverting = busy);
+            }
+        }
+    }
 
     public ObservableCollection<EnginePackageState> FilteredPackages { get; } = [];
     public ObservableCollection<EngineItemViewModel> FilteredEngines { get; } = [];
@@ -238,7 +263,15 @@ public sealed partial class EnginesPageViewModel : ObservableObject, IDisposable
     // Installing or removing an engine changes the list below (status, supported conversions).
     private void OnCatalogChanged(object? sender, EventArgs e) => Dispatcher.UIThread.Post(Reload);
 
-    public void Dispose() => _catalog.Changed -= OnCatalogChanged;
+    public void Dispose()
+    {
+        _catalog.Changed -= OnCatalogChanged;
+        if (_queue != null)
+        {
+            _queue.JobUpdated -= OnJobQueueStateChanged;
+            _queue.JobFinished -= OnJobQueueStateChanged;
+        }
+    }
 
     private void Reload()
     {

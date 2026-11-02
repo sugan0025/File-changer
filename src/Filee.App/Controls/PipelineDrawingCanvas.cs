@@ -183,6 +183,7 @@ public sealed class PipelineDrawingCanvas : Control
     private double _revealStartTime = -10.0;
     private int _lastActiveIndex = -1;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private readonly Action<TimeSpan> _frameCallback;
 
     static PipelineDrawingCanvas()
     {
@@ -191,6 +192,7 @@ public sealed class PipelineDrawingCanvas : Control
 
     public PipelineDrawingCanvas()
     {
+        _frameCallback = OnFrame;
         ClipToBounds = false;
         BuildGeometries();
     }
@@ -316,7 +318,7 @@ public sealed class PipelineDrawingCanvas : Control
             return;
 
         _isLooping = true;
-        _topLevel.RequestAnimationFrame(OnFrame);
+        _topLevel.RequestAnimationFrame(_frameCallback);
     }
 
     private void StopLoop()
@@ -336,9 +338,9 @@ public sealed class PipelineDrawingCanvas : Control
             return;
         }
 
-        // Throttle to 30 FPS when idle, ramp up to 60 FPS when actively converting
+        // Throttle to 30 FPS when idle (~29ms), ramp up to 60 FPS when actively converting (~12ms) with headroom
         double now = _stopwatch.Elapsed.TotalSeconds;
-        double minFrameInterval = IsConverting ? (1.0 / 60.0) : (1.0 / 30.0);
+        double minFrameInterval = IsConverting ? 0.012 : 0.029;
 
         if (now - _lastRenderTime >= minFrameInterval)
         {
@@ -346,7 +348,7 @@ public sealed class PipelineDrawingCanvas : Control
             InvalidateVisual();
         }
 
-        _topLevel.RequestAnimationFrame(OnFrame);
+        _topLevel.RequestAnimationFrame(_frameCallback);
     }
 
     public override void Render(DrawingContext context)
@@ -427,16 +429,23 @@ public sealed class PipelineDrawingCanvas : Control
 
     private static void DrawComet(DrawingContext context, PathTable path, double headDist, IBrush coreBrush, IBrush[] trailBrushes)
     {
-        // Draw tail points backwards from head
+        double modHead = headDist % path.TotalLength;
+        if (modHead < 0) modHead += path.TotalLength;
+
+        // Draw tail points backwards from head, skipping any that wrap behind the line entrance
         for (int i = trailBrushes.Length - 1; i >= 0; i--)
         {
-            Point pt = path.GetPointAtDistance(headDist - s_trailOffsets[i]);
+            double tailDist = modHead - s_trailOffsets[i];
+            if (tailDist < 0)
+                continue;
+
+            Point pt = path.GetPointAtDistance(tailDist);
             double r = s_trailRadii[i];
             context.DrawEllipse(trailBrushes[i], null, pt, r, r);
         }
 
         // Bright solid core at head
-        Point head = path.GetPointAtDistance(headDist);
+        Point head = path.GetPointAtDistance(modHead);
         context.DrawEllipse(coreBrush, null, head, 1.8, 1.8);
     }
 }

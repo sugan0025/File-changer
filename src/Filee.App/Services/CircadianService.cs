@@ -48,12 +48,12 @@ public sealed class CircadianService
         ConsoleBar: Color.Parse("#CCFFFFFF"),
         TextPrimary: Color.Parse("#0E1726"),
         TextSecondary: Color.Parse("#4A5A72"),
-        KeyLightAngle: 300.0 * Math.PI / 180.0, // 10 o'clock
+        KeyLightAngle: 60.0 * Math.PI / 180.0, // sun low east
         SpecularGain: 1.0,
         IsDark: false
     );
 
-    // Afternoon: Warm champagne, softened golden reflections (12:00 - 18:00)
+    // Afternoon: Warm champagne, softened golden reflections (11:00 - 17:00)
     public static readonly CircadianFrame AfternoonFrame = new(
         ScrimTop: Color.Parse("#50FFF1DC"),
         ScrimMid: Color.Parse("#66FFF1DC"),
@@ -70,12 +70,12 @@ public sealed class CircadianService
         ConsoleBar: Color.Parse("#D9FFF1DC"),
         TextPrimary: Color.Parse("#2B1E10"),
         TextSecondary: Color.Parse("#6A5641"),
-        KeyLightAngle: 60.0 * Math.PI / 180.0, // 2 o'clock low
+        KeyLightAngle: 10.0 * Math.PI / 180.0, // sun overhead
         SpecularGain: 0.7,
         IsDark: false
     );
 
-    // Night: Deep obsidian glass, luminous hairline edges (18:00 - 06:00)
+    // Night: Deep obsidian glass, luminous hairline edges (17:00 - 06:00)
     public static readonly CircadianFrame NightFrame = new(
         ScrimTop: Color.Parse("#4005070D"),
         ScrimMid: Color.Parse("#550A0C12"),
@@ -92,7 +92,7 @@ public sealed class CircadianService
         ConsoleBar: Color.Parse("#2B1A2030"),
         TextPrimary: Color.Parse("#F2F5FF"),
         TextSecondary: Color.Parse("#AEB8D0"),
-        KeyLightAngle: 0.0, // 12 o'clock
+        KeyLightAngle: 200.0 * Math.PI / 180.0, // sun below horizon
         SpecularGain: 1.25,
         IsDark: true
     );
@@ -170,40 +170,73 @@ public sealed class CircadianService
         _edgeHoverBrush.GradientStops.Add(new GradientStop(Colors.Transparent, 1.0));
     }
 
+    private static readonly string[] ManagedBrushKeys =
+    [
+        "PhaseScrimBrush",
+        "GlassCardBrush",
+        "GlassCardHoverBrush",
+        "GlassEdgeBrush",
+        "GlassEdgeHoverBrush",
+        "GlassInnerHighlightBrush",
+        "AmbientReflectionBrush",
+        "GlassMasterCardBrush",
+        "GlassSubcardBrush",
+        "GlassConsoleBarBrush",
+        "TextPrimaryBrush",
+        "TextSecondaryBrush"
+    ];
+
+    private void RegisterBrushes()
+    {
+        if (_resources == null) return;
+        _resources["PhaseScrimBrush"] = _scrimBrush;
+        _resources["GlassCardBrush"] = _cardBrush;
+        _resources["GlassCardHoverBrush"] = _cardHoverBrush;
+        _resources["GlassEdgeBrush"] = _edgeBrush;
+        _resources["GlassEdgeHoverBrush"] = _edgeHoverBrush;
+        _resources["GlassInnerHighlightBrush"] = _innerHighlightBrush;
+        _resources["AmbientReflectionBrush"] = _ambientReflectionBrush;
+        _resources["GlassMasterCardBrush"] = _masterCardBrush;
+        _resources["GlassSubcardBrush"] = _subcardBrush;
+        _resources["GlassConsoleBarBrush"] = _consoleBarBrush;
+        _resources["TextPrimaryBrush"] = _textPrimaryBrush;
+        _resources["TextSecondaryBrush"] = _textSecondaryBrush;
+    }
+
+    private void UnregisterBrushes()
+    {
+        if (_resources == null) return;
+        foreach (var key in ManagedBrushKeys)
+        {
+            _resources.Remove(key);
+        }
+    }
+
     public void Attach(IResourceDictionary res, Application app)
     {
         _resources = res;
         _app = app;
 
-        // Register mutable brushes directly at top-level resources
-        res["PhaseScrimBrush"] = _scrimBrush;
-        res["GlassCardBrush"] = _cardBrush;
-        res["GlassCardHoverBrush"] = _cardHoverBrush;
-        res["GlassEdgeBrush"] = _edgeBrush;
-        res["GlassEdgeHoverBrush"] = _edgeHoverBrush;
-        res["GlassInnerHighlightBrush"] = _innerHighlightBrush;
-        res["AmbientReflectionBrush"] = _ambientReflectionBrush;
-        res["GlassMasterCardBrush"] = _masterCardBrush;
-        res["GlassSubcardBrush"] = _subcardBrush;
-        res["GlassConsoleBarBrush"] = _consoleBarBrush;
-        res["TextPrimaryBrush"] = _textPrimaryBrush;
-        res["TextSecondaryBrush"] = _textSecondaryBrush;
-
-        Tick(force: true);
+        if (_settings.Mode != CircadianMode.Off || _previewMinute != null)
+        {
+            RegisterBrushes();
+            Tick(force: true);
+        }
     }
 
     public void Configure(CircadianSettings settings)
     {
         _settings = settings;
 
-        if (_settings.Mode == CircadianMode.Off)
+        if (_settings.Mode == CircadianMode.Off && _previewMinute == null)
         {
             _timer.Stop();
-            // Revert brushes to active theme variant defaults
-            ApplyVariantDefaults();
+            UnregisterBrushes();
+            _lastFrame = null;
         }
         else
         {
+            RegisterBrushes();
             Tick(force: true);
             if (!_timer.IsEnabled)
                 _timer.Start();
@@ -213,6 +246,11 @@ public sealed class CircadianService
     public void SetPreviewMinute(double? minute)
     {
         _previewMinute = minute;
+        if (_previewMinute != null)
+            RegisterBrushes();
+        else if (_settings.Mode == CircadianMode.Off)
+            UnregisterBrushes();
+
         Tick(force: true);
     }
 
@@ -265,9 +303,14 @@ public sealed class CircadianService
         double afternoonMin = _settings.AfternoonStart.Hour * 60 + _settings.AfternoonStart.Minute;
         double nightMin = _settings.NightStart.Hour * 60 + _settings.NightStart.Minute;
 
-        if (_settings.Mode == CircadianMode.Sun && _settings.Latitude.HasValue && _settings.Longitude.HasValue)
+        if (_settings.Mode == CircadianMode.Sun)
         {
-            var sun = SunCalc.Calculate(now, _settings.Latitude.Value, _settings.Longitude.Value);
+            var (lat, lon) = (_settings.Latitude ?? 0, _settings.Longitude ?? 0);
+            if (!_settings.Latitude.HasValue || !_settings.Longitude.HasValue)
+            {
+                (lat, lon) = SunCalc.ApproximateCoordinatesForTimeZone(TimeZoneInfo.Local);
+            }
+            var sun = SunCalc.Calculate(now, lat, lon);
             morningMin = sun.Sunrise.Hour * 60 + sun.Sunrise.Minute;
             afternoonMin = sun.SolarNoon.Hour * 60 + sun.SolarNoon.Minute;
             nightMin = sun.Sunset.Hour * 60 + sun.Sunset.Minute;
@@ -360,8 +403,8 @@ public sealed class CircadianService
             MasterCard: OkLab.Lerp(a.MasterCard, b.MasterCard, t),
             Subcard: OkLab.Lerp(a.Subcard, b.Subcard, t),
             ConsoleBar: OkLab.Lerp(a.ConsoleBar, b.ConsoleBar, t),
-            TextPrimary: OkLab.Lerp(a.TextPrimary, b.TextPrimary, t),
-            TextSecondary: OkLab.Lerp(a.TextSecondary, b.TextSecondary, t),
+            TextPrimary: a.IsDark == b.IsDark ? OkLab.Lerp(a.TextPrimary, b.TextPrimary, t) : (t >= 0.5 ? b.TextPrimary : a.TextPrimary),
+            TextSecondary: a.IsDark == b.IsDark ? OkLab.Lerp(a.TextSecondary, b.TextSecondary, t) : (t >= 0.5 ? b.TextSecondary : a.TextSecondary),
             KeyLightAngle: LerpAngle(a.KeyLightAngle, b.KeyLightAngle, t),
             SpecularGain: a.SpecularGain + (b.SpecularGain - a.SpecularGain) * t,
             IsDark: t >= 0.5 ? b.IsDark : a.IsDark
@@ -370,8 +413,7 @@ public sealed class CircadianService
 
     private static double LerpAngle(double a, double b, double t)
     {
-        double diff = (b - a + Math.PI) % (2.0 * Math.PI) - Math.PI;
-        return a + diff * t;
+        return a + Math.IEEERemainder(b - a, 2.0 * Math.PI) * t;
     }
 
     private static bool HasMeaningfulDifference(CircadianFrame a, CircadianFrame b)
@@ -407,11 +449,19 @@ public sealed class CircadianService
         _edgeBrush.GradientStops[1].Color = OkLab.Lerp(frame.EdgeTop, frame.EdgeBottom, 0.45);
         _edgeBrush.GradientStops[2].Color = frame.EdgeBottom;
 
+        // Dynamic key light direction based on circadian solar angle
+        var cos = Math.Cos(frame.KeyLightAngle);
+        var sin = Math.Sin(frame.KeyLightAngle);
+        _edgeBrush.StartPoint = new RelativePoint(0.5 - cos * 0.5, 0.5 - sin * 0.5, RelativeUnit.Relative);
+        _edgeBrush.EndPoint = new RelativePoint(0.5 + cos * 0.5, 0.5 + sin * 0.5, RelativeUnit.Relative);
+
         _edgeHoverBrush.GradientStops[0].Color = Color.FromArgb(
             (byte)Math.Clamp(frame.EdgeTop.A + 30, 0, 255),
             frame.EdgeTop.R, frame.EdgeTop.G, frame.EdgeTop.B);
         _edgeHoverBrush.GradientStops[1].Color = frame.EdgeTop;
         _edgeHoverBrush.GradientStops[2].Color = frame.EdgeBottom;
+        _edgeHoverBrush.StartPoint = _edgeBrush.StartPoint;
+        _edgeHoverBrush.EndPoint = _edgeBrush.EndPoint;
 
         _innerHighlightBrush.Color = frame.InnerHighlight;
         _ambientReflectionBrush.Color = frame.AmbientReflection;

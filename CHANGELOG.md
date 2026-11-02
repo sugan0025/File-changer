@@ -14,6 +14,22 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.4.0
+
+<!-- update
+level: required
+en: Fix launcher requiring .NET installation by bundling self-contained Windows runtime
+en: Dynamic circadian key lighting, smooth OKLab transitions, and backdrop glass refinement
+en: Donut menu enhancements with angle-driven specular rims and tactile haptic feedback
+en: Zero-allocation animation loop callbacks and pipeline trail rendering improvements
+-->
+
+- **Windows Self-Contained Runtime**: Bundled the .NET runtime directly with Filee so the app launches immediately on all Windows systems without needing external .NET framework installations.
+- **Dynamic Circadian Lighting & Color Space**: OKLab perceptual color blending, automatic geographic sun position estimation, and true non-clobbering "Off" mode.
+- **Glass Card & Visual Refinement**: Localized backdrop blur with edge-clamping, eliminating transparent boundary artifacts.
+- **Interactive Donut Menu**: Angle-aware specular reflections on slices and sub-rings, multi-tier glow strokes, and directional neighbor tilt.
+- **Performance**: Zero-allocation frame callbacks in pipeline animation and leak-free audio buffers in sound service.
+
 ## 2.2.0
 
 <!-- update

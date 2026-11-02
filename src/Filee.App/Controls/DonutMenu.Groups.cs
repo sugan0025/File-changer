@@ -205,7 +205,7 @@ public sealed partial class DonutMenu
             return;
         _subHover = sub;
         if (sub >= 0)
-            AppHost.TryGet<SoundService>()?.PlayHoverTick();
+            AppHost.TryGet<SoundService>()?.PlayHoverTick(sub);
         ActiveIndexChanged?.Invoke(this, ActiveIndex);
         StartAnimation();
     }
@@ -446,9 +446,12 @@ public sealed partial class DonutMenu
                 var wedge = CreateWedge(center, inner, outer, mid, subSpan);
                 var hot = k == subHover && expanded && item.IsEnabled;
 
-                // Sub-slice directional specular rim from 12 o\'clock key light
-                var lightDot = -Math.Sin(mid);
-                var rimAlpha = (byte)Math.Clamp(36 + 28 * lightDot, 18, 70);
+                // Sub-slice directional specular rim driven by Circadian service
+                var circadian = AppHost.TryGet<CircadianService>();
+                var keyLight = circadian?.CurrentKeyLightAngle ?? 0.0;
+                var specGain = circadian?.CurrentSpecularGain ?? 1.0;
+                var lightDot = Math.Cos(mid - keyLight);
+                var rimAlpha = (byte)Math.Clamp((38 + 32 * lightDot) * specGain, 18, 90);
                 var subGlassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
 
                 if (hot)
@@ -461,8 +464,28 @@ public sealed partial class DonutMenu
                 context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (item.IsEnabled ? 1 : 0.55)), subGlassPen, wedge);
                 if (hot)
                 {
-                    context.DrawGeometry(WithOpacity(AccentBrush, 0.82), null, wedge);
-                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(110, 255, 255, 255)), 1.1), wedge);
+                    var accentColor = (AccentBrush as ISolidColorBrush)?.Color ?? Color.Parse("#8E85F3");
+                    var fillTop = accentColor;
+                    var fillBottom = SoftPalette.Shade(accentColor, -0.20);
+                    var hoverBrush = new LinearGradientBrush
+                    {
+                        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                        EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
+                        GradientStops =
+                        {
+                            new GradientStop(Color.FromArgb(215, fillTop.R, fillTop.G, fillTop.B), 0.0),
+                            new GradientStop(Color.FromArgb(190, fillBottom.R, fillBottom.G, fillBottom.B), 1.0)
+                        }
+                    };
+                    context.DrawGeometry(hoverBrush, null, wedge);
+
+                    // 3-tier glow strokes (12% inner, 25% mid, 90% outer)
+                    var glow1 = new Pen(new SolidColorBrush(Color.FromArgb(30, accentColor.R, accentColor.G, accentColor.B)), 1.2);
+                    var glow2 = new Pen(new SolidColorBrush(Color.FromArgb(64, accentColor.R, accentColor.G, accentColor.B)), 2.5);
+                    var glow3 = new Pen(new SolidColorBrush(Color.FromArgb(200, accentColor.R, accentColor.G, accentColor.B)), 7.0);
+                    context.DrawGeometry(null, glow1, wedge);
+                    context.DrawGeometry(null, glow2, wedge);
+                    context.DrawGeometry(null, glow3, wedge);
                 }
                 else
                 {

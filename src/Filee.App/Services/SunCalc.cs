@@ -14,8 +14,10 @@ public static class SunCalc
         double rad = Math.PI / 180.0;
         double deg = 180.0 / Math.PI;
 
+        double daysInYear = DateTime.IsLeapYear(date.Year) ? 366.0 : 365.0;
+
         // Fractional year in radians
-        double gamma = 2.0 * Math.PI / 365.0 * (dayOfYear - 1 + (date.Hour - 12) / 24.0);
+        double gamma = 2.0 * Math.PI / daysInYear * (dayOfYear - 1 + (date.Hour - 12) / 24.0);
 
         // Equation of time in minutes
         double eqtime = 229.18 * (0.000075 + 0.001868 * Math.Cos(gamma) - 0.032077 * Math.Sin(gamma)
@@ -44,6 +46,26 @@ public static class SunCalc
         double setMinutes = noonMinutes + ha * 4;
 
         return (ToTimeOnly(riseMinutes), ToTimeOnly(noonMinutes), ToTimeOnly(setMinutes));
+    }
+
+    /// <summary>
+    /// Returns approximate latitude and longitude coordinates derived from the machine's timezone
+    /// to provide seamless Sun mode operation with zero setup.
+    /// </summary>
+    public static (double Latitude, double Longitude) ApproximateCoordinatesForTimeZone(TimeZoneInfo tz)
+    {
+        var offsetHours = tz.BaseUtcOffset.TotalHours;
+        double lon = Math.Clamp(offsetHours * 15.0, -180.0, 180.0);
+        double lat = 40.0;
+        if (tz.Id.Contains("Australia", StringComparison.OrdinalIgnoreCase) ||
+            tz.Id.Contains("Auckland", StringComparison.OrdinalIgnoreCase) ||
+            tz.Id.Contains("Buenos_Aires", StringComparison.OrdinalIgnoreCase) ||
+            tz.Id.Contains("Sao_Paulo", StringComparison.OrdinalIgnoreCase) ||
+            tz.Id.Contains("South_Africa", StringComparison.OrdinalIgnoreCase))
+        {
+            lat = -30.0;
+        }
+        return (lat, lon);
     }
 
     private static TimeOnly ToTimeOnly(double minutes)

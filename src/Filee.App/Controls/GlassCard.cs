@@ -9,12 +9,17 @@ namespace Filee.App.Controls;
 
 /// <summary>
 /// Frosted Liquid Glass Card.
+/// Subclasses Decorator with StyleKeyOverride = typeof(Border) so all existing
+/// Avalonia Border selectors (Border.liquid-glass-master, Border.liquid-console-bar,
+/// Border.liquid-glass-subcard, Border.card, etc.) match directly.
 /// Automatically blits a localized, blurred slice of the backdrop wallpaper
 /// behind its surface before rendering its dynamic glass gradient, specular borders, and children.
 /// Repaints cleanly when scrolled in a ScrollViewer or resized.
 /// </summary>
 public class GlassCard : Decorator
 {
+    protected override Type StyleKeyOverride => typeof(Border);
+
     public static readonly StyledProperty<IBrush?> BackgroundProperty =
         Border.BackgroundProperty.AddOwner<GlassCard>();
 
@@ -103,7 +108,7 @@ public class GlassCard : Decorator
             top.Bounds.Width > 0 && top.Bounds.Height > 0 &&
             this.TranslatePoint(default, top) is { } offset)
         {
-            var srcRect = BackdropService.SourceRectFor(offset, size, top.Bounds.Size, img.Size);
+            var srcRect = BackdropService.CalculateSlice(offset, size, top.Bounds.Size, img.Size);
             using (ctx.PushClip(roundedRect))
             {
                 ctx.DrawImage(img, srcRect, rect);

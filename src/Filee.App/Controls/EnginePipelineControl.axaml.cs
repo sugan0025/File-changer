@@ -21,6 +21,10 @@ public partial class EnginePipelineControl : UserControl
         AvaloniaProperty.Register<EnginePipelineControl, bool>(
             nameof(IsDropdownOpen), false, defaultBindingMode: BindingMode.TwoWay);
 
+    public static readonly StyledProperty<bool> IsConvertingProperty =
+        AvaloniaProperty.Register<EnginePipelineControl, bool>(
+            nameof(IsConverting), false);
+
     public int ActiveIndex
     {
         get => GetValue(ActiveIndexProperty);
@@ -33,13 +37,22 @@ public partial class EnginePipelineControl : UserControl
         set => SetValue(IsDropdownOpenProperty, value);
     }
 
+    public bool IsConverting
+    {
+        get => GetValue(IsConvertingProperty);
+        set => SetValue(IsConvertingProperty, value);
+    }
+
     private readonly DispatcherTimer _cycleTimer;
     private readonly Stopwatch _dotWatch = Stopwatch.StartNew();
+    private readonly Action<TimeSpan> _dotFrameCallback;
     private TopLevel? _topLevel;
+    private Window? _window;
     private bool _isAnimRunning;
 
     public EnginePipelineControl()
     {
+        _dotFrameCallback = OnAnimationFrame;
         InitializeComponent();
 
         _cycleTimer = new DispatcherTimer
@@ -57,6 +70,11 @@ public partial class EnginePipelineControl : UserControl
             int index = change.GetNewValue<int>();
             Canvas.ActiveIndex = index;
             UpdateActiveNodeVisuals();
+        }
+        else if (change.Property == IsConvertingProperty)
+        {
+            bool converting = change.GetNewValue<bool>();
+            Canvas.IsConverting = converting;
         }
         else if (change.Property == IsDropdownOpenProperty)
         {
@@ -76,6 +94,20 @@ public partial class EnginePipelineControl : UserControl
     {
         base.OnAttachedToVisualTree(e);
         _topLevel = TopLevel.GetTopLevel(this);
+        _window = _topLevel as Window;
+
+        if (_window != null)
+        {
+            _window.Activated += OnWindowActivated;
+            _window.Deactivated += OnWindowDeactivated;
+        }
+
+        ActualThemeVariantChanged += OnThemeVariantChanged;
+
+        if (AppHost.TryGet<CircadianService>() is { } circ)
+        {
+            circ.PhaseChanged += OnCircadianPhaseChanged;
+        }
 
         UpdateThemeVisuals();
         UpdateActiveNodeVisuals();
@@ -88,15 +120,54 @@ public partial class EnginePipelineControl : UserControl
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        if (_window != null)
+        {
+            _window.Activated -= OnWindowActivated;
+            _window.Deactivated -= OnWindowDeactivated;
+            _window = null;
+        }
+
+        ActualThemeVariantChanged -= OnThemeVariantChanged;
+
+        if (AppHost.TryGet<CircadianService>() is { } circ)
+        {
+            circ.PhaseChanged -= OnCircadianPhaseChanged;
+        }
+
         _cycleTimer.Stop();
         _isAnimRunning = false;
         _topLevel = null;
         base.OnDetachedFromVisualTree(e);
     }
 
+    private void OnWindowActivated(object? sender, EventArgs e)
+    {
+        if (!IsDropdownOpen && !_cycleTimer.IsEnabled)
+            _cycleTimer.Start();
+        StartDotAnimation();
+    }
+
+    private void OnWindowDeactivated(object? sender, EventArgs e)
+    {
+        _cycleTimer.Stop();
+        _isAnimRunning = false;
+    }
+
+    private void OnThemeVariantChanged(object? sender, EventArgs e)
+    {
+        UpdateThemeVisuals();
+        UpdateActiveNodeVisuals();
+    }
+
+    private void OnCircadianPhaseChanged(object? sender, EventArgs e)
+    {
+        UpdateThemeVisuals();
+        UpdateActiveNodeVisuals();
+    }
+
     private void StartDotAnimation()
     {
-        if (_isAnimRunning || _topLevel is null || !Motion.Enabled || !IsEffectivelyVisible)
+        if (_isAnimRunning || _topLevel is null || !Motion.Enabled || !IsEffectivelyVisible || (_window != null && !_window.IsActive))
         {
             if (!Motion.Enabled)
             {
@@ -108,7 +179,7 @@ public partial class EnginePipelineControl : UserControl
         }
 
         _isAnimRunning = true;
-        _topLevel.RequestAnimationFrame(OnAnimationFrame);
+        _topLevel.RequestAnimationFrame(_dotFrameCallback);
     }
 
     private void OnAnimationFrame(TimeSpan time)
@@ -116,7 +187,7 @@ public partial class EnginePipelineControl : UserControl
         if (!_isAnimRunning || _topLevel is null)
             return;
 
-        if (!Motion.Enabled || !IsEffectivelyVisible)
+        if (!Motion.Enabled || !IsEffectivelyVisible || (_window != null && !_window.IsActive))
         {
             _isAnimRunning = false;
             Dot0.Opacity = 0.8;
@@ -134,7 +205,7 @@ public partial class EnginePipelineControl : UserControl
         Dot1.Opacity = 0.3 + 0.7 * (0.5 + 0.5 * Math.Sin((t - 0.2) * omega));
         Dot2.Opacity = 0.3 + 0.7 * (0.5 + 0.5 * Math.Sin((t - 0.4) * omega));
 
-        _topLevel.RequestAnimationFrame(OnAnimationFrame);
+        _topLevel.RequestAnimationFrame(_dotFrameCallback);
     }
 
     private void OnCycleTick(object? sender, EventArgs e)

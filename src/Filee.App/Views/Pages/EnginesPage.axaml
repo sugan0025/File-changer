@@ -7,32 +7,26 @@
              x:DataType="vm:EnginesPageViewModel">
   <UserControl.Styles>
     <!-- Liquid Morphed Glass Master Card -->
-    <Style Selector="Border.liquid-glass-master">
-      <Setter Property="Background" Value="{DynamicResource GlassMasterCardBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource GlassMasterCardBorderBrush}" />
-      <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
-      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusLarge}" />
-      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE3}" />
+    <Style Selector="controls|GlassCard.liquid-glass-master">
+      <Setter Property="Border.Background" Value="{DynamicResource GlassMasterCardBrush}" />
+      <Setter Property="Border.BorderBrush" Value="{DynamicResource GlassMasterCardBorderBrush}" />
+      <Setter Property="Border.BorderThickness" Value="{DynamicResource HairlineThickness}" />
+      <Setter Property="Border.CornerRadius" Value="{DynamicResource SoftRadiusLarge}" />
+      <Setter Property="Border.BoxShadow" Value="{DynamicResource ElevationE3}" />
     </Style>
 
     <!-- Liquid Console Bar -->
-    <Style Selector="Border.liquid-console-bar">
-      <Setter Property="Background" Value="{DynamicResource GlassConsoleBarBrush}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource GlassConsoleBarBorderBrush}" />
-      <Setter Property="BorderThickness" Value="{DynamicResource HairlineThickness}" />
-      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
-      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE1}" />
-      <Setter Property="Transitions">
-        <Transitions>
-          <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
-          <BrushTransition Property="Background" Duration="0:0:0.2" />
-        </Transitions>
-      </Setter>
+    <Style Selector="controls|GlassCard.liquid-console-bar">
+      <Setter Property="Border.Background" Value="{DynamicResource GlassConsoleBarBrush}" />
+      <Setter Property="Border.BorderBrush" Value="{DynamicResource GlassConsoleBarBorderBrush}" />
+      <Setter Property="Border.BorderThickness" Value="{DynamicResource HairlineThickness}" />
+      <Setter Property="Border.CornerRadius" Value="{DynamicResource SoftRadius}" />
+      <Setter Property="Border.BoxShadow" Value="{DynamicResource ElevationE1}" />
     </Style>
-    <Style Selector="Border.liquid-console-bar:pointerover">
-      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-      <Setter Property="Background" Value="{DynamicResource GlassConsoleBarHoverBrush}" />
-      <Setter Property="BoxShadow" Value="{DynamicResource ElevationE2}" />
+    <Style Selector="controls|GlassCard.liquid-console-bar:pointerover">
+      <Setter Property="Border.BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Border.Background" Value="{DynamicResource GlassConsoleBarHoverBrush}" />
+      <Setter Property="Border.BoxShadow" Value="{DynamicResource ElevationE2}" />
     </Style>
 
     <!-- Liquid Glass Subcards for Packages & Engines -->
@@ -86,7 +80,8 @@
           <!-- 1. The Vector Animated Diagram with Longer Node Lines (190px span ⚟) -->
           <controls:EnginePipelineControl x:Name="PipelineControl"
                                           ActiveIndex="{Binding SelectedCategory, Mode=TwoWay}"
-                                          IsDropdownOpen="{Binding IsDropdownOpen, Mode=TwoWay}" />
+                                          IsDropdownOpen="{Binding IsDropdownOpen, Mode=TwoWay}"
+                                          IsConverting="{Binding IsConverting}" />
 
           <!-- 2. The Bottom Console Bar with Dropdown Toggle ('>' rotates/becomes '▼' when open) -->
           <controls:GlassCard x:Name="ConsoleBar" MaxWidth="1180" Margin="8,0,8,0" Padding="20,13"

@@ -58,10 +58,10 @@ public static class BackdropService
             using var resized = origBitmap.Resize(info, SKSamplingOptions.Default);
             if (resized == null) return null;
 
-            // 2. Apply Gaussian blur pass (sigma = 18)
+            // 2. Apply Gaussian blur pass (sigma = 18) with Clamp tile mode to prevent transparent borders
             using var surface = SKSurface.Create(info);
             using var paint = new SKPaint();
-            using var blurFilter = SKImageFilter.CreateBlur(18, 18);
+            using var blurFilter = SKImageFilter.CreateBlur(18, 18, SKShaderTileMode.Clamp);
             paint.ImageFilter = blurFilter;
 
             surface.Canvas.DrawBitmap(resized, 0, 0, paint);
@@ -111,21 +111,32 @@ public static class BackdropService
         }
     }
 
-    public static Rect SourceRectFor(Point offset, Size cardSize, Size windowSize, Size imgSize)
+    public static Rect CalculateSlice(Point offset, Size cardSize, Size windowSize, Size imgSize)
     {
-        if (windowSize.Width <= 0 || windowSize.Height <= 0)
-            return new Rect(0, 0, imgSize.Width, imgSize.Height);
+        if (windowSize.Width <= 0 || windowSize.Height <= 0 || imgSize.Width <= 0 || imgSize.Height <= 0)
+            return new Rect(0, 0, Math.Max(1, imgSize.Width), Math.Max(1, imgSize.Height));
 
-        double x = (offset.X / windowSize.Width) * imgSize.Width;
-        double y = (offset.Y / windowSize.Height) * imgSize.Height;
-        double w = (cardSize.Width / windowSize.Width) * imgSize.Width;
-        double h = (cardSize.Height / windowSize.Height) * imgSize.Height;
+        // UniformToFill aspect mapping: image scales to fill window maintaining aspect ratio
+        double scale = Math.Max(windowSize.Width / imgSize.Width, windowSize.Height / imgSize.Height);
+        double renderedW = imgSize.Width * scale;
+        double renderedH = imgSize.Height * scale;
 
-        x = Math.Clamp(x, 0, imgSize.Width);
-        y = Math.Clamp(y, 0, imgSize.Height);
-        w = Math.Clamp(w, 0, imgSize.Width - x);
-        h = Math.Clamp(h, 0, imgSize.Height - y);
+        double originX = (windowSize.Width - renderedW) / 2.0;
+        double originY = (windowSize.Height - renderedH) / 2.0;
 
-        return new Rect(x, y, w, h);
+        double imgX = (offset.X - originX) / scale;
+        double imgY = (offset.Y - originY) / scale;
+        double imgW = cardSize.Width / scale;
+        double imgH = cardSize.Height / scale;
+
+        double clampedX = Math.Clamp(imgX, 0, imgSize.Width);
+        double clampedY = Math.Clamp(imgY, 0, imgSize.Height);
+        double clampedW = Math.Clamp(imgW, 0, imgSize.Width - clampedX);
+        double clampedH = Math.Clamp(imgH, 0, imgSize.Height - clampedY);
+
+        return new Rect(clampedX, clampedY, Math.Max(1, clampedW), Math.Max(1, clampedH));
     }
+
+    public static Rect SourceRectFor(Point offset, Size cardSize, Size windowSize, Size imgSize) =>
+        CalculateSlice(offset, cardSize, windowSize, imgSize);
 }
