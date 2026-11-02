@@ -141,9 +141,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         {
 
             // Room for the layout below the list.
-
-            dialog.Height = 640;
-
+            dialog.Height = 690;
             dialog.MinHeight = 540;
 
         }
