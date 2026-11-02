@@ -11,6 +11,7 @@ public sealed class SoundService : IDisposable
     private const uint SndAsync = 0x0001;
     private const uint SndNoDefault = 0x0002;
     private const uint SndMemory = 0x0004;
+    private const uint SndPurge = 0x0040;
 
     private const int SampleRate = 48000;
     private const double Tau = 2 * Math.PI;
@@ -29,7 +30,6 @@ public sealed class SoundService : IDisposable
     private readonly IntPtr _dropCatch;
     private readonly IntPtr _cancel;
     private readonly IntPtr _error;
-    private readonly IntPtr _nav;
     private readonly IntPtr _buttonClick;
     private readonly IntPtr _tab;
     private readonly IntPtr _confirm;
@@ -52,7 +52,6 @@ public sealed class SoundService : IDisposable
             _dropCatch = AllocateWav(CreateWav(RenderDropCatch(), SampleRate));
             _cancel = AllocateWav(CreateWav(RenderCancel(), SampleRate));
             _error = AllocateWav(CreateWav(RenderError(), SampleRate));
-            _nav = AllocateWav(CreateWav(RenderNav(), SampleRate));
             _buttonClick = AllocateWav(CreateWav(RenderButtonClick(), SampleRate));
             _tab = AllocateWav(CreateWav(RenderTab(), SampleRate));
             _confirm = AllocateWav(CreateWav(RenderConfirm(), SampleRate));
@@ -431,8 +430,6 @@ public sealed class SoundService : IDisposable
         return Finish(s, 0.30, 90);
     }
 
-    private static float[] RenderNav() => RenderFanOut();
-
     private static float[] RenderButtonClick()
     {
         // 22ms tactile micro-switch button click
@@ -538,19 +535,29 @@ public sealed class SoundService : IDisposable
 
     public void Dispose()
     {
+        if (OperatingSystem.IsWindows())
+        {
+            try { PlaySound(IntPtr.Zero, IntPtr.Zero, SndPurge); } catch { }
+        }
+
         for (var v = 0; v < _ticks.Length; v++)
-            if (_ticks[v] != IntPtr.Zero) Marshal.FreeHGlobal(_ticks[v]);
-        if (_flipSound != IntPtr.Zero) Marshal.FreeHGlobal(_flipSound);
-        if (_completeChime != IntPtr.Zero) Marshal.FreeHGlobal(_completeChime);
-        if (_fanOut != IntPtr.Zero) Marshal.FreeHGlobal(_fanOut);
-        if (_dropCatch != IntPtr.Zero) Marshal.FreeHGlobal(_dropCatch);
-        if (_cancel != IntPtr.Zero) Marshal.FreeHGlobal(_cancel);
-        if (_error != IntPtr.Zero) Marshal.FreeHGlobal(_error);
-        if (_nav != IntPtr.Zero) Marshal.FreeHGlobal(_nav);
-        if (_buttonClick != IntPtr.Zero) Marshal.FreeHGlobal(_buttonClick);
-        if (_tab != IntPtr.Zero) Marshal.FreeHGlobal(_tab);
-        if (_confirm != IntPtr.Zero) Marshal.FreeHGlobal(_confirm);
-        if (_toggleOn != IntPtr.Zero) Marshal.FreeHGlobal(_toggleOn);
-        if (_toggleOff != IntPtr.Zero) Marshal.FreeHGlobal(_toggleOff);
+            Free(_ticks[v]);
+        Free(_flipSound);
+        Free(_completeChime);
+        Free(_fanOut);
+        Free(_dropCatch);
+        Free(_cancel);
+        Free(_error);
+        Free(_buttonClick);
+        Free(_tab);
+        Free(_confirm);
+        Free(_toggleOn);
+        Free(_toggleOff);
+    }
+
+    private static void Free(IntPtr ptr)
+    {
+        if (ptr != IntPtr.Zero)
+            Marshal.FreeHGlobal(ptr);
     }
 }

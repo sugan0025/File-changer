@@ -106,6 +106,9 @@ public sealed partial class DonutMenu : Control
 
     private Spring[] _hover = [];
     private Spring[] _lean = [];
+    private double _cachedShadowR2 = -1;
+    private RadialGradientBrush? _cachedAmbientBrush;
+    private RadialGradientBrush? _cachedContactBrush;
     private Spring _pressSpring;
     private Spring _pointerAngle;
     private double _targetPointerAngle;
@@ -1008,6 +1011,10 @@ public sealed partial class DonutMenu : Control
     {
         DrawSoftShadow(context, center, r2);
 
+        var circadian = AppHost.TryGet<CircadianService>();
+        var keyLight = circadian?.CurrentKeyLightAngle ?? 0.0;
+        var specGain = circadian?.CurrentSpecularGain ?? 1.0;
+
         if (n == 0)
         {
             var ring = CreateRing(center, r1, r2);
@@ -1066,9 +1073,6 @@ public sealed partial class DonutMenu : Control
                 Matrix.CreateTranslation(center.X + offset.X, center.Y + offset.Y) *
                 SliceFlipTransform(false, i);
 
-            var circadian = AppHost.TryGet<CircadianService>();
-            var keyLight = circadian?.CurrentKeyLightAngle ?? 0.0;
-            var specGain = circadian?.CurrentSpecularGain ?? 1.0;
             var lit = Math.Cos(mid - keyLight);
             var flipWidth = SliceFlipWidth(false, i);
             var minShade = 0.55 + 0.15 * Math.Max(0, lit);
@@ -1076,101 +1080,10 @@ public sealed partial class DonutMenu : Control
             using (context.PushTransform(transform))
             using (context.PushOpacity(Math.Clamp(open, 0, 1) * flipShade * (i == _dimmedIndex ? 0.3 : 1)))
             {
-                var wedge = CreateWedge(center, r1, r2, mid, span);
                 var isSelected = (i == ActiveIndex || i == _dropTargetIndex);
                 var emphasis = i == _dropTargetIndex ? 1.0 : hover;
-                var isEnabled = item.IsEnabled;
-
-                // Movable key light specular rim
-                var rimAlpha = (byte)Math.Clamp((38 + 32 * lit) * specGain, 14, 110);
-                var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
-
-                var accentColor = (AccentBrush as ISolidColorBrush)?.Color ?? Color.Parse("#7F77DD");
-
-                // Focused hover glow behind active slice (3-stroke layered glow)
-                if (emphasis > 0.01 && isEnabled && isSelected)
-                {
-                    var glow1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(30 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 5.0);
-                    var glow2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(64 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 2.5);
-                    var glow3 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 1.2);
-
-                    context.DrawGeometry(null, glow1, wedge);
-                    context.DrawGeometry(null, glow2, wedge);
-                    context.DrawGeometry(null, glow3, wedge);
-                }
-
-                // Base slice fill
-                context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (isEnabled ? 1 : 0.55)), glassPen, wedge);
-
-                // Thick-glass inner refraction crescent on lit side
-                if (lit > 0.2 && isEnabled)
-                {
-                    var refrAlpha = (byte)Math.Clamp(24 * lit * specGain, 0, 60);
-                    var refrWedge = CreateWedge(center, r1 + 1.0, r1 + 3.0, mid, span * 0.7);
-                    context.DrawGeometry(new SolidColorBrush(Color.FromArgb(refrAlpha, 255, 255, 255)), null, refrWedge);
-                }
-
-                if (emphasis > 0.01 && isEnabled && isSelected)
-                {
-                    // Gradient hover fill
-                    var fillTop = accentColor;
-                    var fillBottom = SoftPalette.Shade(accentColor, -0.20);
-                    var hoverBrush = new LinearGradientBrush
-                    {
-                        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                        EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                        GradientStops =
-                        {
-                            new GradientStop(Color.FromArgb((byte)(215 * Math.Clamp(emphasis, 0, 1)), fillTop.R, fillTop.G, fillTop.B), 0.0),
-                            new GradientStop(Color.FromArgb((byte)(190 * Math.Clamp(emphasis, 0, 1)), fillBottom.R, fillBottom.G, fillBottom.B), 1.0)
-                        }
-                    };
-                    context.DrawGeometry(hoverBrush, null, wedge);
-
-                    // Continuous pointer-tracking highlight arc along outer rim
-                    if (_pointerAngle.Value != 0)
-                    {
-                        var pAngle = _pointerAngle.Value;
-                        var halfArc = Math.Min(0.08, span * 0.35);
-                        var arcStart = DonutGeometry.PointAt(center, r2 - 0.8, pAngle - halfArc);
-                        var arcEnd = DonutGeometry.PointAt(center, r2 - 0.8, pAngle + halfArc);
-                        var arcGeo = new StreamGeometry();
-                        using (var sgc = arcGeo.Open())
-                        {
-                            sgc.BeginFigure(arcStart, false);
-                            sgc.ArcTo(arcEnd, new Size(r2 - 0.8, r2 - 0.8), 0, false, SweepDirection.Clockwise);
-                            sgc.EndFigure(false);
-                        }
-                        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1.8), arcGeo);
-                    }
-                }
-                else
-                {
-                    var bevelWedge = CreateWedge(center, r1 + 1.2, r2 - 1.2, mid, span);
-                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.8), bevelWedge);
-                }
-
-                // Keyboard distinct double-rim focus indicator
-                if (_keyboardHold && isSelected && isEnabled)
-                {
-                    var focusWedge = CreateWedge(center, r1 + 2.5, r2 - 2.5, mid, span);
-                    var dashStyle = new DashStyle(new double[] { 2, 2 }, 0);
-                    context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)), 1.4, dashStyle: dashStyle), focusWedge);
-                }
-
-                // Edge glint when slice is flipping nearly edge-on
-                if (IsFlipping && flipWidth > 0 && flipWidth < 0.18)
-                {
-                    var glintAlpha = (byte)(255 * (1.0 - flipWidth / 0.18));
-                    var glintPen = new Pen(new SolidColorBrush(Color.FromArgb(glintAlpha, 255, 255, 255)), 2.0);
-                    var pInner = DonutGeometry.PointAt(center, r1, mid);
-                    var pOuter = DonutGeometry.PointAt(center, r2, mid);
-                    context.DrawLine(glintPen, pInner, pOuter);
-                }
-
-                var hot = isSelected && isEnabled;
-                DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
-                    r2 - r1 - 16, typeface, typefaceRegular, hot);
+                DrawSliceWedge(context, item, center, r1, r2, mid, span, lit, specGain, flipWidth,
+                    isSelected, emphasis, IsFlipping, true, typeface, typefaceRegular);
             }
         }
 
@@ -1188,69 +1101,15 @@ public sealed partial class DonutMenu : Control
                                 Matrix.CreateScale(scale * (1 + slice.Hover * 0.025), scale * (1 + slice.Hover * 0.025)) *
                                 Matrix.CreateTranslation(center.X + offset.X, center.Y + offset.Y) *
                                 SliceFlipTransform(true, i);
-                var oldCircadian = AppHost.TryGet<CircadianService>();
-                var oldKeyLight = oldCircadian?.CurrentKeyLightAngle ?? 0.0;
-                var oldSpecGain = oldCircadian?.CurrentSpecularGain ?? 1.0;
-                var oldLit = Math.Cos(slice.Mid - oldKeyLight);
+                var oldLit = Math.Cos(slice.Mid - keyLight);
                 var oldFlipWidth = SliceFlipWidth(true, i);
                 var oldMinShade = 0.55 + 0.15 * Math.Max(0, oldLit);
                 var flipShade = oldMinShade + (1.0 - oldMinShade) * oldFlipWidth;
                 using (context.PushTransform(transform))
                 using (context.PushOpacity(Math.Clamp(slice.Open, 0, 1) * flipShade * (slice.Dimmed ? 0.3 : 1)))
                 {
-                    var wedge = CreateWedge(center, r1, r2, slice.Mid, slice.Span);
-                    var rimAlpha = (byte)Math.Clamp((38 + 32 * oldLit) * oldSpecGain, 14, 110);
-                    var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
-
-                    if (slice.Emphasis > 0.01 && slice.Item.IsEnabled)
-                    {
-                        var accentColor = (AccentBrush as ISolidColorBrush)?.Color ?? Color.Parse("#7F77DD");
-                        var glow1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(30 * Math.Clamp(slice.Emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 5.0);
-                        var glow2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(64 * Math.Clamp(slice.Emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 2.5);
-                        var glow3 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * Math.Clamp(slice.Emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 1.2);
-                        context.DrawGeometry(null, glow1, wedge);
-                        context.DrawGeometry(null, glow2, wedge);
-                        context.DrawGeometry(null, glow3, wedge);
-                    }
-
-                    context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (slice.Item.IsEnabled ? 1 : 0.55)), glassPen, wedge);
-
-                    if (slice.Emphasis > 0.01 && slice.Item.IsEnabled)
-                    {
-                        var accentColor = (AccentBrush as ISolidColorBrush)?.Color ?? Color.Parse("#7F77DD");
-                        var fillTop = accentColor;
-                        var fillBottom = SoftPalette.Shade(accentColor, -0.20);
-                        var hoverBrush = new LinearGradientBrush
-                        {
-                            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                            EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
-                            GradientStops =
-                            {
-                                new GradientStop(Color.FromArgb((byte)(215 * Math.Clamp(slice.Emphasis, 0, 1)), fillTop.R, fillTop.G, fillTop.B), 0.0),
-                                new GradientStop(Color.FromArgb((byte)(190 * Math.Clamp(slice.Emphasis, 0, 1)), fillBottom.R, fillBottom.G, fillBottom.B), 1.0)
-                            }
-                        };
-                        context.DrawGeometry(hoverBrush, null, wedge);
-                    }
-                    else
-                    {
-                        var bevelWedge = CreateWedge(center, r1 + 1.2, r2 - 1.2, slice.Mid, slice.Span);
-                        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.8), bevelWedge);
-                    }
-
-                    // Edge glint on flipping old face
-                    if (oldFlipWidth > 0 && oldFlipWidth < 0.18)
-                    {
-                        var glintAlpha = (byte)(255 * (1.0 - oldFlipWidth / 0.18));
-                        var glintPen = new Pen(new SolidColorBrush(Color.FromArgb(glintAlpha, 255, 255, 255)), 2.0);
-                        var pInner = DonutGeometry.PointAt(center, r1, slice.Mid);
-                        var pOuter = DonutGeometry.PointAt(center, r2, slice.Mid);
-                        context.DrawLine(glintPen, pInner, pOuter);
-                    }
-
-                    DrawLabel(context, slice.Item, center, (r1 + r2) / 2, slice.Mid,
-                        slice.Span * (r1 + r2) / 2 - 10, r2 - r1 - 16, typeface, typefaceRegular,
-                        slice.Hot && slice.Item.IsEnabled);
+                    DrawSliceWedge(context, slice.Item, center, r1, r2, slice.Mid, slice.Span, oldLit, specGain, oldFlipWidth,
+                        slice.Hot, slice.Emphasis, true, false, typeface, typefaceRegular);
                 }
             }
 
@@ -1264,34 +1123,153 @@ public sealed partial class DonutMenu : Control
         var opening = _open.Length == 0 ? 1 : Math.Clamp(_open.Average(), 0, 1);
         using (context.PushOpacity(opening * ShadowCoverage))
         {
-            // 1. Ambient soft wash (elevated diffusion)
-            var ambientRadius = r2 + 22;
-            var ambientBrush = new RadialGradientBrush
+            if (Math.Abs(_cachedShadowR2 - r2) > 0.001 || _cachedAmbientBrush == null || _cachedContactBrush == null)
             {
-                GradientStops =
+                _cachedShadowR2 = r2;
+                var ambientRadius = r2 + 22;
+                _cachedAmbientBrush = new RadialGradientBrush
                 {
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 24) / ambientRadius)),
-                    new GradientStop(Color.FromArgb(32, 0, 0, 0), (r2 - 6) / ambientRadius),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-                },
-            };
-            context.DrawEllipse(ambientBrush, null, new Point(center.X, center.Y + 6), ambientRadius, ambientRadius);
+                    GradientStops =
+                    {
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 24) / ambientRadius)),
+                        new GradientStop(Color.FromArgb(32, 0, 0, 0), (r2 - 6) / ambientRadius),
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+                    },
+                };
 
-            // 2. Crisp contact drop (grounded underneath)
-            var contactRadius = r2 + 10;
-            var contactBrush = new RadialGradientBrush
+                var contactRadius = r2 + 10;
+                _cachedContactBrush = new RadialGradientBrush
+                {
+                    GradientStops =
+                    {
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 14) / contactRadius)),
+                        new GradientStop(Color.FromArgb(52, 0, 0, 0), (r2 - 2) / contactRadius),
+                        new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
+                    },
+                };
+            }
+
+            var ambientR = r2 + 22;
+            context.DrawEllipse(_cachedAmbientBrush, null, new Point(center.X, center.Y + 6), ambientR, ambientR);
+
+            var contactR = r2 + 10;
+            context.DrawEllipse(_cachedContactBrush, null, new Point(center.X, center.Y + 2.5), contactR, contactR);
+        }
+    }
+
+    private void DrawSliceWedge(
+        DrawingContext context,
+        DonutItem item,
+        Point center,
+        double r1,
+        double r2,
+        double mid,
+        double span,
+        double lit,
+        double specGain,
+        double flipWidth,
+        bool isSelected,
+        double emphasis,
+        bool isFlipping,
+        bool drawPointerHighlight,
+        Typeface typeface,
+        Typeface typefaceRegular)
+    {
+        var wedge = CreateWedge(center, r1, r2, mid, span);
+        var isEnabled = item.IsEnabled;
+
+        // Movable key light specular rim
+        var rimAlpha = (byte)Math.Clamp((38 + 32 * lit) * specGain, 14, 110);
+        var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);
+
+        var accentColor = (AccentBrush as ISolidColorBrush)?.Color ?? Color.Parse("#7F77DD");
+
+        // Focused hover glow behind active slice (3-stroke layered glow)
+        if (emphasis > 0.01 && isEnabled && isSelected)
+        {
+            var glow1 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(30 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 5.0);
+            var glow2 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(64 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 2.5);
+            var glow3 = new Pen(new SolidColorBrush(Color.FromArgb((byte)(230 * Math.Clamp(emphasis, 0, 1)), accentColor.R, accentColor.G, accentColor.B)), 1.2);
+
+            context.DrawGeometry(null, glow1, wedge);
+            context.DrawGeometry(null, glow2, wedge);
+            context.DrawGeometry(null, glow3, wedge);
+        }
+
+        // Base slice fill
+        context.DrawGeometry(WithOpacity(SliceBrush, SliceOpacity * (isEnabled ? 1 : 0.55)), glassPen, wedge);
+
+        // Thick-glass inner refraction crescent on lit side
+        if (lit > 0.2 && isEnabled)
+        {
+            var refrAlpha = (byte)Math.Clamp(24 * lit * specGain, 0, 60);
+            var refrWedge = CreateWedge(center, r1 + 1.0, r1 + 3.0, mid, span * 0.7);
+            context.DrawGeometry(new SolidColorBrush(Color.FromArgb(refrAlpha, 255, 255, 255)), null, refrWedge);
+        }
+
+        if (emphasis > 0.01 && isEnabled && isSelected)
+        {
+            // Gradient hover fill
+            var fillTop = accentColor;
+            var fillBottom = SoftPalette.Shade(accentColor, -0.20);
+            var hoverBrush = new LinearGradientBrush
             {
+                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0, 1, RelativeUnit.Relative),
                 GradientStops =
                 {
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 0),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), Math.Max(0, (r2 - 14) / contactRadius)),
-                    new GradientStop(Color.FromArgb(52, 0, 0, 0), (r2 - 2) / contactRadius),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1),
-                },
+                    new GradientStop(Color.FromArgb((byte)(215 * Math.Clamp(emphasis, 0, 1)), fillTop.R, fillTop.G, fillTop.B), 0.0),
+                    new GradientStop(Color.FromArgb((byte)(190 * Math.Clamp(emphasis, 0, 1)), fillBottom.R, fillBottom.G, fillBottom.B), 1.0)
+                }
             };
-            context.DrawEllipse(contactBrush, null, new Point(center.X, center.Y + 2.5), contactRadius, contactRadius);
+            context.DrawGeometry(hoverBrush, null, wedge);
+
+            // Continuous pointer-tracking highlight arc along outer rim
+            if (drawPointerHighlight && _pointerAngle.Value != 0)
+            {
+                var pAngle = _pointerAngle.Value;
+                var halfArc = Math.Min(0.08, span * 0.35);
+                var arcStart = DonutGeometry.PointAt(center, r2 - 0.8, pAngle - halfArc);
+                var arcEnd = DonutGeometry.PointAt(center, r2 - 0.8, pAngle + halfArc);
+                var arcGeo = new StreamGeometry();
+                using (var sgc = arcGeo.Open())
+                {
+                    sgc.BeginFigure(arcStart, false);
+                    sgc.ArcTo(arcEnd, new Size(r2 - 0.8, r2 - 0.8), 0, false, SweepDirection.Clockwise);
+                    sgc.EndFigure(false);
+                }
+                context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1.8), arcGeo);
+            }
         }
+        else
+        {
+            var bevelWedge = CreateWedge(center, r1 + 1.2, r2 - 1.2, mid, span);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(16, 255, 255, 255)), 0.8), bevelWedge);
+        }
+
+        // Keyboard distinct double-rim focus indicator
+        if (_keyboardHold && isSelected && isEnabled)
+        {
+            var focusWedge = CreateWedge(center, r1 + 2.5, r2 - 2.5, mid, span);
+            var dashStyle = new DashStyle(new double[] { 2, 2 }, 0);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)), 1.4, dashStyle: dashStyle), focusWedge);
+        }
+
+        // Edge glint when slice is flipping nearly edge-on
+        if (isFlipping && flipWidth > 0 && flipWidth < 0.18)
+        {
+            var glintAlpha = (byte)(255 * (1.0 - flipWidth / 0.18));
+            var glintPen = new Pen(new SolidColorBrush(Color.FromArgb(glintAlpha, 255, 255, 255)), 2.0);
+            var pInner = DonutGeometry.PointAt(center, r1, mid);
+            var pOuter = DonutGeometry.PointAt(center, r2, mid);
+            context.DrawLine(glintPen, pInner, pOuter);
+        }
+
+        var hot = isSelected && isEnabled;
+        DrawLabel(context, item, center, (r1 + r2) / 2, mid, span * (r1 + r2) / 2 - 10,
+            r2 - r1 - 16, typeface, typefaceRegular, hot);
     }
 
     private void DrawCenter(DrawingContext context, Point center, double r1, Typeface bold, Typeface regular)

@@ -146,8 +146,26 @@ public sealed class MacOSPlatformServices : IPlatformServices
             NativeMethods.AddDraggedTypes(windowHandle, PasteboardPaths.DragTypes);
     }
 
-    internal static IReadOnlyList<string> ParseSelection(string json) =>
-        JsonSerializer.Deserialize<string[]>(json) ?? [];
+    internal static IReadOnlyList<string> ParseSelection(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                return [];
+            var list = new List<string>();
+            foreach (var elem in doc.RootElement.EnumerateArray())
+            {
+                if (elem.GetString() is { } str)
+                    list.Add(str);
+            }
+            return list;
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
 
     private static string UserLibrary => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library");
 

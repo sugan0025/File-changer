@@ -33,7 +33,7 @@ public static partial class OutputPathResolver
         {
             OutputLocation.Subfolder => Path.Combine(sourceDir, Sanitize(ExpandPattern(rule.SubfolderName, tokens), "converted")),
             OutputLocation.CustomFolder when !string.IsNullOrWhiteSpace(rule.CustomFolder) =>
-                Path.Combine(rule.CustomFolder, SubfolderBelow(rule.KeepFoldersFrom, sourceDir)),
+                Path.Combine(Path.GetFullPath(rule.CustomFolder), SubfolderBelow(rule.KeepFoldersFrom, sourceDir)),
             _ => sourceDir,
         };
 
@@ -129,9 +129,9 @@ public static partial class OutputPathResolver
             "name" => FormatRegistry.NameWithoutExtension(tokens.SourcePath),
             "ext" => FormatRegistry.ExtensionOf(tokens.SourcePath),
             "preset" => tokens.PresetName,
-            "date" => tokens.Now.ToString("yyyyMMdd"),
-            "time" => tokens.Now.ToString("HHmmss"),
-            _ => tokens.Index.ToString(),
+            "date" => tokens.Now.ToString("yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture),
+            "time" => tokens.Now.ToString("HHmmss", System.Globalization.CultureInfo.InvariantCulture),
+            _ => tokens.Index.ToString(System.Globalization.CultureInfo.InvariantCulture),
         });
     }
 
@@ -139,15 +139,26 @@ public static partial class OutputPathResolver
     private static partial Regex Token();
 
     /// <summary>Removes characters that are invalid in file names on any supported OS.</summary>
+    private static readonly HashSet<char> InvalidFileNameChars =
+        Path.GetInvalidFileNameChars().Concat(['<', '>', ':', '"', '/', '\\', '|', '?', '*']).ToHashSet();
+
+    private static readonly HashSet<string> ReservedDeviceNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+
     public static string Sanitize(string name, string fallback)
     {
-        var invalid = Path.GetInvalidFileNameChars().Concat(['<', '>', ':', '"', '/', '\\', '|', '?', '*']).ToHashSet();
         var sb = new StringBuilder(name.Length);
         foreach (var c in name)
-            sb.Append(invalid.Contains(c) || char.IsControl(c) ? '_' : c);
+            sb.Append(InvalidFileNameChars.Contains(c) || char.IsControl(c) ? '_' : c);
 
         var result = sb.ToString().Trim().TrimEnd('.');
-        return result.Length == 0 ? fallback : result;
+        if (result.Length == 0)
+            return fallback;
+        return ReservedDeviceNames.Contains(result) ? "_" + result : result;
     }
 
     private static bool PathsEqual(string a, string b) =>

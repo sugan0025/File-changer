@@ -27,8 +27,15 @@ internal static class RecycleBin
         var full = Path.GetFullPath(path);
         if (!File.Exists(full))
             return new TrashRefusal("trash.failed");
-        if ((File.GetAttributes(full) & FileAttributes.ReadOnly) != 0)
-            return new TrashRefusal("trash.read_only");
+        try
+        {
+            if ((File.GetAttributes(full) & FileAttributes.ReadOnly) != 0)
+                return new TrashRefusal("trash.read_only");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return new TrashRefusal("trash.failed", ex.Message);
+        }
         try
         {
             using (new FileStream(full, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -45,10 +52,21 @@ internal static class RecycleBin
         }
 
         TrashRefusal? refusal = null;
-        var thread = new Thread(() => refusal = Recycle(full)) { IsBackground = true, Name = "Filee Recycle Bin" };
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                refusal = Recycle(full);
+            }
+            catch (Exception ex)
+            {
+                refusal = new TrashRefusal("trash.failed", ex.Message);
+            }
+        }) { IsBackground = true, Name = "Filee Recycle Bin" };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        if (!thread.Join(15000))
+            return new TrashRefusal("trash.failed", "Recycle operation timed out.");
         return refusal ?? (File.Exists(full) ? new TrashRefusal("trash.failed") : null);
     }
 
@@ -56,23 +74,26 @@ internal static class RecycleBin
     {
         var sink = new RecycleOnly();
         IFileOperation? operation = null;
+        IShellItem? item = null;
         try
         {
             operation = (IFileOperation)Activator.CreateInstance(Type.GetTypeFromCLSID(CLSID_FileOperation, throwOnError: true)!)!;
             operation.SetOperationFlags(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT | FOFX_RECYCLEONDELETE);
-            var item = SHCreateItemFromParsingName(path, 0, typeof(IShellItem).GUID);
+            item = SHCreateItemFromParsingName(path, 0, typeof(IShellItem).GUID);
             operation.DeleteItem(item, sink);
             var result = operation.PerformOperations();
             if (sink.Refused)
                 return new TrashRefusal("trash.no_recycle_bin");
             return result == 0 && !operation.GetAnyOperationsAborted() ? null : new TrashRefusal("trash.failed", $"0x{result:X8}");
         }
-        catch (COMException ex)
+        catch (Exception ex)
         {
             return sink.Refused ? new TrashRefusal("trash.no_recycle_bin") : new TrashRefusal("trash.failed", ex.Message);
         }
         finally
         {
+            if (item is not null)
+                Marshal.ReleaseComObject(item);
             if (operation is not null)
                 Marshal.ReleaseComObject(operation);
         }

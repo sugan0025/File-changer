@@ -34,7 +34,7 @@ public enum UpdateStep
     Cancelled,
 }
 
-public sealed partial class UpdateService : ObservableObject
+public sealed partial class UpdateService : ObservableObject, IDisposable
 {
     /// <summary>How often a running Filee (it lives in the tray for days) looks for a new version.</summary>
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
@@ -428,7 +428,8 @@ public sealed partial class UpdateService : ObservableObject
 
                 try
                 {
-                    var psi = new ProcessStartInfo("powershell.exe", $"-NoProfile -NonInteractive -WindowStyle Hidden -Command \"{script}\"")
+                    var encoded = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+                    var psi = new ProcessStartInfo("powershell.exe", $"-NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand {encoded}")
                     {
                         UseShellExecute = false,
                         CreateNoWindow = true,
@@ -1289,4 +1290,11 @@ public sealed partial class UpdateService : ObservableObject
     }
 
     private static string Normalize(string tag) => TryParse(tag, out var version) ? (version.Revision > 0 ? version.ToString(4) : version.ToString(3)) : tag;
+
+    public void Dispose()
+    {
+        _timer?.Stop();
+        _timer = null;
+        _http.Dispose();
+    }
 }

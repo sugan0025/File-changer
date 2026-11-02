@@ -1,3 +1,4 @@
+using Filee.Core.Localization;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Threading;
@@ -12,6 +13,7 @@ public sealed class ClipboardWatcherService(
     IPlatformServices platform,
     RadialController radial,
     WindowService windows,
+    ILocalizer? loc = null,
     ILogger<ClipboardWatcherService>? log = null) : IDisposable
 {
     [DllImport("user32.dll")]
@@ -86,8 +88,8 @@ public sealed class ClipboardWatcherService(
                 return;
             _lastSignature = sig;
 
-            var title = "Clipboard files detected";
-            var desc = $"{content.Files.Count} file(s) on clipboard. Convert with Filee?";
+            var title = loc?["clipboard.files.title"] is { Length: > 0 } t ? t : "Clipboard files detected";
+            var desc = loc?["clipboard.files.desc"] is { Length: > 0 } d ? string.Format(d, content.Files.Count) : $"{content.Files.Count} file(s) on clipboard. Convert with Filee?";
             windows.ShowClipboardNotice(title, desc, () =>
             {
                 var pt = ScreenCenter();
@@ -96,13 +98,14 @@ public sealed class ClipboardWatcherService(
         }
         else if (content.Picture is { Length: > 0 } pic)
         {
-            var sig = $"pic:{pic.Length}";
+            var sample = pic.Length > 32 ? $"{pic[0]:X2}{pic[pic.Length / 2]:X2}{pic[^1]:X2}" : Convert.ToHexString(pic);
+            var sig = $"pic:{pic.Length}:{sample}";
             if (sig == _lastSignature)
                 return;
             _lastSignature = sig;
 
-            var title = "Clipboard image detected";
-            var desc = "New image copied. Convert with Filee?";
+            var title = loc?["clipboard.image.title"] is { Length: > 0 } t ? t : "Clipboard image detected";
+            var desc = loc?["clipboard.image.desc"] is { Length: > 0 } d ? d : "New image copied. Convert with Filee?";
             windows.ShowClipboardNotice(title, desc, () =>
             {
                 var name = $"Clipboard {DateTime.Now:yyyy-MM-dd HH.mm.ss}.{content.PictureExtension ?? "png"}";
@@ -113,6 +116,10 @@ public sealed class ClipboardWatcherService(
                 var pt = ScreenCenter();
                 radial.ShowForFiles(pt.X, pt.Y, web.Placeholders, web: web, toClipboard: true);
             });
+        }
+        else
+        {
+            _lastSignature = null;
         }
     }
 

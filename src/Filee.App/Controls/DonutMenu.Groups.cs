@@ -426,6 +426,10 @@ public sealed partial class DonutMenu
         var anchor = DonutGeometry.PointAt(center, inner, parentMid);
         var count = children.Count;
 
+        var circadian = AppHost.TryGet<CircadianService>();
+        var keyLight = circadian?.CurrentKeyLightAngle ?? 0.0;
+        var specGain = circadian?.CurrentSpecularGain ?? 1.0;
+
         for (var k = 0; k < count; k++)
         {
             // Sequential card fan-out stagger: each sub-slice emerges in radial order
@@ -447,9 +451,6 @@ public sealed partial class DonutMenu
                 var hot = k == subHover && expanded && item.IsEnabled;
 
                 // Sub-slice directional specular rim driven by Circadian service
-                var circadian = AppHost.TryGet<CircadianService>();
-                var keyLight = circadian?.CurrentKeyLightAngle ?? 0.0;
-                var specGain = circadian?.CurrentSpecularGain ?? 1.0;
                 var lightDot = Math.Cos(mid - keyLight);
                 var rimAlpha = (byte)Math.Clamp((38 + 32 * lightDot) * specGain, 18, 90);
                 var subGlassPen = new Pen(new SolidColorBrush(Color.FromArgb(rimAlpha, 255, 255, 255)), 1.0);

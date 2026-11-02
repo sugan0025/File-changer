@@ -49,6 +49,7 @@ public partial class EnginePipelineControl : UserControl
     private TopLevel? _topLevel;
     private Window? _window;
     private bool _isAnimRunning;
+    private CircadianService? _circadian;
 
     public EnginePipelineControl()
     {
@@ -85,7 +86,22 @@ public partial class EnginePipelineControl : UserControl
             }
             else
             {
-                _cycleTimer.Start();
+                if (_topLevel != null && (_window == null || _window.IsActive))
+                    _cycleTimer.Start();
+            }
+        }
+        else if (change.Property == IsVisibleProperty)
+        {
+            if (IsEffectivelyVisible)
+            {
+                if (!IsDropdownOpen && (_window == null || _window.IsActive))
+                    _cycleTimer.Start();
+                StartDotAnimation();
+            }
+            else
+            {
+                _cycleTimer.Stop();
+                _isAnimRunning = false;
             }
         }
     }
@@ -104,9 +120,10 @@ public partial class EnginePipelineControl : UserControl
 
         ActualThemeVariantChanged += OnThemeVariantChanged;
 
-        if (AppHost.TryGet<CircadianService>() is { } circ)
+        _circadian = AppHost.TryGet<CircadianService>();
+        if (_circadian != null)
         {
-            circ.PhaseChanged += OnCircadianPhaseChanged;
+            _circadian.PhaseChanged += OnCircadianPhaseChanged;
         }
 
         UpdateThemeVisuals();
@@ -129,9 +146,10 @@ public partial class EnginePipelineControl : UserControl
 
         ActualThemeVariantChanged -= OnThemeVariantChanged;
 
-        if (AppHost.TryGet<CircadianService>() is { } circ)
+        if (_circadian != null)
         {
-            circ.PhaseChanged -= OnCircadianPhaseChanged;
+            _circadian.PhaseChanged -= OnCircadianPhaseChanged;
+            _circadian = null;
         }
 
         _cycleTimer.Stop();

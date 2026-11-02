@@ -169,15 +169,17 @@ public sealed class WindowsPlatformServices : IPlatformServices
             return [];
 
         dynamic? shell = null;
+        object? windowsObj = null;
+        var found = new List<object?>();
         try
         {
             shell = Activator.CreateInstance(type)!;
             dynamic windows = shell.Windows();
+            windowsObj = (object)windows;
             int count = windows.Count;
 
             // With Explorer tabs (Windows 11) every tab is an entry with the window's HWND: find the active one.
             var activeTab = ExplorerTabs.ActiveTabOf(foreground);
-            var found = new List<object?>(count);
             var entries = new List<ShellWindowEntry>(count);
             for (var i = 0; i < count; i++)
             {
@@ -210,6 +212,8 @@ public sealed class WindowsPlatformServices : IPlatformServices
                 {
                     dynamic items = window.Document.SelectedItems();
                     var paths = ExistingFiles((object)items);
+                    if (Marshal.IsComObject((object)items))
+                        Marshal.ReleaseComObject((object)items);
                     if (paths.Count > 0)
                         return paths;
                 }
@@ -224,7 +228,14 @@ public sealed class WindowsPlatformServices : IPlatformServices
         }
         finally
         {
-            if (shell is not null)
+            foreach (var item in found)
+            {
+                if (item is not null && Marshal.IsComObject(item))
+                    Marshal.ReleaseComObject(item);
+            }
+            if (windowsObj is not null && Marshal.IsComObject(windowsObj))
+                Marshal.ReleaseComObject(windowsObj);
+            if (shell is not null && Marshal.IsComObject((object)shell))
                 Marshal.FinalReleaseComObject(shell);
         }
         return [];
@@ -363,14 +374,26 @@ public sealed class WindowsPlatformServices : IPlatformServices
     private static void RemoveClassicVerb() =>
         Registry.CurrentUser.DeleteSubKeyTree(ContextMenuKey, throwOnMissingSubKey: false);
 
+    private static readonly HashSet<string> ExecutableExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".exe", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".wsf", ".scr", ".com"
+    };
+
     public void RevealInFileManager(string path)
     {
         var args = File.Exists(path) ? $"/select,\"{path}\"" : $"\"{path}\"";
-        Process.Start(new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true })?.Dispose();
     }
 
-    public void OpenFile(string path) =>
-        Process.Start(new ProcessStartInfo(Path.GetFullPath(path)) { UseShellExecute = true })?.Dispose();
+    public void OpenFile(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var ext = Path.GetExtension(full);
+        if (ExecutableExtensions.Contains(ext))
+            Process.Start(new ProcessStartInfo("notepad.exe", $"\"{full}\"") { UseShellExecute = false })?.Dispose();
+        else
+            Process.Start(new ProcessStartInfo(full) { UseShellExecute = true })?.Dispose();
+    }
 
     public bool SupportsOpenWith => true;
 

@@ -37,6 +37,10 @@ public static class BackdropService
                         {
                             // Graceful fallback for test or headless environments
                         }
+                        finally
+                        {
+                            s_initializing = false;
+                        }
                     }
                 }
             }

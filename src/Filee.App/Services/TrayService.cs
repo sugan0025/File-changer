@@ -1,3 +1,4 @@
+using Avalonia.Threading;
 // System tray icon: open settings, pause gestures, install a new version, quit.
 
 using Avalonia;
@@ -11,7 +12,7 @@ using Filee.Core.Settings;
 namespace Filee.App.Services;
 
 public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformServices platform, WindowService windows,
-    UpdateService updates)
+    UpdateService updates) : IDisposable
 {
     private TrayIcon? _tray;
     private NativeMenuItem? _open, _pause, _quit, _update;
@@ -38,7 +39,7 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             // Set before the icon is attached: on macOS Avalonia passes the tooltip to native code, which can't take null.
             ToolTipText = "Filee",
             Menu = new NativeMenu { Items = { _open, _pause, new NativeMenuItemSeparator(), _quit } },
-            IsVisible = platform.SupportsDockVisibility ? store.Settings.ShowMenuBarIcon : true,
+            IsVisible = !platform.SupportsDockVisibility || store.Settings.ShowMenuBarIcon,
         };
         _tray.Clicked += (_, _) => windows.ShowMain();
         TrayIcon.SetIcons(app, [_tray]);
@@ -55,9 +56,15 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
 
     private void Refresh()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(Refresh);
+            return;
+        }
+
         if (_tray?.Menu is not { } menu)
             return;
-        _tray.IsVisible = platform.SupportsDockVisibility ? store.Settings.ShowMenuBarIcon : true;
+        _tray.IsVisible = !platform.SupportsDockVisibility || store.Settings.ShowMenuBarIcon;
         // "Update to x.y.z" sits at the top of the menu while a newer release is out ("Downloading… 42%" meanwhile).
         if (updates.LatestVersion is { } latest)
         {

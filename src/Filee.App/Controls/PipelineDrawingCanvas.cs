@@ -183,7 +183,6 @@ public sealed class PipelineDrawingCanvas : Control
     private double _revealStartTime = -10.0;
     private int _lastActiveIndex = -1;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
-    private readonly Action<TimeSpan> _frameCallback;
 
     static PipelineDrawingCanvas()
     {
@@ -192,7 +191,6 @@ public sealed class PipelineDrawingCanvas : Control
 
     public PipelineDrawingCanvas()
     {
-        _frameCallback = OnFrame;
         ClipToBounds = false;
         BuildGeometries();
     }
@@ -312,23 +310,27 @@ public sealed class PipelineDrawingCanvas : Control
         }
     }
 
+    private int _loopId;
+
     private void StartLoop()
     {
         if (_isLooping || _topLevel == null)
             return;
 
         _isLooping = true;
-        _topLevel.RequestAnimationFrame(_frameCallback);
+        int currentId = ++_loopId;
+        _topLevel.RequestAnimationFrame(t => OnFrame(t, currentId));
     }
 
     private void StopLoop()
     {
         _isLooping = false;
+        _loopId++;
     }
 
-    private void OnFrame(TimeSpan time)
+    private void OnFrame(TimeSpan time, int id)
     {
-        if (!_isLooping || _topLevel == null)
+        if (!_isLooping || id != _loopId || _topLevel == null)
             return;
 
         if (!ShouldAnimate)
@@ -348,7 +350,10 @@ public sealed class PipelineDrawingCanvas : Control
             InvalidateVisual();
         }
 
-        _topLevel.RequestAnimationFrame(_frameCallback);
+        if (_isLooping && id == _loopId && _topLevel != null)
+        {
+            _topLevel.RequestAnimationFrame(t => OnFrame(t, id));
+        }
     }
 
     public override void Render(DrawingContext context)

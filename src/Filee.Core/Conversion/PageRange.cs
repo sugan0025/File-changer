@@ -1,3 +1,4 @@
+using System.Globalization;
 // Parses user page selections such as "1-3, 5, 8-" into zero-based page indices.
 
 namespace Filee.Core.Conversion;
@@ -25,7 +26,7 @@ public static class PageRange
             int start, end;
             if (dash < 0)
             {
-                if (!int.TryParse(raw, out start))
+                if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out start))
                     continue;
                 end = start;
             }
@@ -33,8 +34,8 @@ public static class PageRange
             {
                 var left = raw[..dash].Trim();
                 var right = raw[(dash + 1)..].Trim();
-                start = left.Length == 0 ? 1 : int.TryParse(left, out var l) ? l : -1;
-                end = right.Length == 0 ? pageCount : int.TryParse(right, out var r) ? r : -1;
+                start = left.Length == 0 ? 1 : int.TryParse(left, NumberStyles.Integer, CultureInfo.InvariantCulture, out var l) ? l : -1;
+                end = right.Length == 0 ? pageCount : int.TryParse(right, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r) ? r : -1;
                 if (start < 0 || end < 0)
                     continue;
             }

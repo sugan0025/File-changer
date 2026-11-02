@@ -118,8 +118,14 @@ public static partial class WindowBackdrop
         public nint Size;
     }
 
+    private static nint GetWindowLongPtr(nint hwnd, int index) =>
+        IntPtr.Size == 8 ? GetWindowLongPtr64(hwnd, index) : (nint)GetWindowLong32(hwnd, index);
+
     [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-    private static partial nint GetWindowLongPtr(nint hwnd, int index);
+    private static partial nint GetWindowLongPtr64(nint hwnd, int index);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongW")]
+    private static partial int GetWindowLong32(nint hwnd, int index);
 
     [LibraryImport("dwmapi.dll")]
     private static unsafe partial int DwmGetWindowAttribute(nint hwnd, int attribute, void* value, int size);

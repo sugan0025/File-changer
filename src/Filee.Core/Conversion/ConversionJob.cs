@@ -34,7 +34,7 @@ public sealed class FileResult
     public required string SourcePath { get; set; }
     public FileState State { get; set; } = FileState.Pending;
     public double Progress { get; set; }
-    public List<string> Outputs { get; } = [];
+    public SynchronizedStringList Outputs { get; } = new();
 
     /// <summary>Localization key of the error (e.g. <c>error.no_route</c>), if any.</summary>
     public string? ErrorKey { get; set; }
@@ -90,7 +90,7 @@ public sealed record RouteRequest(string Source, string Target, bool Frames = fa
     bool MotionPhoto = false, bool LivePhoto = false, bool Ocr = false);
 
 /// <summary>A batch of files converted with one preset.</summary>
-public sealed class ConversionJob
+public sealed class ConversionJob : IDisposable
 {
     private readonly CancellationTokenSource _cts = new();
 
@@ -147,6 +147,8 @@ public sealed class ConversionJob
 
     /// <summary>Requests cancellation. Running engines stop as soon as they can.</summary>
     public void Cancel() => _cts.Cancel();
+
+    public void Dispose() => _cts.Dispose();
 }
 
 /// <summary>

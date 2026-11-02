@@ -9,8 +9,18 @@ namespace Filee.Platform.Linux;
 [SupportedOSPlatform("linux")]
 public sealed class LinuxPlatformServices : IPlatformServices
 {
-    private readonly LinuxDesktopIntegration _integration = new(
-        XdgDirectory("XDG_CONFIG_HOME", ".config"), XdgDirectory("XDG_DATA_HOME", ".local/share"));
+    private readonly string _configHome;
+    private readonly string _dataHome;
+    private readonly string _trashPath;
+    private readonly LinuxDesktopIntegration _integration;
+
+    public LinuxPlatformServices()
+    {
+        _configHome = XdgDirectory("XDG_CONFIG_HOME", ".config");
+        _dataHome = XdgDirectory("XDG_DATA_HOME", ".local/share");
+        _trashPath = Path.Combine(_dataHome, "Trash");
+        _integration = new LinuxDesktopIntegration(_configHome, _dataHome);
+    }
 
     private static readonly HashSet<string> FileManagers = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -30,8 +40,11 @@ public sealed class LinuxPlatformServices : IPlatformServices
     public static bool UsesGnomePointerBridge => IsGnomeWaylandSession
         && Environment.GetEnvironmentVariable("FILEE_WAYLAND_GESTURES") != "0";
 
-    public string? GnomePointerProcess { get; set; }
-    public bool GnomePointerIsDesktop { get; set; }
+    private volatile string? _gnomePointerProcess;
+    public string? GnomePointerProcess { get => _gnomePointerProcess; set => _gnomePointerProcess = value; }
+
+    private volatile bool _gnomePointerIsDesktop;
+    public bool GnomePointerIsDesktop { get => _gnomePointerIsDesktop; set => _gnomePointerIsDesktop = value; }
 
     // Wayland gestures (experimental) are opt-in: FILEE_WAYLAND_GESTURES=1 on KDE Plasma and Hyprland.
     // libuiohook's libinput backend reads /dev/input, so /dev/input is only probed once the switch is set,
@@ -69,13 +82,14 @@ public sealed class LinuxPlatformServices : IPlatformServices
     public string ThunarShortcutRestartRequired =>
         "Close Thunar before changing its shortcut, then reopen it to load the Filee action and shortcut.";
 
+    public TrashRefusal? MoveToTrash(string path) => FreedesktopTrash.Move(path, _trashPath);
+
     // Wayland can't say which window is under the cursor, so any Ctrl+drag may open the (invisible) donut window;
     // it only shows when files are dragged in, and excluded apps can't be told apart there either.
-    public TrashRefusal? MoveToTrash(string path) => FreedesktopTrash.Move(path, Path.Combine(XdgDirectory("XDG_DATA_HOME", ".local/share"), "Trash"));
-
     public bool IsFileManagerAt(int x, int y) =>
-        UsesGnomePointerBridge && GnomePointerIsDesktop
-        || WaylandGestures || ProcessNameAt(x, y) is { } name && FileManagers.Contains(name);
+        (UsesGnomePointerBridge && GnomePointerIsDesktop)
+        || WaylandGestures
+        || (ProcessNameAt(x, y) is { } name && FileManagers.Contains(name));
     public string? ProcessNameAt(int x, int y) => UsesGnomePointerBridge
         ? GnomePointerProcess : X11WindowSystem.ProcessNameAt(x, y);
 
@@ -139,7 +153,7 @@ public sealed class LinuxPlatformServices : IPlatformServices
         get
         {
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            var file = Path.Combine(XdgDirectory("XDG_CONFIG_HOME", ".config"), "user-dirs.dirs");
+            var file = Path.Combine(_configHome, "user-dirs.dirs");
             try
             {
                 if (File.Exists(file) && XdgUserDirs.Download(File.ReadAllText(file), home) is { } configured)

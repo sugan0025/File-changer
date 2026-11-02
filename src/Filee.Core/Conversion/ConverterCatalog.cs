@@ -9,6 +9,7 @@ public sealed class ConverterCatalog
     private volatile Dictionary<string, EngineStatus>? _statusCache;
     private int _generation;
     private readonly Lock _statusLock = new();
+    private readonly Lock _priorityLock = new();
     private IReadOnlyList<string> _priority = [];
 
     public ConverterCatalog(IEnumerable<IConverter> converters) => _all = converters.ToList();
@@ -25,20 +26,20 @@ public sealed class ConverterCatalog
     /// </summary>
     public IReadOnlyList<string> Priority
     {
-        get => _priority;
+        get { lock (_priorityLock) return _priority; }
         set
         {
-            _priority = value;
+            lock (_priorityLock) _priority = value;
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 
     /// <summary>Converters ordered by priority (for display in settings).</summary>
     public IReadOnlyList<IConverter> Ordered =>
-        _all.OrderBy(c => PriorityIndex(c)).ThenBy(c => _all.ToList().IndexOf(c)).ToList();
+        _all.OrderBy(c => PriorityIndex(c)).ToList();
 
     /// <summary>Cached availability of a converter.</summary>
-    public EngineStatus StatusOf(IConverter converter) => Statuses()[converter.Id];
+    public EngineStatus StatusOf(IConverter converter) => Statuses().TryGetValue(converter.Id, out var status) ? status : SafeStatus(converter);
 
     /// <summary>Re-checks every engine (e.g. after the user changed an engine path).</summary>
     public void Refresh()

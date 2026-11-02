@@ -349,12 +349,31 @@ public static class FormatRegistry
         new("fit", "Garmin FIT", FormatCategory.Geo, ["fit"], Writable: false),
     ];
 
-    private static readonly Dictionary<string, FileFormat> ById =
-        Known.ToDictionary(f => f.Id, StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, FileFormat> ById = BuildById();
 
-    private static readonly Dictionary<string, FileFormat> ByExtension =
-        Known.SelectMany(f => f.Extensions.Where(e => e.Length > 0).Select(e => (e, f)))
-             .ToDictionary(x => x.e, x => x.f, StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, FileFormat> ByExtension = BuildByExtension();
+
+    private static Dictionary<string, FileFormat> BuildById()
+    {
+        var dict = new Dictionary<string, FileFormat>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in Known)
+            dict[f.Id] = f;
+        return dict;
+    }
+
+    private static Dictionary<string, FileFormat> BuildByExtension()
+    {
+        var dict = new Dictionary<string, FileFormat>(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in Known)
+        {
+            foreach (var ext in f.Extensions)
+            {
+                if (ext.Length > 0 && !dict.ContainsKey(ext))
+                    dict[ext] = f;
+            }
+        }
+        return dict;
+    }
 
     /// <summary>Extensions made of two parts ("tar.gz"), checked before the last part alone.</summary>
     private static readonly string[] CompoundExtensions =

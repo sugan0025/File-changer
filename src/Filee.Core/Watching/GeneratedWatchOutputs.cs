@@ -21,13 +21,25 @@ internal sealed class GeneratedWatchOutputs(WatchRule rule)
     public void Load()
     {
         if (!File.Exists(StateFile)) return;
-        var entries = JsonSerializer.Deserialize<List<Entry?>>(File.ReadAllText(StateFile)) ?? [];
-        foreach (var entry in entries)
+        try
         {
-            if (entry is null || !IsCurrent(entry)) continue;
-            _entries[entry.Path] = entry;
-            if (entry.IsDirectory) _directories.Add(entry.Path);
+            using var doc = JsonDocument.Parse(File.ReadAllText(StateFile));
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return;
+            foreach (var elem in doc.RootElement.EnumerateArray())
+            {
+                if (elem.ValueKind != JsonValueKind.Object) continue;
+                var p = elem.TryGetProperty("path", out var pe) || elem.TryGetProperty("Path", out pe) ? pe.GetString() : null;
+                if (string.IsNullOrWhiteSpace(p)) continue;
+                var len = elem.TryGetProperty("length", out var le) || elem.TryGetProperty("Length", out le) ? le.GetInt64() : 0;
+                var ticks = elem.TryGetProperty("lastWriteTicks", out var te) || elem.TryGetProperty("LastWriteTicks", out te) ? te.GetInt64() : 0;
+                var isDir = (elem.TryGetProperty("isDirectory", out var de) || elem.TryGetProperty("IsDirectory", out de)) && de.GetBoolean();
+                var entry = new Entry(p, len, ticks, isDir);
+                if (!IsCurrent(entry)) continue;
+                _entries[entry.Path] = entry;
+                if (entry.IsDirectory) _directories.Add(entry.Path);
+            }
         }
+        catch (JsonException) { }
     }
 
     public bool Contains(string path)
@@ -63,7 +75,21 @@ internal sealed class GeneratedWatchOutputs(WatchRule rule)
         var temporary = StateFile + ".tmp";
         try
         {
-            File.WriteAllText(temporary, JsonSerializer.Serialize(_entries.Values));
+            using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+            {
+                writer.WriteStartArray();
+                foreach (var entry in _entries.Values)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("path", entry.Path);
+                    writer.WriteNumber("length", entry.Length);
+                    writer.WriteNumber("lastWriteTicks", entry.LastWriteTicks);
+                    writer.WriteBoolean("isDirectory", entry.IsDirectory);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+            }
             File.Move(temporary, StateFile, overwrite: true);
             if (OperatingSystem.IsWindows())
                 File.SetAttributes(StateFile, File.GetAttributes(StateFile) | FileAttributes.Hidden);

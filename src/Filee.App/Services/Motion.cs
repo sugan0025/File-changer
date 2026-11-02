@@ -51,6 +51,9 @@ public static class Motion
 
     public static void Set(bool enabled)
     {
+        if (Enabled == enabled)
+            return;
+
         Enabled = enabled;
         lock (Windows)
         {

@@ -67,7 +67,20 @@ public partial class App : Application
 
         var loc = AppHost.Get<LocalizationService>();
         loc.Attach(this);
-        AppHost.Get<CircadianService>().Attach(this.Resources, this);
+        var circadian = AppHost.Get<CircadianService>();
+        circadian.Attach(this.Resources, this);
+        circadian.SettingsAutoUpdated += (_, newCircSettings) =>
+        {
+            try
+            {
+                store.Settings.Theme.Circadian = newCircSettings;
+                store.SaveSettings();
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "Could not save auto-updated circadian settings");
+            }
+        };
         ApplySettings(store.Settings);
         // Window zoom: set once here, not with the other settings, since the zoom saves itself (UiZoom) without
         // raising SettingsChanged.
@@ -179,11 +192,20 @@ public partial class App : Application
         {
             UiZoom.Flush();
             watchdog.Dispose();
-            AppHost.Get<MemoryTrimmer>().Dispose();
-            AppHost.Get<TriggerService>().Dispose();
-            AppHost.Get<TrayService>().Dispose();
-            AppHost.Get<ClipboardWatcherService>().Dispose();
-            AppHost.Get<WatchFolderService>().DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+            AppHost.TryGet<MemoryTrimmer>()?.Dispose();
+            AppHost.TryGet<TriggerService>()?.Dispose();
+            AppHost.TryGet<TrayService>()?.Dispose();
+            AppHost.TryGet<ClipboardWatcherService>()?.Dispose();
+            AppHost.TryGet<SoundService>()?.Dispose();
+            AppHost.TryGet<UpdateService>()?.Dispose();
+            try
+            {
+                AppHost.TryGet<WatchFolderService>()?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(2));
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "WatchFolderService disposal timed out or threw");
+            }
         };
 
         // Before HandleCommandLine marks the first run complete: a fresh install gets no slides (an update by the

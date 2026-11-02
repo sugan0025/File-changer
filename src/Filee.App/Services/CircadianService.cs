@@ -147,10 +147,11 @@ public sealed class CircadianService
     public bool IsActive => _settings.Mode != CircadianMode.Off || _previewMinute != null;
 
     public event EventHandler? PhaseChanged;
+    public event EventHandler<CircadianSettings>? SettingsAutoUpdated;
 
     public CircadianService()
     {
-        // 5s Background priority timer as recommended by Claude
+        // 5s Background priority timer
         _timer = new DispatcherTimer(TimeSpan.FromSeconds(5), DispatcherPriority.Background, (_, _) => Tick());
 
         // Initialize stops for gradient brushes
@@ -286,6 +287,8 @@ public sealed class CircadianService
             {
                 _settings.Mode = CircadianMode.Clock;
                 _settings.Pinned = null;
+                _settings.PinnedUntil = null;
+                SettingsAutoUpdated?.Invoke(this, _settings);
             }
             else
             {
@@ -369,12 +372,24 @@ public sealed class CircadianService
         }
 
         // 2. Stable plateaus between transition windows
-        if (min >= morning && min < afternoon)
-            return (MorningFrame, MorningFrame, 1.0, CircadianPhase.Morning);
-        if (min >= afternoon && min < night)
-            return (AfternoonFrame, AfternoonFrame, 1.0, CircadianPhase.Afternoon);
+        if (morning < afternoon && afternoon < night)
+        {
+            if (min >= morning && min < afternoon)
+                return (MorningFrame, MorningFrame, 1.0, CircadianPhase.Morning);
+            if (min >= afternoon && min < night)
+                return (AfternoonFrame, AfternoonFrame, 1.0, CircadianPhase.Afternoon);
 
-        return (NightFrame, NightFrame, 1.0, CircadianPhase.Night);
+            return (NightFrame, NightFrame, 1.0, CircadianPhase.Night);
+        }
+        else
+        {
+            if (min >= morning && min < afternoon)
+                return (MorningFrame, MorningFrame, 1.0, CircadianPhase.Morning);
+            if (min >= afternoon && min < night)
+                return (AfternoonFrame, AfternoonFrame, 1.0, CircadianPhase.Afternoon);
+
+            return (NightFrame, NightFrame, 1.0, CircadianPhase.Night);
+        }
     }
 
     private static double SignedMinuteDelta(double min, double target)
@@ -416,7 +431,9 @@ public sealed class CircadianService
 
     private static double LerpAngle(double a, double b, double t)
     {
-        return a + Math.IEEERemainder(b - a, 2.0 * Math.PI) * t;
+        double diff = Math.IEEERemainder(b - a, 2.0 * Math.PI);
+        double angle = a + diff * t;
+        return (angle % (2.0 * Math.PI) + 2.0 * Math.PI) % (2.0 * Math.PI);
     }
 
     private static bool HasMeaningfulDifference(CircadianFrame a, CircadianFrame b)
@@ -478,7 +495,7 @@ public sealed class CircadianService
         CurrentSpecularGain = frame.SpecularGain;
 
         // Synchronize RequestedThemeVariant if dark/light status flipped
-        if (_app != null && _previewMinute == null)
+        if (_app != null && _previewMinute == null && _settings.Mode != CircadianMode.Off)
         {
             var targetVariant = frame.IsDark ? ThemeVariant.Dark : ThemeVariant.Light;
             if (_app.RequestedThemeVariant != targetVariant)
@@ -506,6 +523,9 @@ public sealed class CircadianService
 
     private void ApplyVariantDefaults()
     {
+        if (_settings.Mode == CircadianMode.Off && _previewMinute == null)
+            return;
+
         bool isDark = _app?.ActualThemeVariant == ThemeVariant.Dark;
         ApplyFrame(isDark ? NightFrame : MorningFrame);
     }

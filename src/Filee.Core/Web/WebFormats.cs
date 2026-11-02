@@ -183,7 +183,7 @@ public static class WebFormats
     /// <summary>True when the bytes start like an HTML page (a sign-in or error page instead of the file).</summary>
     public static bool LooksLikePage(ReadOnlySpan<byte> head)
     {
-        var text = Encoding.UTF8.GetString(head).TrimStart('﻿', ' ', '\t', '\r', '\n');
+        var text = Encoding.UTF8.GetString(head).TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
         return text.StartsWith("<!doctype html", StringComparison.OrdinalIgnoreCase)
                || text.StartsWith("<html", StringComparison.OrdinalIgnoreCase)
                || text.StartsWith("<head", StringComparison.OrdinalIgnoreCase);

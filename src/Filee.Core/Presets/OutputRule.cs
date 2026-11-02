@@ -79,6 +79,7 @@ public sealed class OutputRule
     /// <summary>Replacements applied in order to the name made from <see cref="FileNamePattern"/>.</summary>
     public List<RenameStep> Renames { get; set; } = [];
 
+    [System.Text.Json.Serialization.JsonConverter(typeof(LenientEnumJsonConverter<ConflictPolicy>))]
     public ConflictPolicy Conflict { get; set; } = ConflictPolicy.Rename;
 
     /// <summary>
@@ -155,6 +156,7 @@ public sealed class RenameStep
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromMilliseconds(250);
 
+    [System.Text.Json.Serialization.JsonConverter(typeof(LenientEnumJsonConverter<RenameKind>))]
     public RenameKind Kind { get; set; } = RenameKind.Replace;
 
     /// <summary>The text (or, for <see cref="RenameKind.Regex"/>, the expression) looked for.</summary>
@@ -192,6 +194,15 @@ public sealed class RenameStep
 
     public RenameStep Clone() => (RenameStep)MemberwiseClone();
 
-    private static string Fixed(string name, string pattern, string replacement) =>
-        System.Text.RegularExpressions.Regex.Replace(name, pattern, replacement, System.Text.RegularExpressions.RegexOptions.CultureInvariant, Timeout);
+    private static string Fixed(string name, string pattern, string replacement)
+    {
+        try
+        {
+            return System.Text.RegularExpressions.Regex.Replace(name, pattern, replacement, System.Text.RegularExpressions.RegexOptions.CultureInvariant, Timeout);
+        }
+        catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
+        {
+            return name;
+        }
+    }
 }

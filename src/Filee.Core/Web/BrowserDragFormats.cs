@@ -199,15 +199,22 @@ public static partial class BrowserDragFormats
         var end = html.IndexOf("<!--EndFragment-->", StringComparison.OrdinalIgnoreCase);
         if (start >= 0 && end > start)
             html = html[(start + "<!--StartFragment-->".Length)..end];
-        var images = ImageTag().Matches(html);
-        if (images.Count != 1)
+        try
+        {
+            var images = ImageTag().Matches(html);
+            if (images.Count != 1)
+                return null;
+            var withoutMarkup = Comment().Replace(html, "");
+            withoutMarkup = Tag().Replace(withoutMarkup, "");
+            if (WebUtility.HtmlDecode(withoutMarkup).Any(c => !char.IsWhiteSpace(c)))
+                return null;
+            var src = WebUtility.HtmlDecode(images[0].Groups["src"].Value).Trim();
+            return src.Length == 0 ? null : src;
+        }
+        catch (RegexMatchTimeoutException)
+        {
             return null;
-        var withoutMarkup = Comment().Replace(html, "");
-        withoutMarkup = Tag().Replace(withoutMarkup, "");
-        if (WebUtility.HtmlDecode(withoutMarkup).Any(c => !char.IsWhiteSpace(c)))
-            return null;
-        var src = WebUtility.HtmlDecode(images[0].Groups["src"].Value).Trim();
-        return src.Length == 0 ? null : src;
+        }
     }
 
     private static List<string> Lines(string? text) =>
@@ -215,20 +222,20 @@ public static partial class BrowserDragFormats
             ? []
             : text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
-    [GeneratedRegex("""<img\b[^>]*?\bsrc\s*=\s*(?:"(?<src>[^"]*)"|'(?<src>[^']*)'|(?<src>[^\s>]+))""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex("""<img\b[^>]*?\bsrc\s*=\s*(?:"(?<src>[^"]*)"|'(?<src>[^']*)'|(?<src>[^\s>]+))""", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
     private static partial Regex ImageTag();
 
-    [GeneratedRegex("<[^>]*>", RegexOptions.CultureInvariant)]
+    [GeneratedRegex("<[^>]*>", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
     private static partial Regex Tag();
 
-    [GeneratedRegex("<!--.*?-->", RegexOptions.Singleline | RegexOptions.CultureInvariant)]
+    [GeneratedRegex("<!--.*?-->", RegexOptions.Singleline | RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 100)]
     private static partial Regex Comment();
 
     /// <summary>
     /// The bytes and media type of a data: URL (base64 or percent-encoded), or null when it isn't one or holds more
     /// than <paramref name="maxBytes"/>.
     /// </summary>
-    public static (string Mime, byte[] Bytes)? DecodeDataUrl(string? url, int maxBytes = 256 * 1024 * 1024)
+    public static (string Mime, byte[] Bytes)? DecodeDataUrl(string? url, int maxBytes = 32 * 1024 * 1024)
     {
         if (url is null || !url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
             return null;

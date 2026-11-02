@@ -59,7 +59,7 @@ internal static class FreedesktopTrash
             // Only a record this call wrote: another program may have just made one of the same name.
             if (created)
             {
-                try { File.Delete(record); } catch (IOException) { }
+                try { File.Delete(record); } catch (Exception delEx) when (delEx is IOException or UnauthorizedAccessException) { }
             }
             return File.Exists(full) ? new TrashRefusal("trash.failed", ex.Message) : null;
         }
@@ -73,11 +73,12 @@ internal static class FreedesktopTrash
     {
         try
         {
-            return (roots ?? DriveInfo.GetDrives().Select(d => d.RootDirectory.FullName))
+            var drives = roots ?? DriveInfo.GetDrives().Select(d => d.RootDirectory.FullName);
+            return drives
                 .Where(r => Holds(r, path))
                 .OrderByDescending(r => r.Length).FirstOrDefault() ?? "/";
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return "/";
         }

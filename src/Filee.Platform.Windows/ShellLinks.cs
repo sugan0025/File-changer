@@ -15,7 +15,7 @@ namespace Filee.Platform.Windows;
 [SupportedOSPlatform("windows")]
 internal static class ShellLinks
 {
-    private const int MaxPath = 32768;
+    private const int MaxPath = 2048;
     private static readonly Guid CLSID_ShellLink = new("00021401-0000-0000-C000-000000000046");
 
     /// <summary>True for a path ending in ".lnk".</summary>

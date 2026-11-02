@@ -14,7 +14,6 @@ namespace Filee.App.Services;
 /// <summary>Runtime theming.</summary>
 public sealed class ThemeService(IPlatformServices platform)
 {
-    private readonly IPlatformServices _platform = platform;
 
     /// <summary>Applies or removes the "material-you" style class on a window.</summary>
     public void ApplyWindowClass(Window window) => window.Classes.Set("material-you", IsMaterialYou);
@@ -26,8 +25,8 @@ public sealed class ThemeService(IPlatformServices platform)
     /// <summary>Curated theme preset with coordinated light and dark accent colours.</summary>
     public sealed record ThemePreset(string Key, string LightHex, string DarkHex)
     {
-        public Color LightColor => Color.Parse(LightHex);
-        public Color DarkColor => Color.Parse(DarkHex);
+        public Color LightColor { get; } = Color.Parse(LightHex);
+        public Color DarkColor { get; } = Color.Parse(DarkHex);
         public Color ActiveColor(bool isDark) => isDark ? DarkColor : LightColor;
     }
 
@@ -164,7 +163,7 @@ public sealed class ThemeService(IPlatformServices platform)
                 window.Classes.Set("material-you", isMaterialYou);
         }
 
-        Motion.Configure(theme.ReduceMotion, () => _platform.PrefersReducedMotion);
+        Motion.Configure(theme.ReduceMotion, () => platform.PrefersReducedMotion);
         AppHost.TryGet<CircadianService>()?.Configure(theme.Circadian);
     }
 
@@ -173,9 +172,12 @@ public sealed class ThemeService(IPlatformServices platform)
 
     private static void ApplyCustomOverrides(IResourceDictionary dictionary, IReadOnlyDictionary<string, string>? colors)
     {
-        foreach (var (name, value) in colors ?? new Dictionary<string, string>())
-            if (CustomBrushKeys.TryGetValue(name, out var key) && Color.TryParse(value, out var color))
-                dictionary[key] = new SolidColorBrush(color);
+        if (colors is not null)
+        {
+            foreach (var (name, value) in colors)
+                if (CustomBrushKeys.TryGetValue(name, out var key) && Color.TryParse(value, out var color))
+                    dictionary[key] = new SolidColorBrush(color);
+        }
         // Plain buttons are the surface they sit on (#524): also under Material You and a theme.json's own surface.
         if (dictionary.TryGetValue("SurfaceBrush", out var surface))
             dictionary["ButtonBackground"] = surface;

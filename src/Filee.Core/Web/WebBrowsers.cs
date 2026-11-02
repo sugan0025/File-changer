@@ -16,7 +16,7 @@ public static class WebBrowsers
         "firefox-esr", "firefox-bin", "google-chrome", "chromium-browser", "microsoft-edge", "brave-browser",
         "vivaldi-bin", "naver-whale",
         // macOS
-        "Safari", "Google Chrome", "Microsoft Edge", "Brave Browser", "Naver Whale", "Chromium", "Zen Browser",
+        "Safari", "Google Chrome", "Microsoft Edge", "Brave Browser", "Naver Whale", "Zen Browser",
         "Firefox Developer Edition", "Firefox Nightly", "Google Chrome Canary", "Microsoft Edge Dev", "Orion",
     };
 

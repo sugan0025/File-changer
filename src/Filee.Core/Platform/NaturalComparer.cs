@@ -3,7 +3,8 @@
 namespace Filee.Core.Platform;
 
 /// <summary>
-/// Compares names the way people number pages and files: digit runs by value ("p2" &lt; "p10"), case-insensitively.
+/// Compares names the way people number pages and files: digit runs by value ("p2" &lt; "p10"), case-insensitively,
+/// with zero-padding tie breaking ("p01" vs "p1") and zero heap allocations.
 /// </summary>
 public sealed class NaturalComparer : IComparer<string>
 {
@@ -13,30 +14,54 @@ public sealed class NaturalComparer : IComparer<string>
     {
         if (x is null || y is null)
             return string.CompareOrdinal(x, y);
+
+        var spanX = x.AsSpan();
+        var spanY = y.AsSpan();
+
         int i = 0, j = 0;
-        while (i < x.Length && j < y.Length)
+        int leadingZeroTie = 0;
+
+        while (i < spanX.Length && j < spanY.Length)
         {
-            if (char.IsAsciiDigit(x[i]) && char.IsAsciiDigit(y[j]))
+            if (char.IsAsciiDigit(spanX[i]) && char.IsAsciiDigit(spanY[j]))
             {
                 var startX = i;
                 var startY = j;
-                while (i < x.Length && char.IsAsciiDigit(x[i]))
+                while (i < spanX.Length && char.IsAsciiDigit(spanX[i]))
                     i++;
-                while (j < y.Length && char.IsAsciiDigit(y[j]))
+                while (j < spanY.Length && char.IsAsciiDigit(spanY[j]))
                     j++;
-                var numberX = x[startX..i].TrimStart('0');
-                var numberY = y[startY..j].TrimStart('0');
-                var byValue = numberX.Length != numberY.Length ? numberX.Length.CompareTo(numberY.Length) : string.CompareOrdinal(numberX, numberY);
+
+                var numX = spanX[startX..i].TrimStart('0');
+                var numY = spanY[startY..j].TrimStart('0');
+
+                var byValue = numX.Length != numY.Length
+                    ? numX.Length.CompareTo(numY.Length)
+                    : numX.SequenceCompareTo(numY);
+
                 if (byValue != 0)
                     return byValue;
+
+                if (leadingZeroTie == 0)
+                {
+                    // Full digit run length difference accounts for leading zeros
+                    leadingZeroTie = (i - startX).CompareTo(j - startY);
+                }
                 continue;
             }
-            var byChar = char.ToLowerInvariant(x[i]).CompareTo(char.ToLowerInvariant(y[j]));
+
+            var byChar = char.ToLowerInvariant(spanX[i]).CompareTo(char.ToLowerInvariant(spanY[j]));
             if (byChar != 0)
                 return byChar;
+
             i++;
             j++;
         }
-        return (x.Length - i).CompareTo(y.Length - j);
+
+        var byRemaining = (spanX.Length - i).CompareTo(spanY.Length - j);
+        if (byRemaining != 0)
+            return byRemaining;
+
+        return leadingZeroTie != 0 ? leadingZeroTie : string.CompareOrdinal(x, y);
     }
 }

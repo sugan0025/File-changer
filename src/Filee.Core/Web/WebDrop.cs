@@ -22,7 +22,7 @@ public abstract class WebDropItem : IDisposable
     public abstract Task<string> SaveAsync(string folder, WebDownloader downloader, IProgress<TransferProgress>? progress,
         CancellationToken cancellationToken);
 
-    public virtual void Dispose() => GC.SuppressFinalize(this);
+    public virtual void Dispose() { }
 
     /// <summary>Bytes the browser hands over (a picture's file, a data: address).</summary>
     public static WebDropItem FromBytes(string name, byte[] bytes, string? mime = null) =>
@@ -184,12 +184,21 @@ public sealed class WebDrop : IDisposable
     {
         try
         {
-            if (!Directory.Exists(workRoot))
+            var root = new DirectoryInfo(workRoot);
+            if (!root.Exists || root.LinkTarget is not null)
                 return;
-            foreach (var folder in Directory.EnumerateDirectories(workRoot))
+            foreach (var folder in root.EnumerateDirectories())
             {
-                if (DateTime.UtcNow - Directory.GetLastWriteTimeUtc(folder) > age)
-                    TryDeleteFolder(folder);
+                if (folder.LinkTarget is not null)
+                    continue;
+                try
+                {
+                    if (DateTime.UtcNow - folder.LastWriteTimeUtc > age)
+                        TryDeleteFolder(folder.FullName);
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

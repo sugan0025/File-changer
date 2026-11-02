@@ -17,6 +17,7 @@ public sealed class WatchFolderService(UserDataStore store, ConversionService co
 
     private readonly Dictionary<string, (string Signature, FolderWatcher Watcher)> _running = [];
     private readonly Dictionary<string, string?> _errors = [];
+    private readonly SemaphoreSlim _applyLock = new(1, 1);
     private IDisposable? _pendingApply;
 
     /// <summary>Raised (UI thread) when a rule started, stopped or failed to start.</summary>
@@ -42,35 +43,43 @@ public sealed class WatchFolderService(UserDataStore store, ConversionService co
     /// <summary>Starts, restarts and stops watchers so they match the settings.</summary>
     private async Task ApplyAsync()
     {
-        var wanted = store.Settings.WatchFolders
-            .Where(r => r.Enabled && !string.IsNullOrWhiteSpace(r.Folder) && !string.IsNullOrWhiteSpace(r.PresetId))
-            .ToDictionary(r => r.Id, r => r.Clone());
+        await _applyLock.WaitAsync();
+        try
+        {
+            var wanted = store.Settings.WatchFolders
+                .Where(r => r.Enabled && !string.IsNullOrWhiteSpace(r.Folder) && !string.IsNullOrWhiteSpace(r.PresetId))
+                .ToDictionary(r => r.Id, r => r.Clone());
 
-        foreach (var (id, (signature, watcher)) in _running.ToList())
-        {
-            if (wanted.TryGetValue(id, out var rule) && Signature(rule) == signature)
-                continue;
-            _running.Remove(id);
-            await watcher.DisposeAsync();
-        }
-        _errors.Clear();
-        foreach (var (id, rule) in wanted)
-        {
-            if (_running.ContainsKey(id))
-                continue;
-            var watcher = new FolderWatcher(rule, (files, _) => ConvertAsync(rule, files), log);
-            if (watcher.Start())
+            foreach (var (id, (signature, watcher)) in _running.ToList())
             {
-                _running[id] = (Signature(rule), watcher);
-                log.LogInformation("Watching {Folder}", rule.Folder);
-            }
-            else
-            {
-                _errors[id] = watcher.Error;
+                if (wanted.TryGetValue(id, out var rule) && Signature(rule) == signature)
+                    continue;
+                _running.Remove(id);
                 await watcher.DisposeAsync();
             }
+            _errors.Clear();
+            foreach (var (id, rule) in wanted)
+            {
+                if (_running.ContainsKey(id))
+                    continue;
+                var watcher = new FolderWatcher(rule, (files, _) => ConvertAsync(rule, files), log);
+                if (watcher.Start())
+                {
+                    _running[id] = (Signature(rule), watcher);
+                    log.LogInformation("Watching {Folder}", rule.Folder);
+                }
+                else
+                {
+                    _errors[id] = watcher.Error;
+                    await watcher.DisposeAsync();
+                }
+            }
+            StatusChanged?.Invoke(this, EventArgs.Empty);
         }
-        StatusChanged?.Invoke(this, EventArgs.Empty);
+        finally
+        {
+            _applyLock.Release();
+        }
     }
 
     private async Task<Core.Conversion.ConversionJob?> ConvertAsync(WatchRule rule, IReadOnlyList<string> files)
@@ -105,8 +114,20 @@ public sealed class WatchFolderService(UserDataStore store, ConversionService co
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var (_, watcher) in _running.Values)
-            await watcher.DisposeAsync();
-        _running.Clear();
+        _pendingApply?.Dispose();
+        _pendingApply = null;
+
+        await _applyLock.WaitAsync();
+        try
+        {
+            foreach (var (_, watcher) in _running.Values)
+                await watcher.DisposeAsync();
+            _running.Clear();
+        }
+        finally
+        {
+            _applyLock.Release();
+            _applyLock.Dispose();
+        }
     }
 }

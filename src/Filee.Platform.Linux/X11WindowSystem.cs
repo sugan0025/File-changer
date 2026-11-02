@@ -20,27 +20,49 @@ internal static class X11WindowSystem
         var display = OpenDisplay();
         if (display == 0)
             return null;
+        int? targetPid = null;
+        string? targetWmClass = null;
         try
         {
             // Keep windows alive between hit testing and reading their properties.
             XGrabServer(display);
-            var root = XDefaultRootWindow(display);
-            var window = root;
-            string? name = null;
-            for (var depth = 0; depth < 32; depth++)
+            try
             {
-                name = ReadProcessName(display, window) ?? name;
-                if (XTranslateCoordinates(display, root, window, x, y, out _, out _, out var child) == 0 || child == 0)
-                    break;
-                window = child;
+                var root = XDefaultRootWindow(display);
+                var window = root;
+                for (var depth = 0; depth < 32; depth++)
+                {
+                    var (pid, wmClass) = ReadWindowIdent(display, window);
+                    if (pid.HasValue) targetPid = pid;
+                    if (wmClass is not null) targetWmClass = wmClass;
+                    if (XTranslateCoordinates(display, root, window, x, y, out _, out _, out var child) == 0 || child == 0)
+                        break;
+                    window = child;
+                }
             }
-            return name;
+            finally
+            {
+                XUngrabServer(display);
+            }
         }
         finally
         {
-            XUngrabServer(display);
             XCloseDisplay(display);
         }
+
+        // Resolve process name outside of XGrabServer to prevent desktop stuttering
+        if (targetPid.HasValue)
+        {
+            try
+            {
+                using var process = Process.GetProcessById(targetPid.Value);
+                return process.ProcessName;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
+            {
+            }
+        }
+        return targetWmClass;
     }
 
     /// <summary>Process names of the windows the window manager lists (_NET_CLIENT_LIST).</summary>
@@ -102,9 +124,39 @@ internal static class X11WindowSystem
         }
     }
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int XErrorHandler(nint display, ref XErrorEvent errorEvent);
+
+    private static readonly XErrorHandler ErrorHandler = (nint _, ref XErrorEvent _) => 0;
+    private static bool s_errorHandlerInstalled;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct XErrorEvent
+    {
+        public int Type;
+        public nint Display;
+        public nuint ResourceId;
+        public nuint Serial;
+        public byte ErrorCode;
+        public byte RequestCode;
+        public byte MinorCode;
+    }
+
+    [DllImport(Library)]
+    private static extern nint XSetErrorHandler(XErrorHandler handler);
+
     private static nint OpenDisplay()
     {
-        try { return XOpenDisplay(0); }
+        try
+        {
+            var display = XOpenDisplay(0);
+            if (display != 0 && !s_errorHandlerInstalled)
+            {
+                XSetErrorHandler(ErrorHandler);
+                s_errorHandlerInstalled = true;
+            }
+            return display;
+        }
         catch (DllNotFoundException exception)
         {
             Trace.TraceWarning($"X11 integration is unavailable: {exception.Message}");
@@ -117,8 +169,10 @@ internal static class X11WindowSystem
         }
     }
 
-    private static string? ReadProcessName(nint display, nuint window)
+    private static (int? Pid, string? WmClass) ReadWindowIdent(nint display, nuint window)
     {
+        int? pid = null;
+        string? wmClass = null;
         var property = XInternAtom(display, "_NET_WM_PID", 1);
         if (property != 0 && XGetWindowProperty(display, window, property, 0, 1, 0, 0,
                 out _, out var format, out var count, out _, out var data) == 0)
@@ -126,17 +180,7 @@ internal static class X11WindowSystem
             try
             {
                 if (format == 32 && count > 0 && data != 0)
-                {
-                    var pid = unchecked((int)Marshal.ReadIntPtr(data));
-                    try
-                    {
-                        using var process = Process.GetProcessById(pid);
-                        return process.ProcessName;
-                    }
-                    catch (ArgumentException) { }
-                    catch (InvalidOperationException) { }
-                    catch (Win32Exception) { }
-                }
+                    pid = unchecked((int)Marshal.ReadIntPtr(data));
             }
             finally
             {
@@ -145,22 +189,42 @@ internal static class X11WindowSystem
             }
         }
         var windowClass = XInternAtom(display, "WM_CLASS", 1);
-        if (windowClass == 0 || XGetWindowProperty(display, window, windowClass, 0, 256, 0, 0,
-                out _, out var classFormat, out var classCount, out _, out var classData) != 0)
-            return null;
-        try
+        if (windowClass != 0 && XGetWindowProperty(display, window, windowClass, 0, 256, 0, 0,
+                out _, out var classFormat, out var classCount, out _, out var classData) == 0)
         {
-            if (classData == 0 || classFormat != 8 || classCount == 0)
-                return null;
-            var bytes = new byte[Math.Min((int)classCount, 1024)];
-            Marshal.Copy(classData, bytes, 0, bytes.Length);
-            return Encoding.UTF8.GetString(bytes).Split('\0', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            try
+            {
+                if (classData != 0 && classFormat == 8 && classCount > 0)
+                {
+                    var bytes = new byte[Math.Min((int)classCount, 1024)];
+                    Marshal.Copy(classData, bytes, 0, bytes.Length);
+                    wmClass = Encoding.UTF8.GetString(bytes).Split('\0', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                }
+            }
+            finally
+            {
+                if (classData != 0)
+                    XFree(classData);
+            }
         }
-        finally
+        return (pid, wmClass);
+    }
+
+    private static string? ReadProcessName(nint display, nuint window)
+    {
+        var (pid, wmClass) = ReadWindowIdent(display, window);
+        if (pid.HasValue)
         {
-            if (classData != 0)
-                XFree(classData);
+            try
+            {
+                using var process = Process.GetProcessById(pid.Value);
+                return process.ProcessName;
+            }
+            catch (ArgumentException) { }
+            catch (InvalidOperationException) { }
+            catch (Win32Exception) { }
         }
+        return wmClass;
     }
 
     private static void SendClientMessage(nint display, nint window, string message, nint a, nint b, nint c, nint d)

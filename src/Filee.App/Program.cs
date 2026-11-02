@@ -48,7 +48,6 @@ internal static class Program
     public static int Main(string[] args)
     {
         Options = CommandLine.Parse(args);
-        PreloadedStore = null;
         Log = StartupDiagnostics.CreateEarlyLogger(Path.Combine(UserDataStore.DefaultDirectory, "logs"), out var earlyStoreLogger);
         StartupDiagnostics.LogUnhandledExceptions(Log);
         Elevation = Filee.Platform.Windows.Elevation.Probe();

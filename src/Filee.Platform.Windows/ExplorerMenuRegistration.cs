@@ -102,7 +102,17 @@ public static class ExplorerMenuRegistration
         if (File.Exists(path) && File.ReadAllText(path, Encoding.UTF8) == content)
             return;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, content, new UTF8Encoding(false));
+        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            File.WriteAllText(temp, content, new UTF8Encoding(false));
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temp))
+                try { File.Delete(temp); } catch { }
+        }
     }
 
     /// <summary>The current title, or null when the entry is switched off.</summary>
@@ -287,7 +297,7 @@ public static class ExplorerMenuRegistration
     }
 
     /// <summary>The install folder the package points to, or null when Windows can't tell.</summary>
-    public static unsafe string? ExternalLocationOf(string fullName)
+    public static string? ExternalLocationOf(string fullName)
     {
         try
         {

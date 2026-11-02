@@ -54,14 +54,18 @@ public static class AppHost
         services.AddSingleton(_ => new EngineEnvironment(dataDir));
         services.AddSingleton(sp => EngineRegistry.CreateAll(sp.GetRequiredService<EngineEnvironment>(), sp.GetRequiredService<ILoggerFactory>()));
         services.AddSingleton(sp => new ConverterCatalog(sp.GetRequiredService<IReadOnlyList<IConverter>>()));
-        services.AddSingleton(sp => new JobQueue(
-            sp.GetRequiredService<ConverterCatalog>(),
-            EngineRegistry.FindPdfMerger(sp.GetRequiredService<IReadOnlyList<IConverter>>()),
-            sp.GetRequiredService<ILogger<JobQueue>>(),
-            EngineRegistry.FindFileCombiner(sp.GetRequiredService<IReadOnlyList<IConverter>>()),
-            EngineRegistry.FindTiffMerger(sp.GetRequiredService<IReadOnlyList<IConverter>>()),
-            EngineRegistry.FindMediaJoiner(sp.GetRequiredService<IReadOnlyList<IConverter>>()),
-            sp.GetRequiredService<IPlatformServices>().MoveToTrash));
+        services.AddSingleton(sp =>
+        {
+            var converters = sp.GetRequiredService<IReadOnlyList<IConverter>>();
+            return new JobQueue(
+                sp.GetRequiredService<ConverterCatalog>(),
+                EngineRegistry.FindPdfMerger(converters),
+                sp.GetRequiredService<ILogger<JobQueue>>(),
+                EngineRegistry.FindFileCombiner(converters),
+                EngineRegistry.FindTiffMerger(converters),
+                EngineRegistry.FindMediaJoiner(converters),
+                sp.GetRequiredService<IPlatformServices>().MoveToTrash);
+        });
 
         // Files dragged from a browser with only an address are downloaded without the browser's cookies.
         services.AddSingleton(_ => new WebDownloader(userAgent: $"Filee/{typeof(AppHost).Assembly.GetName().Version?.ToString(3)}"));

@@ -17,6 +17,8 @@ namespace Filee.Core.Watching;
 /// <summary>Converts files that land in a watched folder.</summary>
 public sealed class FolderWatcher : IAsyncDisposable
 {
+    private const int MaxHandledEntries = 10000;
+
     /// <summary>Converts a batch of complete files and returns the finished job (null when it could not start).</summary>
     public delegate Task<ConversionJob?> ConvertFiles(IReadOnlyList<string> files, CancellationToken cancellationToken);
 
@@ -88,6 +90,9 @@ public sealed class FolderWatcher : IAsyncDisposable
             Error = $"Folder not found: {Rule.Folder}";
             return false;
         }
+        _watcher?.Dispose();
+        if (_timer is not null)
+            _ = _timer.DisposeAsync();
         try
         {
             _watcher = new FileSystemWatcher(Rule.Folder)
@@ -158,6 +163,7 @@ public sealed class FolderWatcher : IAsyncDisposable
         {
             var ready = new List<string>();
             var now = _time.GetUtcNow();
+            var readyKeys = new List<string>();
             foreach (var (path, candidate) in _pending)
             {
                 var current = candidate.Refresh(path, now);
@@ -170,16 +176,42 @@ public sealed class FolderWatcher : IAsyncDisposable
                 if (now - current.StableSince < _settleTime || !CanOpenExclusively(path) || IsBeingCopiedByFinder(path))
                     continue;
                 _pending.TryRemove(path, out _);
-                // A file that was converted before (same size and time) is not converted again.
-                if (_handled.Add(current.Key(path)))
+                var key = current.Key(path);
+                if (!_handled.Contains(key))
+                {
+                    _handled.Add(key);
+                    readyKeys.Add(key);
                     ready.Add(path);
+                }
             }
             if (ready.Count == 0 || _stop.IsCancellationRequested)
                 return 0;
 
             ready.Sort(FileSystemPaths.Comparer);
             _log.LogInformation("Watch folder {Folder}: converting {Count} file(s)", Rule.Folder, ready.Count);
-            var job = await _convert(ready, _stop.Token);
+            ConversionJob? job = null;
+            try
+            {
+                job = await _convert(ready, _stop.Token);
+            }
+            catch
+            {
+                foreach (var k in readyKeys) _handled.Remove(k);
+                throw;
+            }
+
+            if (job is null)
+            {
+                foreach (var k in readyKeys) _handled.Remove(k);
+                return 0;
+            }
+
+            if (_handled.Count > MaxHandledEntries)
+            {
+                var toRemove = _handled.Take(_handled.Count - (MaxHandledEntries / 2)).ToList();
+                foreach (var k in toRemove) _handled.Remove(k);
+            }
+
             if (job is not null)
             {
                 // A shared input/output folder cannot be excluded wholesale. Remember exactly what this batch
@@ -209,7 +241,14 @@ public sealed class FolderWatcher : IAsyncDisposable
                 if (Rule.Originals == AfterConversion.MoveToOriginals)
                     foreach (var file in job.Files.Where(f => f.State == FileState.Done))
                         MoveToOriginals(Rule, file.SourcePath, _log);
-                Converted?.Invoke(this, job);
+                try
+                {
+                    Converted?.Invoke(this, job);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogError(ex, "Watch folder subscriber threw an exception for {Folder}", Rule.Folder);
+                }
             }
             return ready.Count;
         }
@@ -236,8 +275,8 @@ public sealed class FolderWatcher : IAsyncDisposable
             return true;
         // Exclude a dedicated output subtree, but never exclude the entire watch root when output is the same
         // folder or one of its parents (issue #234). The running watcher suppresses its actual results instead.
-        if (!SameFolder(rule.ResolvedOutputFolder, rule.Folder)
-            && IsInside(rule.ResolvedOutputFolder, rule.Folder) && IsInside(path, rule.ResolvedOutputFolder)
+        if ((!SameFolder(rule.ResolvedOutputFolder, rule.Folder)
+            && IsInside(rule.ResolvedOutputFolder, rule.Folder) && IsInside(path, rule.ResolvedOutputFolder))
             || IsInside(path, rule.OriginalsFolder))
             return true;
         if (!rule.IncludeSubfolders && !SameFolder(Path.GetDirectoryName(path), rule.Folder))
@@ -344,6 +383,8 @@ public sealed class FolderWatcher : IAsyncDisposable
         // Let a running batch finish moving its originals.
         await _busy.WaitAsync();
         _busy.Release();
+        _stop.Dispose();
+        _busy.Dispose();
     }
 
     /// <summary>Size and time of a pending file, and since when they have not changed.</summary>

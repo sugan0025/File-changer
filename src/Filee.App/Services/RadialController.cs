@@ -1261,42 +1261,23 @@ public sealed class RadialController(
 
 
 
-        triggers.FlipKeyPressed += (_, _) =>
-
-
-
+                EventHandler flipKeyHandler = (_, _) =>
         {
-
-
-
             if (FlipsFromHook)
-
-
-
                 donut.Flip();
-
-
-
         };
-
-
-
-        triggers.FlipWheelTurned += (_, _) =>
-
-
-
+        EventHandler flipWheelHandler = (_, _) =>
         {
-
-
-
             if (FlipsFromHook)
-
-
-
                 donut.FlipFromWheel(Environment.TickCount64);
+        };
+        triggers.FlipKeyPressed += flipKeyHandler;
+        triggers.FlipWheelTurned += flipWheelHandler;
 
-
-
+        window.Closed += (_, _) =>
+        {
+            triggers.FlipKeyPressed -= flipKeyHandler;
+            triggers.FlipWheelTurned -= flipWheelHandler;
         };
 
 
@@ -1869,30 +1850,19 @@ public sealed class RadialController(
 
 
 
-    private async Task ShowToolForBrowserFilesAsync(WebDrop web, Filee.Core.Presets.Preset preset, PixelPoint? near)
-
-
-
+        private async Task ShowToolForBrowserFilesAsync(WebDrop web, Filee.Core.Presets.Preset preset, PixelPoint? near)
     {
-
-
-
-        var files = await conversions.SaveBrowserFilesAsync(web, (placeholder, ex) =>
-
-
-
-            log.LogWarning(ex, "Saving {File} from a browser for {Preset} failed", Path.GetFileName(placeholder), preset.Id));
-
-
-
-        if (files.Count > 0)
-
-
-
-            windows.ShowTool(files, preset, near);
-
-
-
+        try
+        {
+            var files = await conversions.SaveBrowserFilesAsync(web, (placeholder, ex) =>
+                log.LogWarning(ex, "Saving {File} from a browser for {Preset} failed", Path.GetFileName(placeholder), preset.Id));
+            if (files.Count > 0)
+                windows.ShowTool(files, preset, near);
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "Could not open tool window for browser drop ({Preset})", preset.Id);
+        }
     }
 
 

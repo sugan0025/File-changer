@@ -71,7 +71,11 @@ public static class FolderCopy
             throw new IOException("Copy to folder cannot follow a linked directory: " + source);
         Directory.CreateDirectory(target);
         foreach (var file in Directory.EnumerateFiles(source))
+        {
+            if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0)
+                continue;
             await CopyFileAsync(file, Path.Combine(target, Path.GetFileName(file)), cancellationToken);
+        }
         foreach (var folder in Directory.EnumerateDirectories(source))
             await CopyDirectoryAsync(folder, Path.Combine(target, Path.GetFileName(folder)), cancellationToken);
     }

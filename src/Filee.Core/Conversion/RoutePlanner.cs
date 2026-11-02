@@ -121,48 +121,53 @@ public sealed class RoutePlanner
         // Edges for raster images only (tracing) are left out unless the file itself is one.
         var imageSource = FormatRegistry.FindById(from)?.Category == FormatCategory.Image;
 
-        // Dijkstra over formats. The graph is small (a few hundred nodes).
-        var dist = new Dictionary<string, int> { [from] = 0 };
-        var prev = new Dictionary<string, (string Node, RouteStep Step)>();
-        var hops = new Dictionary<string, int> { [from] = 0 };
-        var queue = new PriorityQueue<string, int>();
-        queue.Enqueue(from, 0);
+        // Dijkstra over (format, hops). Tracking hops in state ensures a cheaper, longer route
+        // cannot prevent finding a valid route within MaxSteps.
+        var dist = new Dictionary<(string Node, int Hops), int> { [(from, 0)] = 0 };
+        var prev = new Dictionary<(string Node, int Hops), ((string Node, int Hops) Prev, RouteStep Step)>();
+        var queue = new PriorityQueue<(string Node, int Hops), int>();
+        queue.Enqueue((from, 0), 0);
 
-        while (queue.TryDequeue(out var node, out var cost))
+        (string Node, int Hops)? targetState = null;
+
+        while (queue.TryDequeue(out var state, out var cost))
         {
-            if (cost > dist[node])
+            if (cost > dist[state])
                 continue; // stale queue entry
-            if (node == to)
+            if (state.Node == to)
+            {
+                targetState = state;
                 break;
-            if (hops[node] >= MaxSteps)
+            }
+            if (state.Hops >= MaxSteps)
                 continue;
 
-            foreach (var (converter, edge, edgeCost) in EdgesFrom(node))
+            foreach (var (converter, edge, edgeCost) in EdgesFrom(state.Node))
             {
                 if (edge.To == edge.From || edge.FrameSequence || edge.MotionPhoto || edge.LivePhoto || edge.Ocr || edge.Caption
                     || (edge.ImageSourcesOnly && !imageSource) || (edge.NotForImageSources && imageSource)
                     || (edge.Unshaped && shaping)
-                    || (edge.DirectOnly && (node != from || edge.To != to)))
+                    || (edge.DirectOnly && (state.Node != from || edge.To != to)))
                     continue;
-                var next = cost + edgeCost;
-                if (dist.TryGetValue(edge.To, out var known) && known <= next)
+                var nextCost = cost + edgeCost;
+                var nextState = (edge.To, state.Hops + 1);
+                if (dist.TryGetValue(nextState, out var known) && known <= nextCost)
                     continue;
 
-                dist[edge.To] = next;
-                hops[edge.To] = hops[node] + 1;
-                prev[edge.To] = (node, new RouteStep(converter, edge.From, edge.To, Unshaped: edge.Unshaped));
-                queue.Enqueue(edge.To, next);
+                dist[nextState] = nextCost;
+                prev[nextState] = (state, new RouteStep(converter, edge.From, edge.To, Unshaped: edge.Unshaped));
+                queue.Enqueue(nextState, nextCost);
             }
         }
 
-        if (!prev.ContainsKey(to))
+        if (!targetState.HasValue || !prev.ContainsKey(targetState.Value))
             return null;
 
         var steps = new List<RouteStep>();
-        for (var node = to; node != from; node = prev[node].Node)
-            steps.Add(prev[node].Step);
+        for (var curr = targetState.Value; curr != (from, 0); curr = prev[curr].Prev)
+            steps.Add(prev[curr].Step);
         steps.Reverse();
-        return new Route(steps, dist[to]);
+        return new Route(steps, dist[targetState.Value]);
     }
 
     /// <summary>True if <paramref name="from"/> can be converted to <paramref name="to"/>.</summary>

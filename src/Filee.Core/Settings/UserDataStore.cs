@@ -320,15 +320,21 @@ public sealed class UserDataStore
             using var stream = File.OpenRead(path);
             return JsonSerializer.Deserialize(stream, type);
         }
-        catch (Exception ex) when (ex is JsonException or IOException or NotSupportedException)
+        catch (Exception ex) when (ex is JsonException or IOException or NotSupportedException or UnauthorizedAccessException)
         {
             // Keep the broken file for inspection and continue with defaults.
             _log.LogWarning(ex, "Could not read {Path}; using defaults", path);
             try
             {
-                File.Copy(path, path + ".broken", overwrite: true);
+                var broken = path + ".broken";
+                if (File.Exists(broken))
+                {
+                    var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+                    broken = $"{path}.broken.{timestamp}";
+                }
+                File.Copy(path, broken, overwrite: true);
             }
-            catch (IOException) { }
+            catch (Exception) { }
             return null;
         }
     }
@@ -338,10 +344,25 @@ public sealed class UserDataStore
         lock (_saveLock)
         {
             System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            var temp = path + ".tmp";
-            using (var stream = File.Create(temp))
-                JsonSerializer.Serialize(stream, value, type);
-            File.Move(temp, path, overwrite: true);
+            var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    JsonSerializer.Serialize(stream, value, type);
+                    stream.Flush(flushToDisk: true);
+                }
+                File.Move(temp, path, overwrite: true);
+            }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(temp))
+                        File.Delete(temp);
+                }
+                catch (Exception) { }
+            }
         }
     }
 }

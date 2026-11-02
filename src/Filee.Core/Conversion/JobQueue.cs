@@ -70,7 +70,11 @@ public sealed partial class JobQueue : IAsyncDisposable
     {
         var job = new ConversionJob(sources, preset, presetDisplayName, fetcher);
         Interlocked.Increment(ref _busy); // until the worker is done with it
-        _channel.Writer.TryWrite(job);
+        if (!_channel.Writer.TryWrite(job))
+        {
+            Interlocked.Decrement(ref _busy);
+            return job;
+        }
         JobUpdated?.Invoke(this, job);
         return job;
     }
@@ -95,9 +99,9 @@ public sealed partial class JobQueue : IAsyncDisposable
         Notify(job);
 
         var workDir = Path.Combine(DefaultWorkRoot, job.Id);
-        Directory.CreateDirectory(workDir);
         try
         {
+            Directory.CreateDirectory(workDir);
             if (job.Fetcher is { } fetcher)
                 await FetchSourcesAsync(job, fetcher);
 
@@ -173,7 +177,14 @@ public sealed partial class JobQueue : IAsyncDisposable
         }
 
         Notify(job);
-        JobFinished?.Invoke(this, job);
+        try
+        {
+            JobFinished?.Invoke(this, job);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "JobFinished handler threw for job {JobId}", job.Id);
+        }
     }
 
     /// <summary>Share of a fetched file's progress that saving it takes; converting it fills the rest.</summary>
@@ -1249,7 +1260,16 @@ public sealed partial class JobQueue : IAsyncDisposable
             return Kept(new Platform.TrashRefusal("trash.cannot_place", ex.Message), output);
         }
 
-        var refusal = _moveToTrash(source);
+        Platform.TrashRefusal? refusal;
+        try
+        {
+            refusal = _moveToTrash(source);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Move to trash failed with exception for {Source}", source);
+            refusal = new Platform.TrashRefusal("trash.cannot_place", ex.Message);
+        }
         file.OriginalInTrash = refusal is null;
         if (refusal is not null)
         {
@@ -1353,23 +1373,37 @@ public sealed partial class JobQueue : IAsyncDisposable
 
     private async Task WorkLoopAsync()
     {
-        await foreach (var job in _channel.Reader.ReadAllAsync())
+        while (await _channel.Reader.WaitToReadAsync())
         {
-            try
+            while (_channel.Reader.TryRead(out var job))
             {
-                if (job.CancellationToken.IsCancellationRequested)
+                try
                 {
-                    job.State = JobState.Cancelled;
-                    Release(job);
-                    Notify(job);
-                    JobFinished?.Invoke(this, job);
-                    continue;
+                    if (job.CancellationToken.IsCancellationRequested)
+                    {
+                        job.State = JobState.Cancelled;
+                        Release(job);
+                        Notify(job);
+                        try
+                        {
+                            JobFinished?.Invoke(this, job);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogWarning(ex, "JobFinished handler threw for job {JobId}", job.Id);
+                        }
+                        continue;
+                    }
+                    await RunAsync(job);
                 }
-                await RunAsync(job);
-            }
-            finally
-            {
-                Interlocked.Decrement(ref _busy);
+                catch (Exception ex)
+                {
+                    _log.LogError(ex, "Unhandled exception processing job {JobId}", job.Id);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _busy);
+                }
             }
         }
     }
