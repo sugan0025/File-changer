@@ -40,8 +40,8 @@ public sealed class BlobatarPoseBlender
     // Order MUST match BlobatarExpression.
     private static readonly BlobatarPose[] Table =
     {
-        BlobatarPose.Idle with { HeadRoll = .06f, ScaleL = 1.03f, ScaleR = .98f, BrowL = 1.0f, BrowR = -.4f,
-                                 LidR = .10f, RollL = -.04f, RollR = .06f, TuftL = -.6f, TuftR = -.3f, Arousal = .45f },
+        BlobatarPose.Idle with { HeadRoll = .04f, ScaleL = 1.0f, ScaleR = 1.0f, BrowL = 0.5f, BrowR = -.2f,
+                                 LidR = .05f, RollL = -.02f, RollR = .03f, TuftL = 0f, TuftR = 0f, Arousal = .35f },
         BlobatarPose.Idle with { LidL = .62f, LidR = .62f, RollL = -.14f, RollR = .14f, HeadRoll = -.04f,
                                  TuftL = 2.5f, TuftR = 2.5f, Arousal = 0f },
         BlobatarPose.Idle with { LidL = .38f, LidR = .32f, SquintL = .22f, SquintR = .22f, RollL = .06f, RollR = -.02f,

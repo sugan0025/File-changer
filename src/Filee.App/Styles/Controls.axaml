@@ -11,15 +11,13 @@
   <!-- ───────── Donut Wheel Colours (Liquid Glass Wheel) ───────── -->
   <Style Selector="c|DonutMenu">
     <Setter Property="SliceBrush" Value="{DynamicResource SurfaceBrush}" />
-    <Setter Property="SliceBorderBrush">
-      <SolidColorBrush Color="#FFFFFF" Opacity="0.45" />
-    </Setter>
+    <Setter Property="SliceBorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
     <Setter Property="CornerRadius" Value="{DynamicResource SoftRadius}" />
     <Setter Property="CenterBrush" Value="{DynamicResource SurfaceBrush}" />
     <Setter Property="AccentBrush" Value="{DynamicResource AccentBrush}" />
     <Setter Property="OnAccentBrush" Value="{DynamicResource OnAccentBrush}" />
-    <Setter Property="Foreground" Value="#FFFFFF" />
-    <Setter Property="SecondaryForeground" Value="#D2D6E4" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="SecondaryForeground" Value="{DynamicResource TextSecondaryBrush}" />
     <Setter Property="DangerBrush" Value="{DynamicResource DangerBrush}" />
     <Setter Property="SuccessBrush" Value="{DynamicResource SuccessBrush}" />
   </Style>

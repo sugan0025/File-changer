@@ -160,6 +160,12 @@ public sealed partial class DonutMenu : Control
         // be routed. It is focused explicitly by RadialController, so it must not participate in normal Tab order.
         Focusable = true;
         IsTabStop = false;
+
+        ActualThemeVariantChanged += (_, _) =>
+        {
+            _textLayouts.Clear();
+            InvalidateVisual();
+        };
     }
 
     public IReadOnlyList<DonutItem>? Items { get => GetValue(ItemsProperty); set => SetValue(ItemsProperty, value); }
@@ -436,6 +442,38 @@ public sealed partial class DonutMenu : Control
                 return new DonutHit(DonutHitKind.Segment, _expanded);
         }
         return hit;
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (AppHost.TryGet<CircadianService>() is { } circ)
+            circ.PhaseChanged += OnCircadianPhaseChanged;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (AppHost.TryGet<CircadianService>() is { } circ)
+            circ.PhaseChanged -= OnCircadianPhaseChanged;
+    }
+
+    private void OnCircadianPhaseChanged(object? sender, EventArgs e)
+    {
+        _textLayouts.Clear();
+        InvalidateVisual();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == ForegroundProperty || change.Property == SecondaryForegroundProperty ||
+            change.Property == SliceBrushProperty || change.Property == SliceBorderBrushProperty ||
+            change.Property == AccentBrushProperty || change.Property == OnAccentBrushProperty)
+        {
+            _textLayouts.Clear();
+            InvalidateVisual();
+        }
     }
 
     // ───────────────────────── Layout ─────────────────────────
@@ -1292,8 +1330,8 @@ public sealed partial class DonutMenu : Control
         var hasHint = hint is not null;
         var hasText = hasTitle || hasSubtitle || hasHint;
 
-        var mascotSize = hasText ? Math.Clamp(radius * 0.88, 44.0, 58.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
-        var mascotTop = hasText ? center.Y - radius * 0.78 : center.Y - mascotSize / 2;
+        var mascotSize = hasText ? Math.Clamp(radius * 0.88, 44.0, 56.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
+        var mascotTop = hasText ? center.Y - radius * 0.74 : center.Y - mascotSize / 2;
 
         if (ShowCenterMascot)
         {

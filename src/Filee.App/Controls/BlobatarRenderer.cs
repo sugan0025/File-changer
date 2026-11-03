@@ -272,9 +272,10 @@ public static class BlobatarRenderer
         if (scale <= 0.001)
             return;
 
+        // Chubby, squishy mochi proportions (1.14x width, 0.88x height) so mascot never stretches up as a tall egg
         var rootMatrix = Matrix.CreateTranslation(-50, -52.5) *
-                         Matrix.CreateScale(scale, scale) *
-                         Matrix.CreateTranslation(bounds.Center.X, bounds.Center.Y);
+                         Matrix.CreateScale(scale * 1.14, scale * 0.88) *
+                         Matrix.CreateTranslation(bounds.Center.X, bounds.Center.Y + 2.0);
 
         var f = state.Frame;
         var look = state.Look;
