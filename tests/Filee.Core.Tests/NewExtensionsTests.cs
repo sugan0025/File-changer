@@ -60,15 +60,15 @@ public class NewExtensionsTests
     public void Version_32_libraries_get_trim_transparent_borders_after_remove_background()
     {
         var presets = BuiltInData.CreatePresets().Where(p => p.Id != "trim-transparent").ToList();
-        var profiles = BuiltInData.CreateProfiles();
+        var profiles = BuiltInData.ProfilesSchema58();
         var back = profiles.Single(p => p.Id == "images").BackPresetIds!;
         back.Remove("trim-transparent");
 
         Assert.True(SettingsMigrations.ApplyToLibrary(32, presets, profiles));
 
         Assert.Equal("trim-transparent", presets[presets.FindIndex(p => p.Id == "remove-background") + 1].Id);
-        Assert.Contains("trim-transparent", back);
-        Assert.Equal(BuiltInData.CreateProfiles().Single(p => p.Id == "images").BackPresetIds, back);
+        Assert.Equal("trim-transparent", back[back.IndexOf("remove-background") + 1]);
+        Assert.Equal(BuiltInData.ProfilesSchema58().Single(p => p.Id == "images").BackPresetIds, back);
         Assert.False(SettingsMigrations.ApplyToLibrary(32, presets, profiles)); // once only
     }
 }

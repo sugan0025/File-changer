@@ -55,12 +55,12 @@ public class ResizerPresetTests
         Assert.NotNull(images.BackPresetIds);
         Assert.Contains("resizer-group", images.BackPresetIds);
         Assert.DoesNotContain("compress-image", images.BackPresetIds);
-        Assert.Equal(12, images.BackPresetIds.Count);
+        Assert.Equal(8, images.BackPresetIds.Count);
 
         var pdf = profiles.Single(p => p.Id == "pdf");
         Assert.NotNull(pdf.BackPresetIds);
         Assert.Contains("resizer-group", pdf.BackPresetIds);
         Assert.DoesNotContain("compress-pdf", pdf.BackPresetIds);
-        Assert.InRange(pdf.BackPresetIds.Count, 1, 12);
+        Assert.InRange(pdf.BackPresetIds.Count, 1, 8);
     }
 }

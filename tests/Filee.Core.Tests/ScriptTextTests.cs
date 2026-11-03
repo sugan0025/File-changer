@@ -19,6 +19,15 @@ public class ScriptTextTests
     [InlineData("router-export.rsc")]
     [InlineData("install.cmd")]
     [InlineData("query.sql")]
+    [InlineData("main.c")]
+    [InlineData("stdio.h")]
+    [InlineData("Widget.CPP")]
+    [InlineData("parser.cc")]
+    [InlineData("parser.cxx")]
+    [InlineData("vector.hpp")]
+    [InlineData("vector.hh")]
+    [InlineData("vector.hxx")]
+    [InlineData("MyBot.cs")]
     public void Scripts_and_style_sheets_are_text(string name) => Assert.Equal("txt", FormatRegistry.Detect(name)?.Id);
 
     [Fact]
@@ -68,5 +77,23 @@ public class ScriptTextTests
         Assert.All(added.Where(e => e != "rsc"), e => Assert.Contains(e, text));
         Assert.DoesNotContain("rsc", text); // the user's own donut has it
         Assert.False(SettingsMigrations.ApplyToLibrary(48, presets, profiles));
+    }
+
+    [Fact]
+    public void Version_60_text_donuts_learn_c_cpp_and_cs_without_taking_custom_claims()
+    {
+        string[] added = ["c", "h", "cpp", "cc", "cxx", "hpp", "hh", "hxx", "cs"];
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        foreach (var profile in profiles)
+            profile.Extensions.RemoveAll(added.Contains);
+        profiles.Insert(0, new ToolbarProfile { Id = "my-trading", Name = "cTrader", Extensions = ["cs"] });
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(60, presets, profiles));
+
+        var text = profiles.Single(p => p.Id == "text").Extensions;
+        Assert.All(added.Where(e => e != "cs"), e => Assert.Contains(e, text));
+        Assert.DoesNotContain("cs", text); // the user's own donut has it
+        Assert.False(SettingsMigrations.ApplyToLibrary(60, presets, profiles));
     }
 }

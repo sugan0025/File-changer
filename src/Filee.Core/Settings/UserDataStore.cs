@@ -478,11 +478,15 @@ internal static class SettingsMigrations
     public static bool ApplyToLibrary(int from, List<Preset> presets, List<ToolbarProfile> profiles)
     {
         var changed = false;
+        // The fronts as read, before the steps below add slots to them: AddBackFaces compares these with the new defaults.
+        var storedFronts = new Dictionary<string, List<string>>();
+        foreach (var profile in profiles)
+            storedFronts.TryAdd(profile.Id, [.. profile.PresetIds]);
         // v4: Markdown / TXT / HTML files get their own donut instead of the "mixed files" fallback. Skipped when
         //     the user already routes Markdown through a profile of their own.
         if (from < 4 && !profiles.Any(p => p.Id == "text" || (!p.IsFallback && p.Extensions.Contains("md", StringComparer.OrdinalIgnoreCase))))
         {
-            var text = BuiltInData.TextProfile();
+            var text = BuiltInData.ProfilesSchema58().Single(p => p.Id == "text");
             var ids = presets.Select(p => p.Id).ToHashSet();
             text.PresetIds = text.PresetIds.Where(ids.Contains).ToList();
             var fallback = profiles.FindIndex(p => p.IsFallback);
@@ -503,7 +507,7 @@ internal static class SettingsMigrations
             var office = profiles.FirstOrDefault(p => p.Id == "office");
             var insertAt = office is null ? profiles.FindIndex(p => p.IsFallback) : profiles.IndexOf(office) + 1;
             var ids = presets.Select(p => p.Id).ToHashSet();
-            foreach (var split in new[] { BuiltInData.SpreadsheetProfile(), BuiltInData.PresentationProfile() })
+            foreach (var split in BuiltInData.ProfilesSchema58().Where(p => p.Id is "spreadsheets" or "presentations"))
             {
                 if (profiles.Any(p => p.Id == split.Id))
                     continue;
@@ -778,7 +782,7 @@ internal static class SettingsMigrations
         //      before 30 saved the library since and dropped what it didn't know, so the built-in back faces come
         //      back. One the user emptied is saved empty and stays so.
         if (from < 30 || profiles.Any(p => p.BackPresetIds is null))
-            changed |= AddBackFaces(presets, profiles);
+            changed |= AddBackFaces(presets, profiles, storedFronts);
         // v31: "Live Photo (iPhone)" and "Motion Photo (Android)" (a clip of a video as a moving photo), after "Extract
         //      Live Photo video" as in a new library, and on the back of the video donut after "Extract frames" when it
         //      has room and the user hasn't put them elsewhere on it. Present already but saved since by a Filee before
@@ -983,6 +987,9 @@ internal static class SettingsMigrations
         // v60: Add "15 MB" to "Resizer" group subwheel
         if (from < 60)
             changed |= Add15MbToResizer(presets, profiles);
+        // v61: C, C++ and C# source files (#864, #828) learn the text donut; custom claims stay put.
+        if (from < 61)
+            changed |= LearnExtensions(profiles, out _, ["c", "h", "cpp", "cc", "cxx", "hpp", "hh", "hxx", "cs"]);
         return changed;
     }
 
@@ -1218,6 +1225,8 @@ internal static class SettingsMigrations
                 if (back.Contains(id) || profile.PresetIds.Contains(id) || back.Count >= ToolbarProfile.MaxSlices
                     || presets.All(p => p.Id != id))
                     continue;
+                if (id == "compress-image" && back.Contains("resizer-group"))
+                    continue;
                 InsertBefore(back, id, "zip-all");
                 changed = true;
             }
@@ -1230,14 +1239,32 @@ internal static class SettingsMigrations
     /// with only the presets in <paramref name="presets"/>. Donuts the user made are left for
     /// <see cref="UserDataStore"/> to give an empty one. Returns true when one was added.
     /// </summary>
-    internal static bool AddBackFaces(List<Preset> presets, IEnumerable<ToolbarProfile> profiles)
+    /// <summary>
+    /// Gives each built-in donut without a back face (<see cref="ToolbarProfile.BackPresetIds"/> null) one, with only the
+    /// presets in <paramref name="presets"/>: the new default back face when its front is exactly the new default front
+    /// (same ids, same order) and no existing library can have that front by default, the schema 58 one otherwise. The
+    /// front is the one in <paramref name="storedFronts"/> (as read, before migrations added slots), else the current
+    /// one. Donuts the user made are left for <see cref="UserDataStore"/> to give an empty one. Returns true when one
+    /// was added.
+    /// </summary>
+    internal static bool AddBackFaces(List<Preset> presets, IEnumerable<ToolbarProfile> profiles,
+        IReadOnlyDictionary<string, List<string>>? storedFronts = null)
     {
-        var defaults = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
+        var frozen = BuiltInData.ProfilesSchema58().ToDictionary(p => p.Id);
+        var current = BuiltInData.CreateProfiles().ToDictionary(p => p.Id);
         var ids = presets.Select(p => p.Id).ToHashSet();
         var changed = false;
-        foreach (var profile in profiles.Where(p => p.BackPresetIds is null && defaults.ContainsKey(p.Id)))
+        foreach (var profile in profiles.Where(p => p.BackPresetIds is null && frozen.ContainsKey(p.Id)))
         {
-            profile.BackPresetIds = (defaults[profile.Id].BackPresetIds ?? []).Where(ids.Contains).ToList();
+            var front = storedFronts?.GetValueOrDefault(profile.Id) ?? profile.PresetIds;
+            var fresh = current[profile.Id];
+            // Presentations, CAD and mixed have the same front in both layouts, so the front can't tell a new library
+            // from an existing one. Text: the Filee 1.0.1 front plus HWP from schema 7 is exactly the new text front.
+            // Their schema 58 back faces hold every slot of the new ones.
+            var isNew = front.SequenceEqual(fresh.PresetIds)
+                        && !fresh.PresetIds.SequenceEqual(frozen[profile.Id].PresetIds)
+                        && profile.Id != "text";
+            profile.BackPresetIds = ((isNew ? fresh : frozen[profile.Id]).BackPresetIds ?? []).Where(ids.Contains).ToList();
             changed = true;
         }
         return changed;
@@ -1372,7 +1399,7 @@ internal static class SettingsMigrations
         if (profiles.Any(p => p.Id == "geo"))
             return changed;
 
-        var geo = BuiltInData.GeoProfile();
+        var geo = BuiltInData.ProfilesSchema58().Single(p => p.Id == "geo");
         // Only the extensions no donut of the user takes yet.
         geo.Extensions = geo.Extensions.Where(claimed.Add).ToList();
         if (geo.Extensions.Count == 0)
@@ -1418,7 +1445,7 @@ internal static class SettingsMigrations
 
         if (profiles.All(p => p.Id != "data"))
         {
-            var data = BuiltInData.DataProfile();
+            var data = BuiltInData.ProfilesSchema58().Single(p => p.Id == "data");
             // Only the extensions no donut of the user takes yet.
             data.Extensions = data.Extensions.Where(claimed.Add).ToList();
             if (data.Extensions.Count > 0)
@@ -1448,7 +1475,7 @@ internal static class SettingsMigrations
 
         if (profiles.All(p => p.Id != "subtitles"))
         {
-            var subtitles = BuiltInData.SubtitleProfile();
+            var subtitles = BuiltInData.ProfilesSchema58().Single(p => p.Id == "subtitles");
             subtitles.Extensions = subtitles.Extensions.Where(claimed.Add).ToList();
             if (subtitles.Extensions.Count > 0)
             {
@@ -1500,7 +1527,7 @@ internal static class SettingsMigrations
         if (profiles.Any(p => p.Id == "models"))
             return changed;
 
-        var models = BuiltInData.ModelProfile();
+        var models = BuiltInData.ProfilesSchema58().Single(p => p.Id == "models");
         // Only the extensions no donut of the user takes yet.
         models.Extensions = models.Extensions.Where(claimed.Add).ToList();
         if (models.Extensions.Count == 0)
@@ -1529,7 +1556,7 @@ internal static class SettingsMigrations
         var text = profiles.FindIndex(p => p.Id == "text");
         var insertAt = text >= 0 ? text + 1 : profiles.FindIndex(p => p.IsFallback);
         insertAt = insertAt < 0 ? profiles.Count : insertAt;
-        foreach (var profile in BuiltInData.CatalogProfiles().Where(p => profiles.All(existing => existing.Id != p.Id)))
+        foreach (var profile in BuiltInData.ProfilesSchema58().Where(p => p.Id is "ebooks" or "video" or "audio" or "vector" or "archives" or "cad" or "fonts").Where(p => profiles.All(existing => existing.Id != p.Id)))
         {
             // Only the extensions no donut of the user takes yet.
             profile.Extensions = profile.Extensions.Where(claimed.Add).ToList();
