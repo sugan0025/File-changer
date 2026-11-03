@@ -318,9 +318,9 @@ public partial class App : Application
                 return;
             store.Settings.NotifiedUpdateVersion = version;
             store.SaveSettings();
-            AppHost.Get<WindowService>().ShowUpdateNotice(version);
+            Dispatcher.UIThread.Post(() => AppHost.Get<WindowService>().ShowUpdateNotice(version));
         };
-        updates.UpdateFailed += async (_, _) => await AppHost.Get<WindowService>().ShowUpdateFailedAsync();
+        updates.UpdateFailed += (_, _) => Dispatcher.UIThread.Post(async () => await AppHost.Get<WindowService>().ShowUpdateFailedAsync());
         // The last run's update failed after Filee closed (Linux): the installer rolled back and started this copy.
         if (updates.CheckPendingFailure(store.Directory))
             Dispatcher.UIThread.Post(async () => await AppHost.Get<WindowService>().ShowUpdateRolledBackAsync(updates.LastFailureLogPath));

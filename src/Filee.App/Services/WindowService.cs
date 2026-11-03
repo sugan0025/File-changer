@@ -1450,6 +1450,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     public async Task ShowUpdateFailedAsync()
 
     {
+        if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(ShowUpdateFailedAsync);
+            return;
+        }
 
         _updateNotice?.Close();
 
