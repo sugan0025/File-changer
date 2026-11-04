@@ -14,6 +14,28 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.4.2
+
+<!-- update
+level: recommended
+en: Tier 1 tools: Annotate images, Video Crop, PDF Pages Per Sheet (N-Up), and Ask Pages
+en: LibreOffice Windows hang mitigation and small image OCR upscaling
+en: Overhauled Blobatar mascot with slice gaze tracking, drag-and-drop reactions, and liquid jelly physics
+-->
+
+- **New Creative & Document Tools**:
+  - **Annotate Tool**: Interactive SkiaSharp markup canvas with arrows, shapes, highlighters, text, and mosaic blur.
+  - **Video Crop Tool**: Auto-detect black letterbox bars or crop to 16:9, 9:16, 1:1 with HDR and 10-bit color preservation.
+  - **PDF N-Up (Pages Per Sheet)**: Imposition layouts for 2, 4, 6, 8, and 9 pages per sheet.
+  - **PDF Split (Ask Pages)**: Interactive dialog to select custom page ranges.
+- **Engine Stability & Accuracy**:
+  - **LibreOffice Hang Fix**: Windows Job Object process confinement prevents hung soffice.bin instances.
+  - **OCR Upscaling**: Adaptive Lanczos resampling boosts text recognition on low-DPI scans.
+- **Blobatar Mascot & Wheel Hub Overhaul**:
+  - Symmetrical mochi silhouette with balanced vertical centering in the radial hub.
+  - Active slice gaze tracking, drag-enter wobbles, drop gulp reactions, and celebration bounces.
+  - Multi-harmonic liquid jelly droplet physics and zero-allocation rendering.
+
 ## 2.4.1
 
 <!-- update

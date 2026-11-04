@@ -14,7 +14,7 @@
          parameters of a member is fine (CS1573). -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
-    <Version>2.4.1.26</Version>
+    <Version>2.4.2</Version>
     <Product>Filee</Product>
     <Authors>Suganesan S.</Authors>
     <Company>Suganesan S.</Company>
