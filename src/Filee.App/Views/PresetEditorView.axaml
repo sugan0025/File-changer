@@ -254,6 +254,10 @@
           <CheckBox Content="{DynamicResource presets.crossfade}" IsChecked="{Binding Crossfade}"
                     ToolTip.Tip="{DynamicResource presets.crossfade_hint}" />
         </StackPanel>
+        <StackPanel IsVisible="{Binding ShowCropFrame}">
+          <TextBlock Classes="label" Text="{DynamicResource presets.crop_frame}" />
+          <ComboBox ItemsSource="{Binding CropFrames}" SelectedItem="{Binding CropFrame}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource presets.crop_frame}" />
+        </StackPanel>
         <Grid ColumnDefinitions="*,12,*" IsVisible="{Binding ShowMediaQuality}">
           <StackPanel>
             <TextBlock Classes="label" Text="{DynamicResource presets.media_quality}" />
@@ -400,6 +404,40 @@
         <CheckBox Content="{DynamicResource presets.merge}" IsChecked="{Binding Merge}" IsVisible="{Binding ShowPdfBuild}" />
         <CheckBox Content="{DynamicResource presets.split}" IsChecked="{Binding SplitPages}" IsVisible="{Binding ShowPdfSplit}" />
         <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.pdf_tables_note}" IsVisible="{Binding ShowPdfTablesNote}" />
+        <!-- "Pages per sheet" (#737): several pages on each sheet -->
+        <StackPanel Spacing="10" IsVisible="{Binding ShowSheets}">
+          <Grid ColumnDefinitions="*,12,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.pages_per_sheet}" />
+              <ComboBox ItemsSource="{Binding SheetLayouts}" SelectedItem="{Binding PagesPerSheet}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource presets.pages_per_sheet}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="{DynamicResource presets.sheet_paper}" />
+              <ComboBox ItemsSource="{Binding SheetPapers}" SelectedItem="{Binding SheetPaper}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource presets.sheet_paper}" />
+            </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="*,12,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.sheet_orientation}" />
+              <ComboBox ItemsSource="{Binding SheetOrientations}" SelectedItem="{Binding SheetOrientation}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource presets.sheet_orientation}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="{DynamicResource presets.sheet_order}" />
+              <ComboBox ItemsSource="{Binding SheetOrders}" SelectedItem="{Binding SheetOrder}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource presets.sheet_order}" />
+            </StackPanel>
+          </Grid>
+          <Grid ColumnDefinitions="*,12,*">
+            <StackPanel>
+              <TextBlock Classes="label" Text="{DynamicResource presets.sheet_margin}" />
+              <NumericUpDown Value="{Binding SheetMarginMm}" Minimum="0" Maximum="50" Increment="1" FormatString="0" AutomationProperties.Name="{DynamicResource presets.sheet_margin}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Classes="label" Text="{DynamicResource presets.sheet_gap}" />
+              <NumericUpDown Value="{Binding SheetGapMm}" Minimum="0" Maximum="50" Increment="1" FormatString="0" AutomationProperties.Name="{DynamicResource presets.sheet_gap}" />
+            </StackPanel>
+          </Grid>
+          <CheckBox Content="{DynamicResource presets.sheet_borders}" IsChecked="{Binding SheetBorders}" />
+        </StackPanel>
         <!-- PDF → PDF: make the file smaller -->
         <StackPanel Spacing="2" IsVisible="{Binding ShowPdfCompression}">
           <Grid ColumnDefinitions="*,12,*">
@@ -473,9 +511,14 @@
           </StackPanel>
           <StackPanel Grid.Column="2">
             <TextBlock Classes="label" Text="{DynamicResource presets.page_range}" />
-            <TextBox Text="{Binding PageRange}" PlaceholderText="{DynamicResource presets.page_range_hint}" />
+            <TextBox Text="{Binding PageRange}" PlaceholderText="{DynamicResource presets.page_range_hint}"
+                     AutomationProperties.Name="{DynamicResource presets.page_range}" />
+            <!-- #981: a small window asks for the pages of each PDF dropped on the donut. -->
+            <CheckBox x:Name="AskPages" Margin="0,6,0,0" Content="{DynamicResource presets.ask_pages}" IsChecked="{Binding AskPageRange}"
+                      IsVisible="{Binding ShowAskPages}" />
           </StackPanel>
         </Grid>
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource presets.ask_pages_hint}" IsVisible="{Binding ShowAskPagesHint}" />
         <CheckBox Content="{DynamicResource presets.pdfa}" IsChecked="{Binding PdfA}" IsVisible="{Binding ShowDocument}" />
         <!-- Finishing of every PDF the preset writes: watermark, page numbers, password -->
         <StackPanel Spacing="10" IsVisible="{Binding ShowPdfBuild}">

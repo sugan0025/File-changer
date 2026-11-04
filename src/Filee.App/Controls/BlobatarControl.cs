@@ -111,16 +111,13 @@ public class BlobatarControl : Control
         if (!TrackWindowPointer || !IsVisible)
             return;
 
-        var bounds = Bounds;
+        var bounds = new Rect(Bounds.Size);
         var size = Math.Min(bounds.Width, bounds.Height);
         if (size <= 1.0)
             return;
 
         var posInControl = e.GetPosition(this);
-        var scale = size / 70.0;
-        var cursorInViewBox = new Point(
-            50.0 + (posInControl.X - bounds.Center.X) / scale,
-            52.5 + (posInControl.Y - bounds.Center.Y) / scale);
+        var cursorInViewBox = BlobatarRenderer.ToViewBox(posInControl, bounds);
 
         State.LookAtCursor(cursorInViewBox);
         StartLoop();
@@ -224,6 +221,6 @@ public class BlobatarControl : Control
 
     public override void Render(DrawingContext context)
     {
-        BlobatarRenderer.Render(context, Bounds, State);
+        BlobatarRenderer.Render(context, new Rect(Bounds.Size), State);
     }
 }

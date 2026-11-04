@@ -286,6 +286,9 @@ internal static class Cli
         preset = host.Store.Settings.WithDefaultOutput(preset);
         if (options.Quality is { } quality)
             preset.Image.Quality = quality;
+        // The pages of PDFs; asked for on the donut (AskedPages), given here.
+        if (options.Pages is { } pages)
+            preset.Pdf.PageRange = pages;
         if (options.Conflict is { } conflict)
             preset.Output.Conflict = conflict;
         if (options.KeepDates)

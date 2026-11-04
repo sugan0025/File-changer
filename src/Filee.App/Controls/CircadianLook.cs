@@ -109,7 +109,7 @@ public sealed class CircadianLook
         var rx = (24f + 5f * MathF.Abs(dx) / 6f) * sx * (1f + .4f * l.Wn);
         var ry = 4.5f / sy;
         var lift = MathF.Max(0f, 1f - hop / 40f);
-        var a = BlobMath.Lerp(.16f + .22f * l.Intensity, .40f, l.Wn) * lift;
+        var a = BlobMath.Lerp(.14f + .16f * l.Intensity, .34f, l.Wn) * lift;
         var core = .5f * l.Wn * lift;
         return new BlobatarShadow(dx, rx, ry, a, core, l.ShadowColor);
     }
@@ -143,7 +143,7 @@ public sealed class CircadianLook
         }
         p[0, 0] = p[0, 0] with { Hi = Color.Parse("#D3D6FF"), Mid = Color.Parse("#9A92EE"), Lo = Color.Parse("#6C69CF") };
         p[0, 1] = p[0, 1] with { Hi = Color.Parse("#F0D6FA"), Mid = Color.Parse("#B38CEB"), Lo = Color.Parse("#8660CC") };
-        p[0, 2] = p[0, 2] with { Hi = Color.Parse("#4A3FB5"), Mid = Color.Parse("#221A55"), Lo = Color.Parse("#0A0720") };
+        p[0, 2] = p[0, 2] with { Hi = Color.Parse("#5F52D6"), Mid = Color.Parse("#372C86"), Lo = Color.Parse("#130E38") };
         return p;
     }
 
@@ -164,7 +164,7 @@ public sealed class CircadianLook
         {
             case 0: lm = L + .035f; cm = C * .82f; hm = h - 14f * Deg; hiDL = .14f; loDL = .16f; break;
             case 1: lm = L + .02f; cm = C * 1.12f; hm = h + 16f * Deg; hiDL = .14f; loDL = .16f; break;
-            default: lm = L * .36f; cm = C * 1.30f; hm = h - 4f * Deg; hiDL = .10f; loDL = .12f; break;
+            default: lm = L * .50f; cm = C * 1.25f; hm = h - 4f * Deg; hiDL = .12f; loDL = .14f; break;
         }
         lm = Math.Min(lm, .97f);
         var mid = FromOklch(lm, cm, hm);

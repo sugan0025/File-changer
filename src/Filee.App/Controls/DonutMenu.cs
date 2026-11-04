@@ -1322,32 +1322,60 @@ public sealed partial class DonutMenu : Control
         if (cancelHot)
             context.DrawEllipse(WithOpacity(DangerBrush, 0.18), null, center, radius, radius);
 
+        // Mascot hub: type scales with the hub so a bigger or smaller wheel keeps the same proportions (not with the centre
+        // pulse, which would rebuild the text layouts every frame). Rounded to half points to keep the text cache small.
+        var u = ShowCenterMascot ? Math.Clamp((r1 - 6) / 57.0, 0.8, 1.4) : 1.0;
+        double Q(double points) => Math.Round(points * 2) / 2;
+
         var maxWidth = radius * 1.6;
         var hasTitle = !string.IsNullOrEmpty(CenterTitle);
         var hasSubtitle = !string.IsNullOrEmpty(CenterSubtitle);
         var hintIcons = FlipArrowSize + (CenterHintWheel ? MouseWidth + MouseGap : 0) + IconGap;
-        var hint = string.IsNullOrEmpty(CenterHint) ? null : CachedText(CenterHint, regular, ShowCenterMascot ? 10.0 : 10.5, SecondaryForeground, maxWidth * 0.85 - hintIcons);
+        var hint = string.IsNullOrEmpty(CenterHint) ? null : CachedText(CenterHint, regular, ShowCenterMascot ? Q(10.0 * u) : 10.5, SecondaryForeground, maxWidth * 0.85 - hintIcons);
         var hasHint = hint is not null;
         var hasText = hasTitle || hasSubtitle || hasHint;
 
-        var mascotSize = hasText ? Math.Clamp(radius * 0.88, 44.0, 56.0) : Math.Clamp(radius * 1.45, 68.0, 96.0);
-        var mascotTop = hasText ? center.Y - radius * 0.74 : center.Y - mascotSize / 2;
-
-        if (ShowCenterMascot)
+        if (!hasText && ShowCenterMascot)
         {
-            var mascotRect = new Rect(center.X - mascotSize / 2, mascotTop, mascotSize, mascotSize);
-            BlobatarRenderer.Render(context, mascotRect, _mascotState);
+            // No text: the mascot is the hub's centrepiece, centred in the hole (a hair high, its shadow hangs below).
+            var size = Math.Clamp(radius * 1.45, 68.0, 96.0);
+            BlobatarRenderer.Render(context, new Rect(center.X - size / 2, center.Y - size / 2 - size * 0.015, size, size), _mascotState);
         }
 
         if (hasText)
         {
-            var title = CachedText(CenterTitle ?? "", bold, ShowCenterMascot ? 11.5 : 14, Foreground, maxWidth, maxLines: 2);
-            var subtitle = CachedText(CenterSubtitle ?? "", regular, ShowCenterMascot ? 9.5 : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
+            var title = CachedText(CenterTitle ?? "", bold, ShowCenterMascot ? Q(11.5 * u) : 14, Foreground, maxWidth, maxLines: 2);
+            var subtitle = CachedText(CenterSubtitle ?? "", regular, ShowCenterMascot ? Q(9.5 * u) : 11.5, cancelHot ? DangerBrush : SecondaryForeground, maxWidth, maxLines: 2);
             var total = title.Height + (hasSubtitle ? subtitle.Height + 2 : 0) + (hasHint ? hint!.Height + 3 : 0);
 
-            var y = ShowCenterMascot
-                ? mascotTop + mascotSize + 1
-                : center.Y - total / 2;
+            double y;
+            if (ShowCenterMascot)
+            {
+                // One centred block: the mascot, then the text rows. Every row must stay inside the circle (checked against
+                // its own chord), so the text sits as high as it needs to and the mascot takes the room left above it.
+                const double Pad = 3, Gap = 1.5, Half = 0.45;   // Half: half of the mascot's visual height (body + shadow) as a fraction of its size
+                double cum = 0, textTopMax = double.MaxValue;
+                void Row(double h, double w)
+                {
+                    cum += h;
+                    var half = w / 2 + Pad;
+                    textTopMax = Math.Min(textTopMax, Math.Sqrt(Math.Max(0, radius * radius - half * half)) - cum);
+                }
+                if (hasTitle) Row(title.Height, title.Width);
+                if (hasSubtitle) Row(subtitle.Height + 2, subtitle.Width);
+                if (hint is not null) Row(hint.Height + 3, hint.Width + hintIcons);
+
+                var wanted = Math.Clamp(52.0 * u, 40.0, 76.0);
+                var textTop = Math.Min(Half * wanted + Gap / 2 - cum / 2, textTopMax);
+                var size = Math.Clamp((textTop - Gap + radius * 0.86) / (2 * Half), 30.0, wanted);
+                var mascotY = textTop - Gap - Half * size;
+                BlobatarRenderer.Render(context, new Rect(center.X - size / 2, center.Y + mascotY - size / 2, size, size), _mascotState);
+                y = center.Y + textTop;
+            }
+            else
+            {
+                y = center.Y - total / 2;
+            }
 
             if (hasTitle)
             {

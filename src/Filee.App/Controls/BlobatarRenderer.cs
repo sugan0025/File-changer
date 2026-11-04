@@ -25,7 +25,7 @@ public sealed class BlobatarState
     private const double SubStep = 1.0 / 120.0;
     private const float SubStepF = 1f / 120f;
 
-    private readonly BlobatarLayout _layout = new() { BodyPoints = BlobatarLayout.DefaultBodyPoints };
+    private readonly BlobatarLayout _layout = new() { BodyPoints = BlobatarRenderer.BodyRestPoints };
     private readonly BlobatarPhysics _physics;
     private readonly CircadianLook _look = new();
     private BlobatarTone _tone = BlobatarTone.Idle;
@@ -134,7 +134,7 @@ public sealed class BlobatarState
             LookAtCursor(null);
             return;
         }
-        LookAtCursor(new Point(50.0 + p.X * 0.45, 52.5 + p.Y * 0.45), deadzone: 3.5, sensitivity: sensitivity * 0.45);
+        LookAtCursor(new Point(BlobatarRenderer.FaceX + p.X * 0.45, BlobatarRenderer.BodyCy + p.Y * 0.45), deadzone: 3.5, sensitivity: sensitivity * 0.45);
     }
 
     /// <summary>Advances the simulation. Returns true while transient motion (or a palette cross-fade) needs frames.</summary>
@@ -177,10 +177,17 @@ internal sealed class BlobatarBrushCache
     public IBrush Spec = Brushes.Transparent;
     public IBrush GlintPrimary = Brushes.White;
     public IBrush GlintAmbient = Brushes.Transparent;
+    public IBrush Blush = Brushes.Transparent;
     public IPen RimPen = null!;
     public IPen GlowPen = null!;
+    public IPen OutlinePen = null!;
+    public IPen MouthPen = null!;
+    public IPen? EyePen;
+
+    private static readonly Color BlushColor = Color.FromRgb(0xFF, 0x8C, 0xAA);
 
     private static Color A(Color c, double a) => Color.FromArgb((byte)Math.Clamp(a * 255.0, 0, 255), c.R, c.G, c.B);
+    private static byte Mix(byte a, byte b, double t) => (byte)Math.Clamp(a + (b - a) * t, 0, 255);
 
     public void Ensure(CircadianLookFrame look)
     {
@@ -222,34 +229,57 @@ internal sealed class BlobatarBrushCache
         }, 6.0);
 
         GlintPrimary = new SolidColorBrush(A(look.Rim, 0.55 + 0.45 * look.Intensity));
-        GlintAmbient = new SolidColorBrush(A(look.Sky, 0.22));
+        GlintAmbient = new SolidColorBrush(A(look.Sky, 0.32));
+
+        // Silhouette: a soft dark edge keeps pale bodies readable on a white hub; it fades out at night (the neon rim takes over).
+        OutlinePen = new Pen(new SolidColorBrush(A(look.Lo, 0.45 * (1.0 - look.Wn))), 1.1);
+
+        // Night only: a thin neon edge so the dark eyes stay visible on the dark body.
+        EyePen = look.Wn > 0.02 ? new Pen(new SolidColorBrush(A(look.Rim, 0.55 * look.Wn)), 0.6) : null;
+
+        // Cheeks: warm pink, slightly quieter on dark glass.
+        Blush = new SolidColorBrush(A(BlushColor, BlobMath.Lerp(0.30f, 0.20f, look.Wn)));
+
+        // Smile stroke: eye colour by day, neon rim colour at night.
+        var ec = BlobatarRenderer.EyeColor;
+        var mouth = Color.FromRgb(Mix(ec.R, look.Rim.R, look.Wn), Mix(ec.G, look.Rim.G, look.Wn), Mix(ec.B, look.Rim.B, look.Wn));
+        MouthPen = new Pen(new SolidColorBrush(mouth), 1.2, lineCap: PenLineCap.Round);
     }
 }
 
-/// <summary>Hardware-accelerated renderer for the Blobatar owl. Reads state.Frame / state.Look only.</summary>
+/// <summary>Hardware-accelerated renderer for the Blobatar mochi. Reads state.Frame / state.Look only.</summary>
 public static class BlobatarRenderer
 {
+    /// <summary>Visual centre of the face and body in viewBox units (the eye pair and the body are both centred here).</summary>
+    public const double FaceX = BlobatarLayout.FaceX;
+    public const double BodyCy = BlobatarLayout.BodyCy;
+
+    // Plumpness is applied to the body silhouette and to feature POSITIONS only; eyes, glints and cheeks keep their
+    // true shapes, so nothing is stretched (the old root matrix skewed eye tilt and squashed every catchlight).
+    private const double PlumpX = 1.08, PlumpY = 0.92;
+
+    // Both eyes share one geometry and one baseline (BlobatarLayout levels their rest positions).
+    private const double EyeRx = 3.7, EyeRy = 5.9;
+
+    /// <summary>Mochi body, 12 Bézier control points N0 h h N1 h h N2 h h N3 h h (right, bottom, left, top): domed head, soft flat base, widest just below centre, symmetric about <see cref="FaceX"/>.</summary>
+    private static readonly System.Numerics.Vector2[] MochiPoints = BlobatarLayout.DefaultBodyPoints;
+
+    private static readonly Point[] BodyRest = ToPoints(MochiPoints);
+
+    private static Point[] ToPoints(System.Numerics.Vector2[] v)
+    {
+        var p = new Point[v.Length];
+        for (var i = 0; i < v.Length; i++) p[i] = new Point(v[i].X, v[i].Y);
+        return p;
+    }
+
+    internal static System.Numerics.Vector2[] BodyRestPoints => MochiPoints;
+
     private static Geometry? _bodyGeometry;
-    private static Geometry BodyGeometry => _bodyGeometry ??= Geometry.Parse(
-        "M85.02 51.18C85.02 71.96 72.08 84.14 50.01 84.14C27.94 84.14 15.01 71.96 15.01 51.18C15.01 30.39 27.94 18.21 50.01 18.21C72.08 18.21 85.02 30.39 85.02 51.18Z");
+    private static Geometry BodyGeometry => _bodyGeometry ??= BuildPath(BodyRest);
 
-    private static Geometry? _leftEyeGeometry;
-    private static Geometry LeftEyeGeometry => _leftEyeGeometry ??= Geometry.Parse(
-        "M45.05 44.46C45.7 49.75 45.34 50.71 42.56 51.05C39.79 51.39 39.2 50.54 38.56 45.25C37.91 39.96 38.27 39 41.05 38.66C43.82 38.32 44.41 39.17 45.05 44.46Z");
-
-    private static Geometry? _rightEyeGeometry;
-    private static Geometry RightEyeGeometry => _rightEyeGeometry ??= Geometry.Parse(
-        "M65.89 45.33C66.5 49.15 66.22 49.86 63.98 50.21C61.74 50.56 61.26 49.97 60.66 46.16C60.06 42.35 60.33 41.64 62.57 41.28C64.81 40.93 65.29 41.52 65.89 45.33Z");
-
-    // The body path's 12 Bézier control points: N0 h h N1 h h N2 h h N3 h h (right, bottom, left, top).
-    private static readonly Point[] BodyRest =
-    [
-        new(85.02, 51.18), new(85.02, 71.96), new(72.08, 84.14), new(50.01, 84.14),
-        new(27.94, 84.14), new(15.01, 71.96), new(15.01, 51.18), new(15.01, 30.39),
-        new(27.94, 18.21), new(50.01, 18.21), new(72.08, 18.21), new(85.02, 30.39),
-    ];
-
-    internal static System.Numerics.Vector2[] BodyRestPoints => BlobatarLayout.DefaultBodyPoints;
+    private static Geometry? _eyeGeometry;
+    private static Geometry EyeGeometry => _eyeGeometry ??= new EllipseGeometry(new Rect(-EyeRx, -EyeRy, EyeRx * 2, EyeRy * 2));
 
     public static readonly Color EyeColor = Color.FromRgb(0x0F, 0x0E, 0x18);
     private static IBrush? _eyeBrush;
@@ -265,6 +295,20 @@ public static class BlobatarRenderer
         _ => Color.FromRgb(0x84, 0x71, 0xE2)
     };
 
+    private static Point Plump(double x, double y) => new(FaceX + (x - FaceX) * PlumpX, BodyCy + (y - BodyCy) * PlumpY);
+
+    /// <summary>Maps a point in control space to the physics viewBox (the inverse of Render's transforms), so the eyes aim exactly at the cursor.</summary>
+    internal static Point ToViewBox(Point pointInControl, Rect bounds)
+    {
+        var scale = Math.Min(bounds.Width, bounds.Height) / 70.0;
+        if (scale <= 0.001)
+            return new Point(FaceX, BodyCy);
+
+        var x = FaceX + (pointInControl.X - bounds.Center.X) / scale;
+        var y = BodyCy + (pointInControl.Y - bounds.Center.Y) / scale;
+        return new Point(FaceX + (x - FaceX) / PlumpX, BodyCy + (y - BodyCy) / PlumpY);
+    }
+
     public static void Render(DrawingContext context, Rect bounds, BlobatarState state)
     {
         var size = Math.Min(bounds.Width, bounds.Height);
@@ -272,10 +316,15 @@ public static class BlobatarRenderer
         if (scale <= 0.001)
             return;
 
-        // Chubby, squishy mochi proportions (1.14x width, 0.88x height) so mascot never stretches up as a tall egg
-        var rootMatrix = Matrix.CreateTranslation(-50, -52.5) *
-                         Matrix.CreateScale(scale * 1.14, scale * 0.88) *
-                         Matrix.CreateTranslation(bounds.Center.X, bounds.Center.Y + 2.0);
+        // Uniform root: the body's centre lands exactly on the bounds' centre, at any size / DPI.
+        var rootMatrix = Matrix.CreateTranslation(-FaceX, -BodyCy) *
+                         Matrix.CreateScale(scale, scale) *
+                         Matrix.CreateTranslation(bounds.Center.X, bounds.Center.Y);
+
+        // Mochi proportions live here, around the body centre.
+        var plump = Matrix.CreateTranslation(-FaceX, -BodyCy) *
+                    Matrix.CreateScale(PlumpX, PlumpY) *
+                    Matrix.CreateTranslation(FaceX, BodyCy);
 
         var f = state.Frame;
         var look = state.Look;
@@ -284,41 +333,66 @@ public static class BlobatarRenderer
 
         using (context.PushTransform(rootMatrix))
         {
-            DrawShadow(context, look, f);
-
-            var body = BuildBody(f);
-            using (context.PushTransform(f.Body.ToAvalonia()))
+            using (context.PushTransform(plump))
             {
-                context.DrawGeometry(cache.Body, null, body);
+                DrawShadow(context, look, f);
 
-                using (context.PushGeometryClip(body))
+                var body = BuildBody(f);
+                using (context.PushTransform(f.Body.ToAvalonia()))
                 {
-                    // Forehead specular, placed toward the key light.
-                    var sx = 50.0 + look.Light.X * 35.0 * 0.7;
-                    var sy = 51.2 + look.Light.Y * 33.0 * 0.7;
-                    context.DrawEllipse(cache.Spec, null, new Point(sx, sy), 11, 7);
-                    context.DrawGeometry(null, cache.GlowPen, body);
-                    context.DrawGeometry(null, cache.RimPen, body);
+                    // Fill + soft silhouette edge (the rim light below paints over its inner half).
+                    context.DrawGeometry(cache.Body, cache.OutlinePen, body);
+
+                    using (context.PushGeometryClip(body))
+                    {
+                        // Forehead specular, placed toward the key light.
+                        var sx = FaceX + look.Light.X * 35.0 * 0.7;
+                        var sy = BodyCy + look.Light.Y * 33.0 * 0.7;
+                        context.DrawEllipse(cache.Spec, null, new Point(sx, sy), 11, 7);
+
+                        // Cheeks sit under the outer corner of each eye.
+                        context.DrawEllipse(cache.Blush, null, new Point(39.9, 54.0), 4.4, 2.5);
+                        context.DrawEllipse(cache.Blush, null, new Point(65.2, 54.0), 4.4, 2.5);
+
+                        context.DrawGeometry(null, cache.GlowPen, body);
+                        context.DrawGeometry(null, cache.RimPen, body);
+                    }
+
+                    if (f.Smile > 0.05f)
+                        DrawMouth(context, cache, f.Smile);
                 }
             }
 
             // Eyes are drawn outside the body matrix (translation only) so gaze stays exact while the body breathes.
-            DrawEye(context, LeftEyeGeometry, f.Left, new Point(41.8, 44.8), 4.8, 4.0, state.LeftEyeTiltDeg, state.LeftForeshortenX, f, state.HappyCurve, look, cache, 1.0);
-            DrawEye(context, RightEyeGeometry, f.Right, new Point(63.3, 45.7), 4.6, 3.8, state.RightEyeTiltDeg, state.RightForeshortenX, f, state.HappyCurve, look, cache, 0.88);
+            DrawEye(context, f.Left, 4.8, 4.0, state.LeftEyeTiltDeg, state.LeftForeshortenX, f, state.HappyCurve, look, cache, 0.0);
+            DrawEye(context, f.Right, 4.6, 3.8, state.RightEyeTiltDeg, state.RightForeshortenX, f, state.HappyCurve, look, cache, 0.0);
         }
+    }
+
+    private static void DrawMouth(DrawingContext context, BlobatarBrushCache cache, double smile)
+    {
+        var g = new StreamGeometry();
+        using (var c = g.Open())
+        {
+            c.BeginFigure(new Point(FaceX - 2.6, 56.8), false);
+            c.QuadraticBezierTo(new Point(FaceX, 56.8 + 4.2 * smile), new Point(FaceX + 2.6, 56.8));
+            c.EndFigure(false);
+        }
+        using (context.PushOpacity(Math.Min(1.0, smile * 1.5)))
+            context.DrawGeometry(null, cache.MouthPen, g);
     }
 
     private static void DrawShadow(DrawingContext context, CircadianLookFrame look, BlobatarFrame f)
     {
         var sh = CircadianLook.Shadow(look, f.Sx, f.Sy, f.Hop);
-        var at = new Point(50.0 + sh.Dx, 84.5);
+        var at = new Point(FaceX + sh.Dx, 84.5);
         if (sh.Alpha > 0.003)
         {
             var brush = new RadialGradientBrush
             {
                 GradientStops =
                 {
-                    new GradientStop(Color.FromArgb((byte)Math.Clamp(sh.Alpha * 255f, 0, 255), sh.Color.R, sh.Color.G, sh.Color.B), 0.0),
+                    new GradientStop(Color.FromArgb((byte)Math.Clamp(sh.Alpha * 0.8f * 255f, 0, 255), sh.Color.R, sh.Color.G, sh.Color.B), 0.0),
                     new GradientStop(Color.FromArgb(0, sh.Color.R, sh.Color.G, sh.Color.B), 1.0),
                 },
             };
@@ -357,6 +431,11 @@ public static class BlobatarRenderer
         p[10] = new Point(p[10].X, p[10].Y + f.TuftR);
         p[11] = new Point(p[11].X, p[11].Y + f.TuftR * 0.4);
 
+        return BuildPath(p);
+    }
+
+    private static StreamGeometry BuildPath(Point[] p)
+    {
         var g = new StreamGeometry();
         using (var c = g.Open())
         {
@@ -370,9 +449,9 @@ public static class BlobatarRenderer
         return g;
     }
 
-    private static void DrawEye(DrawingContext context, Geometry geo, BlobatarEye e, Point rest, double maxX, double maxY,
+    private static void DrawEye(DrawingContext context, BlobatarEye e, double maxX, double maxY,
         double tiltDeg, double foreshortenX, BlobatarFrame f, double happy, CircadianLookFrame look,
-        BlobatarBrushCache cache, double glintScale)
+        BlobatarBrushCache cache, double levelY)
     {
         double nx = e.Gaze.X, ny = e.Gaze.Y;
         var pitch = ny < 0 ? 1.0 - (-ny) * 0.08 : 1.0 - ny * 0.05;
@@ -386,27 +465,27 @@ public static class BlobatarRenderer
         var sy = Math.Max(0.02, blink * pitch * (1.0 - e.Squint * 0.9) * e.Scale * dil * deformY);
         var rot = tiltDeg * Math.PI / 180.0 + e.Roll;
 
-        var px = e.Center.X + nx * maxX;
-        var py = e.Center.Y + ny * maxY - e.Brow * 0.35;      // "brow": lift the eye
+        var at = Plump(e.Center.X + nx * maxX, e.Center.Y + ny * maxY - e.Brow * 0.35 + levelY);   // "brow": lift the eye
 
-        var m = Matrix.CreateTranslation(-rest.X, -rest.Y) * Matrix.CreateScale(sx, sy) *
-                Matrix.CreateRotation(rot) * Matrix.CreateTranslation(px, py);
+        var m = Matrix.CreateScale(sx, sy) * Matrix.CreateRotation(rot) * Matrix.CreateTranslation(at.X, at.Y);
         using (context.PushTransform(m))
-            context.DrawGeometry(EyeBrush, null, geo);
+            context.DrawGeometry(EyeBrush, cache.EyePen, EyeGeometry);
 
         if (blink <= 0.40)
             return;
 
         // Primary catchlight tracks the key light (sun by day, moon / neon at night) and slides opposite the gaze.
+        // Its height follows the lid so it never hangs outside a half-closed eye.
         double lx = look.Light.X, ly = look.Light.Y;
-        var r1 = (happy > 0.4 ? 1.1 : 0.85) * glintScale * dil;
-        context.DrawEllipse(cache.GlintPrimary, null, new Point(px + lx * 2.3 * glintScale - nx * 0.85, py + ly * 2.3 * glintScale - ny * 0.55), r1, r1);
+        var lift = Math.Min(1.0, blink);
+        var r1 = (happy > 0.4 ? 1.45 : 1.25) * dil;
+        context.DrawEllipse(cache.GlintPrimary, null, new Point(at.X + lx * 1.4 - nx * 0.85, at.Y + ly * 2.5 * lift - ny * 0.55), r1, r1);
 
         // Secondary: soft ambient glint opposite the key light, rotated 20 degrees.
         const double Rot = 20.0 * Math.PI / 180.0;
         var ax = -(lx * Math.Cos(Rot) - ly * Math.Sin(Rot));
         var ay = -(lx * Math.Sin(Rot) + ly * Math.Cos(Rot));
-        var r2 = 0.45 * glintScale * dil;
-        context.DrawEllipse(cache.GlintAmbient, null, new Point(px + ax * 1.3 - nx * 0.4, py + ay * 1.3 - ny * 0.3), r2, r2);
+        var r2 = 0.65 * dil;
+        context.DrawEllipse(cache.GlintAmbient, null, new Point(at.X + ax * 1.9 - nx * 0.4, at.Y + ay * 2.6 * lift - ny * 0.3), r2, r2);
     }
 }

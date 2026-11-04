@@ -58,6 +58,14 @@ public class LenientEnumJsonConverter<TEnum> : JsonConverter<TEnum> where TEnum 
 }
 
 /// <summary>An unknown kind is read as a group: never run as a conversion.</summary>
+/// <summary>
+/// An unknown mark kind (a newer Filee's) is read as <see cref="AnnotationKind.Unknown"/>: never drawn.
+/// </summary>
+public sealed class AnnotationKindJsonConverter : LenientEnumJsonConverter<AnnotationKind>
+{
+    protected override AnnotationKind Unknown => AnnotationKind.Unknown;
+}
+
 public sealed class PresetKindJsonConverter : LenientEnumJsonConverter<PresetKind>
 {
     protected override PresetKind Unknown => PresetKind.Group;
@@ -246,6 +254,12 @@ public sealed class Preset
     public const string HideTool = "hide";
 
     /// <summary>
+    /// <see cref="Tool"/> of "Annotate" (settings schema 59): pen, arrows, boxes, highlights, text and numbers drawn on
+    /// a picture (<see cref="ImageOptions.Annotations"/>).
+    /// </summary>
+    public const string AnnotateTool = "annotate";
+
+    /// <summary>
     /// <see cref="PresetKind.Tool"/>: which window it opens, <see cref="CropTool"/> (or null, as saved before there were
     /// other tools), <see cref="ClipTool"/>, <see cref="ImageEditTool"/> or <see cref="HideTool"/>. A tool this version
     /// doesn't know (from a newer Filee) opens nothing. Ignored for other kinds.
@@ -267,6 +281,14 @@ public sealed class Preset
     /// <summary>True for "Pixelate / blur".</summary>
     [JsonIgnore]
     public bool IsHideTool => IsTool && Tool == HideTool;
+
+    /// <summary>True for "Annotate".</summary>
+    [JsonIgnore]
+    public bool IsAnnotateTool => IsTool && Tool == AnnotateTool;
+
+    /// <summary>True for "Crop video" (<see cref="MediaOptions.CropFrame"/>): it works on videos only.</summary>
+    [JsonIgnore]
+    public bool CropsVideo => VideoCrop.Crops(Media.CropFrame);
 
     /// <summary>
     /// True if converting a <paramref name="sourceFormat"/> file cuts a clip of it (<see cref="MediaOptions.Clip"/>,
@@ -426,6 +448,83 @@ public sealed class HiddenArea
     public HiddenArea Clone() => (HiddenArea)MemberwiseClone();
 }
 
+/// <summary>What an "Annotate" mark is (<see cref="Annotation.Kind"/>).</summary>
+public enum AnnotationKind
+{
+    /// <summary>A kind from a newer Filee: not drawn, rather than drawn as something it isn't.</summary>
+    Unknown = -1,
+    /// <summary>A freehand line through <see cref="Annotation.Points"/>.</summary>
+    Pen,
+    /// <summary>An arrow from its first point (the tail) to its second (the tip).</summary>
+    Arrow,
+    /// <summary>A frame from one corner to the other.</summary>
+    Box,
+    /// <summary>A see-through marker from one corner to the other.</summary>
+    Highlight,
+    /// <summary><see cref="Annotation.Text"/> on a tag in the colour, at its point.</summary>
+    Text,
+    /// <summary><see cref="Annotation.Number"/> in a circle in the colour, at its point.</summary>
+    Number,
+}
+
+/// <summary>How thick a mark is drawn: lines, text and numbers alike.</summary>
+public enum AnnotationWidth
+{
+    Thin,
+    Medium,
+    Thick,
+}
+
+/// <summary>A point on the picture as it is seen, in parts of it: 0 to 1 from its left and top edges.</summary>
+public sealed class AnnotationPoint
+{
+    public double X { get; set; }
+    public double Y { get; set; }
+
+    public AnnotationPoint Clone() => (AnnotationPoint)MemberwiseClone();
+}
+
+/// <summary>
+/// A mark "Annotate" draws on a picture. Its points are parts of the picture, and its sizes parts of the picture's
+/// shorter side, so a mark looks the same at any size.
+/// </summary>
+public sealed class Annotation
+{
+    [JsonConverter(typeof(AnnotationKindJsonConverter))]
+    public AnnotationKind Kind { get; set; }
+
+    /// <summary>"#RRGGBB".</summary>
+    public string Color { get; set; } = "#E5484D";
+
+    [JsonConverter(typeof(LenientEnumJsonConverter<AnnotationWidth>))]
+    public AnnotationWidth Width { get; set; } = AnnotationWidth.Medium;
+
+    /// <summary>
+    /// The pen's line; the two corners of a box or highlight; an arrow's tail and tip; a text's or number's place.
+    /// </summary>
+    public List<AnnotationPoint> Points
+    {
+        get => _points;
+        // Read leniently: no list, or empty places in it, are no points.
+        set => _points = value is null ? [] : [.. value.Where(point => point is not null)];
+    }
+
+    private List<AnnotationPoint> _points = [];
+
+    /// <summary>What a <see cref="AnnotationKind.Text"/> says.</summary>
+    public string? Text { get; set; }
+
+    /// <summary>The number a <see cref="AnnotationKind.Number"/> shows.</summary>
+    public int Number { get; set; }
+
+    public Annotation Clone()
+    {
+        var copy = (Annotation)MemberwiseClone();
+        copy.Points = [.. Points.Select(p => p.Clone())];
+        return copy;
+    }
+}
+
 /// <summary>Raster image encoding options.</summary>
 public sealed class ImageOptions
 {
@@ -470,7 +569,28 @@ public sealed class ImageOptions
     /// engine applies image options (<see cref="Conversion.IImageTransformer"/>); a file is never passed on as it is.
     /// </summary>
     [JsonIgnore]
-    public bool ReworksPixels => TurnsOrMirrors || HidesAreas;
+    public bool ReworksPixels => TurnsOrMirrors || HidesAreas || HasAnnotations;
+
+    /// <summary>"Annotate": the marks drawn on the picture as it is seen; null for every other preset.</summary>
+    public List<Annotation>? Annotations
+    {
+        get => _annotations;
+        // Read leniently: an empty place in the list (a preset edited by hand) is no mark.
+        set => _annotations = value?.Where(mark => mark is not null).ToList();
+    }
+
+    private List<Annotation>? _annotations;
+
+    /// <summary>The picture gets marks drawn on it (<see cref="Annotations"/>).</summary>
+    [JsonIgnore]
+    public bool HasAnnotations => Annotations is { Count: > 0 };
+
+    /// <summary>"Annotate": the colour picked last, "#RRGGBB", kept in the tool for the next time.</summary>
+    public string? AnnotationColor { get; set; }
+
+    /// <summary>"Annotate": the width picked last, kept in the tool for the next time.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<AnnotationWidth>))]
+    public AnnotationWidth AnnotationWidth { get; set; } = AnnotationWidth.Medium;
 
     /// <summary>Whether the preset edits picture content, size, or playback speed.</summary>
     [JsonIgnore]
@@ -673,6 +793,7 @@ public sealed class ImageOptions
         var copy = (ImageOptions)MemberwiseClone();
         copy.IcoSizes = [.. IcoSizes];
         copy.HiddenAreas = HiddenAreas?.Select(area => area.Clone()).ToList();
+        copy.Annotations = Annotations?.Select(mark => mark.Clone()).ToList();
         copy.CustomSize = CustomSize is { } size
             ? new CustomImageSize { Width = size.Width, Height = size.Height, LockAspect = size.LockAspect, Unit = size.Unit, Dpi = size.Dpi }
             : null;
@@ -790,6 +911,34 @@ public enum PdfRotation
     Rotate180,
 }
 
+/// <summary>The paper "Pages per sheet" puts the pages on (<see cref="PdfOptions.PagesPerSheet"/>).</summary>
+public enum PdfSheetPaper
+{
+    A4,
+    Letter,
+    A3,
+    /// <summary>The size of the first page.</summary>
+    SameAsFirstPage,
+}
+
+/// <summary>Which way a sheet of "Pages per sheet" stands.</summary>
+public enum PdfSheetOrientation
+{
+    /// <summary>Whichever fits the first page larger.</summary>
+    Auto,
+    Portrait,
+    Landscape,
+}
+
+/// <summary>The order the pages fill a sheet of "Pages per sheet" in.</summary>
+public enum PdfSheetOrder
+{
+    /// <summary>Left to right, then the next row.</summary>
+    AcrossFirst,
+    /// <summary>Top to bottom, then the next column.</summary>
+    DownFirst,
+}
+
 /// <summary>PDF related options.</summary>
 public sealed class PdfOptions
 {
@@ -810,8 +959,52 @@ public sealed class PdfOptions
     /// <summary>Pages to process, e.g. <c>"1-3,5"</c>. Empty means all pages.</summary>
     public string PageRange { get; set; } = "";
 
+    /// <summary>
+    /// "Ask every time" for the pages (#981): a PDF dropped on the donut opens a small window that shows its page
+    /// count and takes the range, and for a PDF target whether it becomes one PDF or one file per page
+    /// (<see cref="AskedPages"/>). <see cref="PageRange"/> is what the window starts with, and what applies where
+    /// nothing can ask (watch folders, the command line). Off by default, so a preset saved before it reads unchanged
+    /// and a Filee from before it ignores it; on for "Split PDF" in a new install.
+    /// </summary>
+    public bool AskPageRange { get; set; }
+
+
     /// <summary>For PDF → PDF: write every page as its own file.</summary>
     public bool SplitPages { get; set; }
+
+    /// <summary>
+    /// For PDF → PDF: put this many pages on each sheet ("Pages per sheet", N-up, #737), one of
+    /// <see cref="SheetLayouts"/>; 0 keeps one page per sheet.
+    /// </summary>
+    public int PagesPerSheet { get; set; }
+
+    /// <summary>The numbers of pages per sheet offered.</summary>
+    public static readonly IReadOnlyList<int> SheetLayouts = [2, 4, 6, 8, 9];
+
+    /// <summary>With <see cref="PagesPerSheet"/>: the paper.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<PdfSheetPaper>))]
+    public PdfSheetPaper SheetPaper { get; set; }
+
+    /// <summary>With <see cref="PagesPerSheet"/>: which way the sheet stands.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<PdfSheetOrientation>))]
+    public PdfSheetOrientation SheetOrientation { get; set; }
+
+    /// <summary>With <see cref="PagesPerSheet"/>: the order the pages fill a sheet in.</summary>
+    [JsonConverter(typeof(LenientEnumJsonConverter<PdfSheetOrder>))]
+    public PdfSheetOrder SheetOrder { get; set; }
+
+    /// <summary>With <see cref="PagesPerSheet"/>: the space around the edge of each sheet, in millimetres.</summary>
+    public double SheetMarginMm { get; set; } = 10;
+
+    /// <summary>With <see cref="PagesPerSheet"/>: the space between the pages, in millimetres.</summary>
+    public double SheetGapMm { get; set; } = 5;
+
+    /// <summary>With <see cref="PagesPerSheet"/>: a thin line around each page.</summary>
+    public bool SheetBorders { get; set; }
+
+    /// <summary>True when PDF pages are put several to a sheet (<see cref="PagesPerSheet"/>).</summary>
+    [JsonIgnore]
+    public bool MakesSheets => PagesPerSheet > 1;
 
     /// <summary>For PDF → PDF: rotate every selected page without rendering it.</summary>
     [JsonConverter(typeof(LenientEnumJsonConverter<PdfRotation>))]
@@ -933,6 +1126,12 @@ public sealed class MediaOptions
 
     /// <summary>Drop the audio track of a video.</summary>
     public bool RemoveAudio { get; set; }
+
+    /// <summary>
+    /// "Crop video" (#830): the frame cut to a "width:height" ratio, centred, or to <see cref="VideoCrop.Auto"/> (the
+    /// picture inside black bars); empty keeps the whole frame. The video is encoded again, the sound copied.
+    /// </summary>
+    public string CropFrame { get; set; } = "";
 
     /// <summary>Audio channels of an audio file: 0 keeps the source's, 1 mono, 2 stereo.</summary>
     public int AudioChannels { get; set; }

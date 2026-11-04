@@ -5,22 +5,40 @@ namespace Filee.App.Controls;
 
 public enum BlobatarEvent { Wink, Press, Squish, Jump, Land, Curious, Proud, Celebrate, ThinkTick, Yawn }
 
-/// <summary>Geometry of the owl in its 100-unit viewBox (values taken from BlobatarRenderer / BlobatarState).</summary>
+/// <summary>
+/// Geometry of the mochi in its 100-unit viewBox. The single source of truth: the renderer, the gaze maths and the
+/// body contour all read their points and centre from here.
+/// </summary>
 public sealed class BlobatarLayout
 {
-    public static readonly Vector2[] DefaultBodyPoints =
-    [
-        new(85.02f, 51.18f), new(85.02f, 71.96f), new(72.08f, 84.14f), new(50.01f, 84.14f),
-        new(27.94f, 84.14f), new(15.01f, 71.96f), new(15.01f, 51.18f), new(15.01f, 30.39f),
-        new(27.94f, 18.21f), new(50.01f, 18.21f), new(72.08f, 18.21f), new(85.02f, 30.39f),
-    ];
+    /// <summary>Visual centre of the face and body (the eye pair and the body are both symmetric about FaceX).</summary>
+    public const double FaceX = 52.55, BodyCy = 51.18;
 
-    public Vector2 Anchor = new(50f, 84.14f);          // base contact point: never moves in Y
+    /// <summary>
+    /// Mochi body, 12 Bézier control points N0 h h N1 h h N2 h h N3 h h (right, bottom, left, top): a domed head, a soft
+    /// flat base and the widest point just below the centre, symmetric about <see cref="FaceX"/>.
+    /// </summary>
+    public static readonly Vector2[] DefaultBodyPoints = BuildMochiPoints();
+
+    private static Vector2[] BuildMochiPoints()
+    {
+        const float x0 = (float)FaceX, w = 35f, top = 18.21f, bottom = 84.14f, belly = 56f;
+        var lowY = belly + 0.64f * (bottom - belly);
+        var upY = belly - 0.56f * (belly - top);
+        return
+        [
+            new(x0 + w, belly), new(x0 + w, lowY), new(x0 + w * 0.70f, bottom), new(x0, bottom),
+            new(x0 - w * 0.70f, bottom), new(x0 - w, lowY), new(x0 - w, belly), new(x0 - w, upY),
+            new(x0 - w * 0.56f, top), new(x0, top), new(x0 + w * 0.56f, top), new(x0 + w, upY),
+        ];
+    }
+
+    public Vector2 Anchor = new((float)FaceX, 84.14f); // base contact point: never moves in Y
     public Vector2 EyeRestL = new(41.8f, 44.8f);
-    public Vector2 EyeRestR = new(63.3f, 45.7f);
+    public Vector2 EyeRestR = new(63.3f, 44.8f);       // on the same baseline as the left eye
     public Vector2 EyeMaxL = new(4.8f, 4.0f);          // elliptical gaze limits
     public Vector2 EyeMaxR = new(4.6f, 3.8f);
-    public Vector2 NeckPivot = new(50f, 62f);          // head-roll pivot
+    public Vector2 NeckPivot = new((float)FaceX, 62f); // head-roll pivot
     public float BodyHeight = 65.93f;                  // 84.14 - 18.21
     public float ProxNear = 40f, ProxFar = 130f;       // cursor proximity range, viewBox units
     public Vector2[]? BodyPoints;                      // rest control points for the contour wobble

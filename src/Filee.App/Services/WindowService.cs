@@ -76,6 +76,8 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     private HideWindow? _hideWindow;
 
+    private AnnotateWindow? _annotateWindow;
+
     private ImageEditWindow? _imageEdit;
 
 
@@ -83,6 +85,8 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     internal ClipWindow? ClipWindow => _clipWindow;
 
     internal HideWindow? HideWindow => _hideWindow;
+
+    internal AnnotateWindow? AnnotateWindow => _annotateWindow;
 
     internal ImageEditWindow? ImageEdit => _imageEdit;
 
@@ -103,6 +107,50 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     internal PdfPageEditorWindow? PdfPageEditor => _pdfPageEditor;
 
 
+
+    private AskPagesWindow? _askPages;
+
+    internal AskPagesWindow? AskPages => _askPages;
+
+    /// <summary>
+    /// "Choose pages" (#981) for one PDF dropped on <paramref name="preset"/>: its page count (read first; none when the
+    /// file can't be read, then only the form of the range is checked), the range and, for a PDF target, one PDF or one
+    /// file per page. <paramref name="index"/> of <paramref name="total"/> PDFs dropped together. Null when cancelled.
+    /// </summary>
+    public async Task<PageChoice?> AskPagesAsync(string path, Preset preset, int index = 0, int total = 1)
+    {
+        _askPages?.Close();
+        var count = await Task.Run(() => CountPages(path));
+        var vm = new AskPagesViewModel(path, count, preset, loc, index, total);
+        var dialog = new AskPagesWindow { DataContext = vm };
+        dialog.StartPages.Content = loc.DisplayName(preset);
+        PrepareWindow(dialog);
+        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        dialog.Closed += (_, _) =>
+        {
+            if (_askPages == dialog) _askPages = null;
+            closed.TrySetResult();
+        };
+        _askPages = dialog;
+        dialog.Show();
+        dialog.Activate();
+        await closed.Task;
+        return dialog.Result;
+    }
+
+    /// <summary>The pages of a PDF, or null when it can't be read (damaged, locked with a password, gone).</summary>
+    internal int? CountPages(string path)
+    {
+        try
+        {
+            return Filee.Engines.Pdf.PdfPageTools.PageCount(path);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            services.GetService<ILogger<WindowService>>()?.LogInformation(ex, "Could not count the pages of {File}", Path.GetFileName(path));
+            return null;
+        }
+    }
 
     private void PrepareWindow(Window window)
     {
@@ -306,6 +354,10 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         else if (preset.IsHideTool)
 
             ShowHideWindow(files, preset, near);
+
+        else if (preset.IsAnnotateTool)
+
+            ShowAnnotateWindow(files, preset);
 
         else if (preset.IsImageEditTool)
 
@@ -523,6 +575,34 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
         win.Activate();
 
+    }
+
+    /// <summary>
+    /// Opens the "Annotate" window on the pictures among the files. Each picture is written by an ordinary conversion,
+    /// shown in the toast.
+    /// </summary>
+    public void ShowAnnotateWindow(IReadOnlyList<string> files, Preset preset)
+    {
+        var pictures = files.Where(f => FormatRegistry.Detect(f) is { } format && HideService.CanOpen(format.Id)).ToList();
+        if (pictures.Count == 0)
+            return;
+        _annotateWindow?.Close();
+        var conversions = services.GetRequiredService<ConversionService>();
+        var planner = services.GetRequiredService<ConverterCatalog>().CreatePlanner();
+        var vm = new AnnotateViewModel(pictures, preset, loc, services.GetRequiredService<UserDataStore>(),
+            path => AnnotateTool.TargetFor(FormatRegistry.Detect(path)?.Id ?? "", planner),
+            (path, conversion) => conversions.Start([path], conversion), services.GetService<ILogger<AnnotateViewModel>>());
+        var win = new AnnotateWindow { DataContext = vm };
+        PrepareWindow(win);
+        win.Closed += (_, _) =>
+        {
+            if (_annotateWindow == win)
+                _annotateWindow = null;
+            trimmer.Request();
+        };
+        _annotateWindow = win;
+        win.Show();
+        win.Activate();
     }
 
 
