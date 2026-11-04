@@ -178,6 +178,8 @@ internal sealed class BlobatarBrushCache
     public IBrush GlintPrimary = Brushes.White;
     public IBrush GlintAmbient = Brushes.Transparent;
     public IBrush Blush = Brushes.Transparent;
+    public IBrush ShadowBrush = Brushes.Transparent;
+    public IBrush ShadowCoreBrush = Brushes.Transparent;
     public IPen RimPen = null!;
     public IPen GlowPen = null!;
     public IPen OutlinePen = null!;
@@ -244,6 +246,25 @@ internal sealed class BlobatarBrushCache
         var ec = BlobatarRenderer.EyeColor;
         var mouth = Color.FromRgb(Mix(ec.R, look.Rim.R, look.Wn), Mix(ec.G, look.Rim.G, look.Wn), Mix(ec.B, look.Rim.B, look.Wn));
         MouthPen = new Pen(new SolidColorBrush(mouth), 1.2, lineCap: PenLineCap.Round);
+
+        // Pre-cached shadow gradient brushes:
+        var shadowColor = look.Wn > 0.1 ? look.Rim : Color.FromRgb(0x18, 0x14, 0x24);
+        ShadowBrush = new RadialGradientBrush
+        {
+            GradientStops =
+            {
+                new GradientStop(Color.FromArgb(255, shadowColor.R, shadowColor.G, shadowColor.B), 0.0),
+                new GradientStop(Color.FromArgb(0, shadowColor.R, shadowColor.G, shadowColor.B), 1.0),
+            },
+        };
+        ShadowCoreBrush = new RadialGradientBrush
+        {
+            GradientStops =
+            {
+                new GradientStop(Color.FromArgb(255, 0, 0, 0), 0.0),
+                new GradientStop(Color.FromArgb(0, 0, 0, 0), 1.0),
+            },
+        };
     }
 }
 
@@ -280,6 +301,20 @@ public static class BlobatarRenderer
 
     private static Geometry? _eyeGeometry;
     private static Geometry EyeGeometry => _eyeGeometry ??= new EllipseGeometry(new Rect(-EyeRx, -EyeRy, EyeRx * 2, EyeRy * 2));
+
+    private static Geometry? _unitSmileGeometry;
+    private static Geometry UnitSmileGeometry => _unitSmileGeometry ??= BuildUnitSmile();
+    private static Geometry BuildUnitSmile()
+    {
+        var g = new StreamGeometry();
+        using (var c = g.Open())
+        {
+            c.BeginFigure(new Point(-2.6, 0), false);
+            c.QuadraticBezierTo(new Point(0, 4.2), new Point(2.6, 0));
+            c.EndFigure(false);
+        }
+        return g;
+    }
 
     public static readonly Color EyeColor = Color.FromRgb(0x0F, 0x0E, 0x18);
     private static IBrush? _eyeBrush;
@@ -335,7 +370,7 @@ public static class BlobatarRenderer
         {
             using (context.PushTransform(plump))
             {
-                DrawShadow(context, look, f);
+                DrawShadow(context, cache, look, f);
 
                 var body = BuildBody(f);
                 using (context.PushTransform(f.Body.ToAvalonia()))
@@ -371,44 +406,24 @@ public static class BlobatarRenderer
 
     private static void DrawMouth(DrawingContext context, BlobatarBrushCache cache, double smile)
     {
-        var g = new StreamGeometry();
-        using (var c = g.Open())
-        {
-            c.BeginFigure(new Point(FaceX - 2.6, 56.8), false);
-            c.QuadraticBezierTo(new Point(FaceX, 56.8 + 4.2 * smile), new Point(FaceX + 2.6, 56.8));
-            c.EndFigure(false);
-        }
+        using (context.PushTransform(Matrix.CreateScale(1.0, smile) * Matrix.CreateTranslation(FaceX, 56.8)))
         using (context.PushOpacity(Math.Min(1.0, smile * 1.5)))
-            context.DrawGeometry(null, cache.MouthPen, g);
+            context.DrawGeometry(null, cache.MouthPen, UnitSmileGeometry);
     }
 
-    private static void DrawShadow(DrawingContext context, CircadianLookFrame look, BlobatarFrame f)
+    private static void DrawShadow(DrawingContext context, BlobatarBrushCache cache, CircadianLookFrame look, BlobatarFrame f)
     {
         var sh = CircadianLook.Shadow(look, f.Sx, f.Sy, f.Hop);
         var at = new Point(FaceX + sh.Dx, 84.5);
-        if (sh.Alpha > 0.003)
+        if (sh.Alpha > 0.003 && cache.ShadowBrush is not null)
         {
-            var brush = new RadialGradientBrush
-            {
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb((byte)Math.Clamp(sh.Alpha * 0.8f * 255f, 0, 255), sh.Color.R, sh.Color.G, sh.Color.B), 0.0),
-                    new GradientStop(Color.FromArgb(0, sh.Color.R, sh.Color.G, sh.Color.B), 1.0),
-                },
-            };
-            context.DrawEllipse(brush, null, at, sh.Rx, sh.Ry * 1.3);
+            using (context.PushOpacity(Math.Clamp(sh.Alpha * 0.8, 0.0, 1.0)))
+                context.DrawEllipse(cache.ShadowBrush, null, at, sh.Rx, sh.Ry * 1.3);
         }
-        if (sh.CoreAlpha > 0.01)
+        if (sh.CoreAlpha > 0.01 && cache.ShadowCoreBrush is not null)
         {
-            var core = new RadialGradientBrush
-            {
-                GradientStops =
-                {
-                    new GradientStop(Color.FromArgb((byte)Math.Clamp(sh.CoreAlpha * 255f, 0, 255), 0, 0, 0), 0.0),
-                    new GradientStop(Color.FromArgb(0, 0, 0, 0), 1.0),
-                },
-            };
-            context.DrawEllipse(core, null, at, sh.Rx * 0.55, sh.Ry * 0.8);
+            using (context.PushOpacity(Math.Clamp(sh.CoreAlpha, 0.0, 1.0)))
+                context.DrawEllipse(cache.ShadowCoreBrush, null, at, sh.Rx * 0.55, sh.Ry * 0.8);
         }
     }
 
