@@ -503,12 +503,20 @@ public sealed class BlobatarPhysics
         var pts = Layout.BodyPoints;
         if (pts is null || _contour is null || ReduceMotion) return null;
         var aw = .6f + 1.0f * A;
+        var breathWave = MathF.Sin(BlobMath.Tau * _breathCyc);
         for (var i = 0; i < pts.Length; i++)
         {
             var w = Math.Clamp((Layout.Anchor.Y - pts[i].Y) / Layout.BodyHeight, 0f, 1f);   // the base stays pinned
             var dir = pts[i] - _centroid; var l = dir.Length();
             dir = l > 1e-3f ? dir / l : Vector2.Zero;
-            _contour[i] = dir * (aw * MathF.Sin(_ph![i]) * w);
+
+            // Multi-harmonic fluid jelly physics:
+            var h1 = MathF.Sin(_ph![i]);
+            var h2 = breathWave * 0.45f;
+            var angle = MathF.Atan2(dir.Y, dir.X);
+            var h3 = MathF.Sin(angle * 2.0f + BlobMath.Tau * _breathCyc * 1.5f) * 0.25f;
+
+            _contour[i] = dir * (aw * (h1 + h2 + h3) * w);
         }
         return _contour;
     }

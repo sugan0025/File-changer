@@ -68,6 +68,7 @@ public partial class RadialWindow : Window
         }
         _dragOverEvents = 0;
         _lastDragAt = null;
+        Donut.PulseDragEnter();
         FilesEntered?.Invoke(files);
         OnDragOver(sender, e);
     }
@@ -99,6 +100,8 @@ public partial class RadialWindow : Window
         DragSummary?.Invoke(_dragOverEvents, hit, Donut.LitAmount(hit.Index), true);
         Donut.CollapseGroup();
         Donut.SetExternalHighlight(-1);
+        if (Donut.Converts(hit))
+            Donut.PulseCenter();
         e.DragEffects = Donut.Converts(hit) ? DragDropEffects.Copy : DragDropEffects.None;
         var dropped = DraggedFiles.Read(e.DataTransfer, forDrop: true);
         if (Dropped is { } handler)

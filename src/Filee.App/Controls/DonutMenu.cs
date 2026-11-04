@@ -281,6 +281,20 @@ public sealed partial class DonutMenu : Control
         StartAnimation();
     }
 
+    /// <summary>Wobble and squish reaction when files enter the wheel.</summary>
+    public void PulseDragEnter()
+    {
+        if (!Motion.Enabled)
+            return;
+        if (ShowCenterMascot)
+        {
+            _mascotState.SetDragOver(true);
+            _mascotState.TriggerTiltWobble(5.0);
+            _mascotState.TriggerBounce(0.35);
+        }
+        StartAnimation();
+    }
+
     /// <summary>Highlights a slice from outside (drag-over in the live toolbar). -1 clears.</summary>
     public void SetExternalHighlight(int index, bool centerHot = false)
     {
@@ -580,7 +594,10 @@ public sealed partial class DonutMenu : Control
             }
             else if (hit.Kind is DonutHitKind.Segment or DonutHitKind.SubSegment)
             {
-                _mascotState.LookAt(rel);
+                var midAngle = hit.Kind == DonutHitKind.Segment
+                    ? DonutGeometry.MidAngle(hit.Index, Count)
+                    : DonutGeometry.AngleOf(Center, p);
+                _mascotState.LookAt(new Point(Math.Cos(midAngle) * 120.0, Math.Sin(midAngle) * 120.0));
                 _mascotState.SetTone(BlobatarTone.Alert);
             }
             else

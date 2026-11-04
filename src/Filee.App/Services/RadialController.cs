@@ -1087,6 +1087,7 @@ public sealed class RadialController(
 
 
                 sounds?.PlayDropCatch();
+                window.DonutControl.PulseCenter();
 
 
 

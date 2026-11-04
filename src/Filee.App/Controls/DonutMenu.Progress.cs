@@ -117,7 +117,14 @@ public sealed partial class DonutMenu
             return;
         }
         if (outcome == DonutProgressOutcome.Succeeded)
+        {
             _targetProgress = 1;
+            if (ShowCenterMascot)
+            {
+                _mascotState.SetTone(BlobatarTone.Celebration);
+                _mascotState.Celebrate();
+            }
+        }
         _pendingOutcome = outcome;
         _progressDone = done;
         StartAnimation();
