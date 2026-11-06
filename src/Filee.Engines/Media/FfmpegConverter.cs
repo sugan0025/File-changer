@@ -672,19 +672,28 @@ public sealed partial class FfmpegConverter(ILogger? logger = null) : IConverter
     /// True when <paramref name="ffmpeg"/> has the filter <paramref name="name"/> (<c>ffmpeg -filters</c>, cached per
     /// executable): a copy the user picked may lack zscale. Assumed when the list can't be read.
     /// </summary>
-    internal static bool HasFilter(string ffmpeg, string name) =>
-        Filters.GetOrAdd($"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}", _ =>
+    internal static bool HasFilter(string ffmpeg, string name)
+    {
+        var key = $"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}";
+        if (Filters.TryGetValue(key, out var cached))
+            return cached is null || cached.Contains(name);
+
+        IReadOnlySet<string>? filters = null;
+        try
         {
-            try
-            {
-                var result = FfmpegRunner.RunBriefly(ffmpeg, ["-hide_banner", "-filters"], QueryTimeout);
-                return result.ExitCode == 0 ? ParseFilters(result.StandardOutput) : null;
-            }
-            catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
-            {
-                return null;
-            }
-        }) is not { } filters || filters.Contains(name);
+            var result = FfmpegRunner.RunBriefly(ffmpeg, ["-hide_banner", "-filters"], QueryTimeout);
+            if (result.ExitCode == 0)
+                filters = ParseFilters(result.StandardOutput);
+        }
+        catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or System.ComponentModel.Win32Exception or IOException)
+        {
+        }
+
+        if (filters is not null)
+            Filters.TryAdd(key, filters);
+
+        return filters is null || filters.Contains(name);
+    }
 
     /// <summary>The filter names in <c>ffmpeg -filters</c> output (" .S zscale  V->V  Apply resizing, …").</summary>
     internal static IReadOnlySet<string> ParseFilters(string list) =>

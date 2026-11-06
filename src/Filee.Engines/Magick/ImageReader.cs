@@ -180,6 +180,6 @@ internal static class ImageReader
             return null;
         var width = BinaryPrimitives.ReadUInt32BigEndian(header[14..]);
         var height = BinaryPrimitives.ReadUInt32BigEndian(header[18..]);
-        return width is > 0 and <= 524_288 && height is > 0 and <= 524_288 ? (width, height) : null;
+        return width is > 0 and <= 131_072 && height is > 0 and <= 262_144 && (ulong)width * height <= 536_870_912 ? (width, height) : null;
     }
 }

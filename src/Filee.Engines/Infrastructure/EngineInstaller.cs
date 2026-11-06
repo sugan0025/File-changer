@@ -576,9 +576,28 @@ public sealed class EngineInstaller
     {
         RequiredProgramFolder(id, source, _components[id].Kind is "msi" or "conda" or "nsis" || OperatingSystem.IsWindows());
         var target = FolderOf(id);
+        string? backup = null;
         if (Directory.Exists(target))
-            Directory.Delete(target, recursive: true);
-        Directory.Move(source, target);
+        {
+            backup = Path.Combine(Path.GetDirectoryName(target)!, $"{Path.GetFileName(target)}.old-{Guid.NewGuid():N}");
+            Directory.Move(target, backup);
+        }
+        try
+        {
+            Directory.Move(source, target);
+            if (backup is not null)
+            {
+                try { Directory.Delete(backup, recursive: true); } catch { }
+            }
+        }
+        catch
+        {
+            if (backup is not null && !Directory.Exists(target))
+            {
+                try { Directory.Move(backup, target); } catch { }
+            }
+            throw;
+        }
     }
 
     // ───────────────────────── Layout ─────────────────────────

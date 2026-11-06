@@ -86,7 +86,7 @@ public sealed class PandocConverter : IConverter
 
     public string Id => "pandoc";
     public string DisplayName => "Pandoc";
-    public int MaxParallelism => 0;
+    public int MaxParallelism => Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
     public IReadOnlyList<ConversionEdge> Edges { get; } =
     [
@@ -147,7 +147,7 @@ public sealed class PandocConverter : IConverter
         using (ProgressEstimate.Start(progress, TimeSpan.FromSeconds(1.5)))
             result = await ProcessRunner.RunAsync(pandoc, args, Timeout, cancellationToken,
                 workingDirectory: media is null ? Path.GetDirectoryName(input) : outputFolder);
-        if (!File.Exists(output))
+        if (result.ExitCode != 0 || !File.Exists(output))
             throw new InvalidOperationException($"Pandoc failed (exit {result.ExitCode}). {result.StandardError.Trim()}");
         if (media is not null)
             MetafilesToPng(output, Path.Combine(outputFolder, media), step.Preset);
@@ -181,9 +181,13 @@ public sealed class PandocConverter : IConverter
                 continue;
             }
             var from = Path.GetRelativePath(Path.GetDirectoryName(output)!, metafile).Replace('\\', '/');
-            text = text.Replace(from, Path.ChangeExtension(from, ".png"), StringComparison.Ordinal);
-            File.Delete(metafile);
-            changed = true;
+            var to = Path.ChangeExtension(from, ".png");
+            if (text.Contains(from, StringComparison.Ordinal))
+            {
+                text = text.Replace(from, to, StringComparison.Ordinal);
+                File.Delete(metafile);
+                changed = true;
+            }
         }
         if (changed)
             File.WriteAllText(output, text);
@@ -306,8 +310,7 @@ public sealed class PandocConverter : IConverter
 
     /// <summary>Uses the selected copy, a bundled copy, then the system installation.</summary>
     internal static string? Locate() =>
-        EngineEnvironment.OwnProgram("pandoc", "pandoc.exe") ?? LocateBundled() ?? EngineEnvironment.SystemProgram("pandoc", "pandoc.exe");
-
-    private static string? LocateBundled() =>
-        EngineEnvironment.BundledProgram("pandoc", "pandoc.exe");
+        EngineEnvironment.OwnProgram("pandoc", "pandoc.exe")
+        ?? EngineEnvironment.BundledProgram("pandoc", "pandoc.exe")
+        ?? EngineEnvironment.SystemProgram("pandoc", "pandoc.exe");
 }

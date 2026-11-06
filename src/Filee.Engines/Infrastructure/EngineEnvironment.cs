@@ -1,3 +1,4 @@
+using Filee.Core.Platform;
 // Shared context for engines: where Filee's own engine copies live and where engines keep their state.
 // Built-in engines never use software installed on the system (Microsoft Office, Hancom Office). The optional
 // engines (FFmpeg, calibre, Pandoc, Ghostscript, LibreOffice, Tesseract) are looked up in this order: a copy the user chose in
@@ -216,7 +217,7 @@ public sealed class EngineEnvironment(string dataDirectory)
                 {
                     if (Directory.Exists("/opt"))
                         folders.AddRange(Directory.EnumerateDirectories("/opt", "libreoffice*")
-                            .OrderDescending(StringComparer.Ordinal).Select(p => Path.Combine(p, "program")));
+                            .OrderByDescending(d => d, NaturalComparer.Instance).Select(p => Path.Combine(p, "program")));
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
             }
@@ -247,7 +248,7 @@ public sealed class EngineEnvironment(string dataDirectory)
                     {
                         var gs = Path.Combine(root, "gs");
                         if (Directory.Exists(gs))
-                            folders.AddRange(Directory.EnumerateDirectories(gs).OrderByDescending(d => d, StringComparer.OrdinalIgnoreCase)
+                            folders.AddRange(Directory.EnumerateDirectories(gs).OrderByDescending(d => d, NaturalComparer.Instance)
                                 .Select(d => Path.Combine(d, "bin")));
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

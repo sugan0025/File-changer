@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 // Office documents via LibreOffice in headless mode (MPL-2.0): the optional fallback for formats the built-in engines
 // don't handle (DOC, XLS, PPT, OpenDocument, ...) and the only reader of rarer ones: Works / WPS, WordPerfect, Lotus
 // Word Pro, AbiWord, Apple Pages / Numbers / Keynote, StarOffice, WPS Office, ClarisWorks / AppleWorks, MacWrite, T602,
@@ -486,22 +487,28 @@ public sealed class LibreOfficeConverter : IConverter
     }
 
     /// <summary>Detects the H2Orestart extension in the installation (shared) extension folders.</summary>
+    private static readonly ConcurrentDictionary<string, bool> H2OrestartCache = new(StringComparer.OrdinalIgnoreCase);
+
     private static bool HasH2Orestart(string soffice)
     {
-        try
+        var key = $"{soffice}|{File.GetLastWriteTimeUtc(soffice).Ticks}";
+        return H2OrestartCache.GetOrAdd(key, _ =>
         {
-            soffice = File.ResolveLinkTarget(soffice, returnFinalTarget: true)?.FullName ?? soffice;
-            var root = Directory.GetParent(Path.GetDirectoryName(soffice)!)!.FullName;
-            foreach (var sub in new[] { "share/uno_packages", "share/extensions", "Resources/uno_packages", "Resources/extensions" })
+            try
             {
-                var dir = Path.Combine(root, sub);
-                if (Directory.Exists(dir) &&
-                    Directory.EnumerateFileSystemEntries(dir, "*H2Orestart*", SearchOption.AllDirectories).Any())
-                    return true;
+                soffice = File.ResolveLinkTarget(soffice, returnFinalTarget: true)?.FullName ?? soffice;
+                var root = Directory.GetParent(Path.GetDirectoryName(soffice)!)!.FullName;
+                foreach (var sub in new[] { "share/uno_packages", "share/extensions", "Resources/uno_packages", "Resources/extensions" })
+                {
+                    var dir = Path.Combine(root, sub);
+                    if (Directory.Exists(dir) &&
+                        Directory.EnumerateFileSystemEntries(dir, "*H2Orestart*", SearchOption.AllDirectories).Any())
+                        return true;
+                }
             }
-        }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
-        return false;
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return false;
+        });
     }
 }

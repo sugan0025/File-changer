@@ -13,6 +13,7 @@ internal static class PackageRepacker
 {
     private const string ContentTypes = "[Content_Types].xml";
     private const string Mimetype = "mimetype";
+    private const long MaxPackageTotalBytes = 1024L * 1024 * 1024; // 1 GB max uncompressed package content
 
     /// <summary>The file is a ZIP that holds <c>[Content_Types].xml</c> (Office Open XML) or <c>mimetype</c> (OpenDocument).</summary>
     public static bool IsPackage(string path)
@@ -25,6 +26,20 @@ internal static class PackageRepacker
         catch (InvalidDataException) { return false; }
         catch (IOException) { return false; }
         catch (UnauthorizedAccessException) { return false; }
+    }
+
+    private static void CopyBounded(Stream from, Stream to, string name)
+    {
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = from.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            total += read;
+            if (total > MaxPackageTotalBytes)
+                throw new InvalidDataException($"Office package part '{name}' exceeds safe decompression size limits.");
+            to.Write(buffer, 0, read);
+        }
     }
 
     /// <summary>
@@ -54,7 +69,7 @@ internal static class PackageRepacker
                 copy.LastWriteTime = part.LastWriteTime;
             using var from = part.Open();
             using var to = copy.Open();
-            from.CopyTo(to);
+            CopyBounded(from, to, part.FullName);
         }
     }
 }

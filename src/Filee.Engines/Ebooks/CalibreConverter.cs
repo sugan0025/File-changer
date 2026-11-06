@@ -132,9 +132,7 @@ public sealed partial class CalibreConverter : IConverter
     /// demand), else a calibre already on the PC.
     /// </summary>
     internal static string? Locate() =>
-        EngineEnvironment.OwnProgram("calibre", "ebook-convert.exe") ?? LocateBundled()
+        EngineEnvironment.OwnProgram("calibre", "ebook-convert.exe")
+        ?? EngineEnvironment.BundledProgram("calibre", "ebook-convert.exe")
         ?? EngineEnvironment.SystemProgram("calibre", "ebook-convert.exe");
-
-    private static string? LocateBundled() =>
-        EngineEnvironment.BundledProgram("calibre", "ebook-convert.exe");
 }

@@ -37,7 +37,9 @@ internal static class CoverArt
             var folder = Path.Combine(workDirectory, "cover-" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(folder);
             var raw = Path.Combine(folder, "cover.bin");
-            if (!await RunAsync(ffmpeg, ["-i", input, "-map", $"0:{stream}", "-c", "copy", "-frames:v", "1", "-f", "image2", raw], cancellationToken))
+            if (!await RunAsync(ffmpeg, ["-i", Path.GetFullPath(input), "-map", $"0:{stream}", "-c", "copy", "-frames:v", "1", "-f", "image2", raw], cancellationToken))
+                return null;
+            if (new FileInfo(raw) is { Exists: true, Length: > 32 * 1024 * 1024 })
                 return null;
             var image = await File.ReadAllBytesAsync(raw, cancellationToken);
             var mime = MimeOf(image);

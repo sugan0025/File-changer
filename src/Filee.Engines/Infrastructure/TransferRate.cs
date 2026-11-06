@@ -8,7 +8,8 @@ namespace Filee.Engines.Infrastructure;
 /// <param name="settle">How long the measured span must be before a speed is given (default half a second).</param>
 public sealed class TransferRate(TimeSpan window, TimeSpan? settle = null)
 {
-    private readonly Queue<(TimeSpan Time, long Bytes)> _samples = new();
+    private readonly List<(TimeSpan Time, long Bytes)> _samples = new();
+    private int _head;
     private readonly double _settleSeconds = (settle ?? TimeSpan.FromSeconds(0.5)).TotalSeconds;
 
     public TransferRate()
@@ -22,11 +23,16 @@ public sealed class TransferRate(TimeSpan window, TimeSpan? settle = null)
     /// <summary>Records that <paramref name="bytes"/> bytes were transferred in total after <paramref name="elapsed"/>.</summary>
     public void Add(TimeSpan elapsed, long bytes)
     {
-        _samples.Enqueue((elapsed, bytes));
+        _samples.Add((elapsed, bytes));
         // Keep one sample older than the window as the start of the measured span.
-        while (_samples.Count > 2 && elapsed - _samples.ElementAt(1).Time >= window)
-            _samples.Dequeue();
-        var (startTime, startBytes) = _samples.Peek();
+        while (_samples.Count - _head > 2 && elapsed - _samples[_head + 1].Time >= window)
+            _head++;
+        if (_head > 64)
+        {
+            _samples.RemoveRange(0, _head);
+            _head = 0;
+        }
+        var (startTime, startBytes) = _samples[_head];
         var seconds = (elapsed - startTime).TotalSeconds;
         BytesPerSecond = seconds >= _settleSeconds && seconds > 0 ? Math.Max(0, bytes - startBytes) / seconds : BytesPerSecond;
     }

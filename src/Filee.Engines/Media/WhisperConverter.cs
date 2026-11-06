@@ -113,7 +113,7 @@ public sealed partial class WhisperConverter : IConverter
                     return candidate;
             }
 
-            var anyBin = Directory.GetFiles(dir, "*.bin").FirstOrDefault();
+            var anyBin = Directory.GetFiles(dir, "ggml-*.bin").FirstOrDefault();
             if (anyBin is not null)
                 return anyBin;
         }
@@ -141,14 +141,13 @@ public sealed partial class WhisperConverter : IConverter
 
         // 1. Extract 16kHz mono WAV for Whisper inference (works for both video and audio files)
         var audioWav = Path.Combine(step.WorkDirectory, $"whisper_audio_{Guid.NewGuid():N}.wav");
-        var extractArgs = new[]
-        {
-            "-hide_banner", "-nostdin", "-nostats", "-v", "error", "-y",
-            "-i", step.InputPath,
+        string[] extractArgs = [
+            .. MediaEncoding.Common,
+            "-i", Path.GetFullPath(step.InputPath),
             "-vn", "-ar", "16000", "-ac", "1",
             "-progress", "pipe:1",
             audioWav
-        };
+        ];
 
         var extractResult = await FfmpegRunner.RunAsync(ffmpeg, extractArgs, null, cancellationToken, StallTimeout);
         if (extractResult.ExitCode != 0 || !File.Exists(audioWav))

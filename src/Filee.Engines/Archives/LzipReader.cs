@@ -99,11 +99,14 @@ internal static class LzipReader
             input.ReadExactly(header);
             if (header[0] != 'L' || header[1] != 'Z' || header[2] != 'I' || header[3] != 'P' || header[4] != 1)
                 throw InvalidLzip(name);
-            members.Insert(0, new Member(start, size, crc, dataSize));
+            if (members.Count >= ArchiveSafety.MaxEntries)
+                throw new InvalidDataException($"{name} has more than {ArchiveSafety.MaxEntries:N0} entries; Filee does not unpack it.");
+            members.Add(new Member(start, size, crc, dataSize));
             end = start;
         }
         if (members.Count == 0)
             throw InvalidLzip(name);
+        members.Reverse();
         return members;
     }
 

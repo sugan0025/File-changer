@@ -117,7 +117,7 @@ public sealed class RhwpConverter : IConverter, ITextShapingCheck
             ProcessResult result;
             using (ProgressEstimate.Start(progress, step.To == "pdf" ? Typical(characters, text, direct: false) : TypicalDuration))
                 result = await ProcessRunner.RunAsync(exe, arguments, TimeLimit(text), cancellationToken);
-            if (!Written(temp))
+            if (result.ExitCode != 0 || !Written(temp))
                 throw new InvalidOperationException($"rhwp failed (exit {result.ExitCode}). {result.StandardError.Trim()}");
         }
         catch (TimeoutException ex)
@@ -160,7 +160,9 @@ public sealed class RhwpConverter : IConverter, ITextShapingCheck
         if (step.From == "hwp")
         {
             hwpx = Path.Combine(step.WorkDirectory, $"rhwp-{Guid.NewGuid():N}.hwpx");
-            await ProcessRunner.RunAsync(exe, ["export-hwpx", step.InputPath, hwpx], TimeLimit(TextSize(step.InputPath)), cancellationToken);
+            var hwpxResult = await ProcessRunner.RunAsync(exe, ["export-hwpx", step.InputPath, hwpx], TimeLimit(TextSize(step.InputPath)), cancellationToken);
+            if (hwpxResult.ExitCode != 0 || !File.Exists(hwpx))
+                throw new InvalidOperationException($"rhwp failed to export HWPX (exit {hwpxResult.ExitCode}). {hwpxResult.StandardError.Trim()}");
             if (!File.Exists(hwpx) || new FileInfo(hwpx).Length == 0)
                 return step.InputPath;
         }

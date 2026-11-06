@@ -17,11 +17,17 @@ public sealed class MagickImageConverter : IConverter, ITiffMerger, IImageTransf
     {
         // Limit OpenMP threads inside Magick so concurrent jobs in Parallel.ForEachAsync don't oversubscribe the CPU
         ResourceLimits.Thread = 1;
+        // Enforce hard bounds on dimensions, raster area, memory and disk caches to prevent decompression/allocation bombs
+        ResourceLimits.Width = 131_072;
+        ResourceLimits.Height = 262_144;
+        ResourceLimits.Area = 536_870_912; // 512 megapixels
+        ResourceLimits.Memory = 2_147_483_648; // 2 GB RAM cache
+        ResourceLimits.Disk = 4_294_967_296; // 4 GB disk cache
     }
 
     public string Id => "magick";
     public string DisplayName => "ImageMagick";
-    public int MaxParallelism => 0;
+    public int MaxParallelism => Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
     public bool Transforms(string from, string to) => true;
 

@@ -85,6 +85,11 @@ public static partial class CopyVersions
                 process.Kill(entireProcessTree: true);
                 return "";
             }
+            if (!Task.WhenAll(output, errors).Wait(2000))
+            {
+                process.Kill(entireProcessTree: true);
+                return "";
+            }
             return output.Result + "\n" + errors.Result;
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)

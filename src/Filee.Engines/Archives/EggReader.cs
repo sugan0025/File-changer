@@ -244,6 +244,8 @@ internal static class EggReader
                     throw ArchiveSafety.Encrypted(archiveName);
                 case FileNameMagic when entry is not null:
                     var nameLength = (flags & 0x01) != 0 ? (int)reader.ReadUInt32() : reader.ReadUInt16();
+                    if (nameLength is < 0 or > 65_536)
+                        throw new InvalidDataException($"{archiveName} has an invalid or corrupted file name length.");
                     if ((flags & 0x04) != 0)
                         throw ArchiveSafety.Encrypted(archiveName);
                     Encoding encoding = new UTF8Encoding(false);
@@ -299,24 +301,3 @@ internal static class EggReader
         (flags & 0x01) != 0 ? reader.ReadUInt32() : reader.ReadUInt16();
 }
 
-/// <summary>Forwards writes to a stream without closing it when disposed.</summary>
-internal sealed class NonClosingStream(Stream inner) : Stream
-{
-    public override bool CanRead => false;
-    public override bool CanSeek => false;
-    public override bool CanWrite => true;
-    public override long Length => inner.Length;
-
-    public override long Position
-    {
-        get => inner.Position;
-        set => throw new NotSupportedException();
-    }
-
-    public override void Write(byte[] buffer, int offset, int count) => inner.Write(buffer, offset, count);
-    public override void Write(ReadOnlySpan<byte> buffer) => inner.Write(buffer);
-    public override void Flush() => inner.Flush();
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-    public override void SetLength(long value) => throw new NotSupportedException();
-}

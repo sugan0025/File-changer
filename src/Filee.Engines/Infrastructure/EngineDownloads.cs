@@ -8,7 +8,7 @@ namespace Filee.Engines.Infrastructure;
 
 /// <summary>One download from engines.json.</summary>
 /// <param name="Kind">
-/// Archive format: zip, tar.gz, tar.xz, dmg, msi, oxt, conda or nsis.
+/// Archive or artifact format: zip, tar.gz, tar.xz, dmg, msi, oxt, conda, nsis, traineddata, model or bin.
 /// </param>
 /// <param name="Size">Download size in bytes.</param>
 public sealed record EngineComponent(string Id, string Version, string Url, string Sha256, long Size, string Kind);

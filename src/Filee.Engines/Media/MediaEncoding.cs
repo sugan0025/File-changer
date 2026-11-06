@@ -132,7 +132,7 @@ internal static partial class MediaEncoding
     private static readonly string[] SourceOnlyTags = ["major_brand", "minor_version", "compatible_brands"];
 
     /// <summary>Global arguments of every run: no banner, no keyboard input, only errors on stderr, overwrite.</summary>
-    internal static readonly string[] Common = ["-hide_banner", "-nostdin", "-nostats", "-v", "error", "-y"];
+    internal static readonly string[] Common = ["-hide_banner", "-nostdin", "-nostats", "-v", "error", "-y", "-protocol_whitelist", "file,crypto,data,concat,pipe,lavfi,subfile"];
 
     /// <summary>
     /// The ffmpeg runs that convert <paramref name="input"/> into <paramref name="output"/> in format

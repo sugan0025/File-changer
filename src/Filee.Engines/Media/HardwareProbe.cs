@@ -39,9 +39,21 @@ internal static class HardwareProbe
     }
 
     /// <summary>The cached result of the test encode of <paramref name="encoder"/> (run on first use).</summary>
-    internal static Task<bool> WorksAsync(string ffmpeg, HardwareEncoder encoder, bool tenBit, ILogger logger) =>
-        Results.GetOrAdd($"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}|{encoder.Name}|{encoder.RateControl}|{(tenBit ? 10 : 8)}",
-            _ => new Lazy<Task<bool>>(() => ProbeAsync(ffmpeg, encoder, tenBit, logger))).Value;
+    internal static async Task<bool> WorksAsync(string ffmpeg, HardwareEncoder encoder, bool tenBit, ILogger logger)
+    {
+        var key = $"{ffmpeg}|{File.GetLastWriteTimeUtc(ffmpeg).Ticks}|{encoder.Name}|{encoder.RateControl}|{(tenBit ? 10 : 8)}";
+        var lazy = Results.GetOrAdd(key, _ => new Lazy<Task<bool>>(() => ProbeAsync(ffmpeg, encoder, tenBit, logger)));
+        try
+        {
+            return await lazy.Value.ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Results.TryRemove(KeyValuePair.Create(key, lazy));
+            logger.LogWarning(ex, "Hardware encoder probe failed unexpectedly; will retry next time");
+            return false;
+        }
+    }
 
     private static async Task<bool> ProbeAsync(string ffmpeg, HardwareEncoder encoder, bool tenBit, ILogger logger)
     {

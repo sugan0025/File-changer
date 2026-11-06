@@ -141,6 +141,8 @@ internal sealed class SevenZip(string executable)
             }
             string? Field(string key) => fields.TryGetValue(key, out var v) && v.Length > 0 ? v : null;
             var attributes = Field("Attributes") ?? "";
+            if (entries.Count >= ArchiveSafety.MaxEntries)
+                throw new InvalidDataException($"Archive has more than {ArchiveSafety.MaxEntries:N0} entries; Filee does not unpack it.");
             entries.Add(new SevenZipEntry(
                 path,
                 Field("Folder") == "+" || attributes.StartsWith('D'),

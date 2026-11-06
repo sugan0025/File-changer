@@ -70,13 +70,11 @@ public sealed class GhostscriptConverter : IConverter, IImageTransformer
         return written;
     }
 
-    /// <summary>Filee's own Ghostscript (engines/ghostscript, downloaded on demand), never one installed on the system.</summary>
+    /// <summary>Filee's own Ghostscript (engines/ghostscript), bundled copy, or system-installed fallback.</summary>
     internal static string? Locate() =>
-        EngineEnvironment.OwnProgram("ghostscript", "gswin64c.exe") ?? LocateBundled()
+        EngineEnvironment.OwnProgram("ghostscript", "gswin64c.exe")
+        ?? EngineEnvironment.BundledProgram("ghostscript", "gswin64c.exe")
         ?? EngineEnvironment.SystemProgram("ghostscript", "gswin64c.exe");
-
-    private static string? LocateBundled() =>
-        EngineEnvironment.BundledProgram("ghostscript", "gswin64c.exe");
 
     /// <summary>
     /// Converts PostScript (PS, EPS, PostScript-based Illustrator files) to PDF. EPS pages are cropped to the
