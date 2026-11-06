@@ -1394,5 +1394,12 @@
   "annotate.remove": "Remover a marca selecionada (Del)",
   "annotate.keys": "V seleciona · Tab escolhe uma marca, as setas a movem · P A B H T N escolhem a ferramenta · Del remove · Ctrl+Z desfaz · Esc fecha",
   "annotate.save": "Salvar",
-  "annotate.save_next": "Salvar e próximo"
+  "annotate.save_next": "Salvar e próximo",
+  "error.p7m_unreadable": "Este não é um arquivo assinado .p7m que o Filee consiga abrir, ou está danificado",
+  "error.p7m_detached": "Este .p7m contém só a assinatura, não o arquivo assinado. Converta o arquivo que ele assina",
+  "error.p7m_encrypted": "Este .p7m está criptografado, não só assinado: só a chave do destinatário o abre",
+  "error.p7m_unknown_content": "O arquivo dentro deste .p7m é de um tipo que o Filee não converte",
+  "error.p7m_too_large": "O arquivo assinado é grande demais para abrir",
+  "engine.p7m.name": "Arquivos assinados (mecanismo integrado)",
+  "engine.p7m.description": "Tira o arquivo assinado de um .p7m (CMS / PKCS #7: notas fiscais eletrônicas italianas, PDFs assinados) e continua a conversão. A assinatura não é verificada nem mantida: guarde o .p7m como prova."
 }

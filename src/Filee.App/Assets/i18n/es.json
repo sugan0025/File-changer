@@ -1394,5 +1394,12 @@
   "annotate.remove": "Quitar la marca seleccionada (Supr)",
   "annotate.keys": "V selecciona · Tab elige una marca, las flechas la mueven · P A B H T N eligen herramienta · Supr quita · Ctrl+Z deshace · Esc cierra",
   "annotate.save": "Guardar",
-  "annotate.save_next": "Guardar y siguiente"
+  "annotate.save_next": "Guardar y siguiente",
+  "error.p7m_unreadable": "No es un archivo firmado .p7m que Filee pueda abrir, o está dañado",
+  "error.p7m_detached": "Este .p7m solo contiene la firma, no el archivo firmado. Convierte el archivo que firma",
+  "error.p7m_encrypted": "Este .p7m está cifrado, no solo firmado: solo lo abre la clave del destinatario",
+  "error.p7m_unknown_content": "El archivo dentro de este .p7m es de un tipo que Filee no convierte",
+  "error.p7m_too_large": "El archivo firmado es demasiado grande para abrirlo",
+  "engine.p7m.name": "Signed files (built-in)",
+  "engine.p7m.description": "Saca el archivo firmado de un .p7m (CMS / PKCS #7: facturas electrónicas italianas, PDF firmados) y sigue la conversión. La firma no se comprueba ni se conserva: guarda el .p7m como prueba."
 }

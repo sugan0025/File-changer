@@ -1006,6 +1006,21 @@ internal static class SettingsMigrations
         //      a slot, #806). (Schema 63 may be renumbered if another change takes it first.)
         if (from < 63)
             changed |= AddPdfSheets(presets);
+        // v65: DBML schemas (#854) learn the text donut; custom claims stay put.
+        if (from < 65)
+            changed |= LearnExtensions(profiles, out _, ["dbml"]);
+        // v67: FLIC animations (.flc, .fli, #940) learn the video donut; custom claims stay put.
+        if (from < 67)
+            changed |= LearnExtensions(profiles, out _, ["flc", "fli"]);
+        // v68: signed files (.p7m, #1010) learn the documents donut; custom claims stay put.
+        if (from < 68)
+            changed |= LearnExtensions(profiles, out _, ["p7m"]);
+        // v70: JPEG .jif files (#1184) learn the images donut without taking custom claims.
+        if (from < 70)
+            changed |= LearnExtensions(profiles, out _, ["jif"]);
+        // v71: Java source files (#1176) learn the text donut; custom claims stay put.
+        if (from < 71)
+            changed |= LearnExtensions(profiles, out _, ["java"]);
 
         return changed;
     }

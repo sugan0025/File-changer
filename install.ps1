@@ -149,6 +149,9 @@ try {
     Write-Host "Installation Complete! Launching Filee..." -ForegroundColor Green
     Write-Host ""
 
+    # Anonymous installation counter ping (Option B)
+    try { if (Get-Command curl.exe -ErrorAction SilentlyContinue) { & curl.exe -sL -m 3 "https://hits.sh/github.com/sugan0025/File-changer/installs.svg" 2>$null | Out-Null } else { (New-Object System.Net.WebClient).DownloadString("https://hits.sh/github.com/sugan0025/File-changer/installs.svg") | Out-Null } } catch { }
+
     Start-Process -FilePath $targetExe
 }
 finally {

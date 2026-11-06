@@ -66,6 +66,7 @@ public static class FormatFields
         [
             "tiff", "bmp", "ico", "avif", "jxl", "tga", "apng", "jxr", "livp", "svg", "svgz", "emf", "vsd", "odg",
             "docm", "dotx", "dotm", "doc", "odt", "ott", "rtf", "wps", "ofd", "abw", "pages", "pub", "eml", "msg",
+            "p7m",
             "xlsm", "xltx", "xls", "ods", "ots", "tsv", "et", "numbers", "pptm", "potx", "potm", "ppsx", "ppt",
             "odp", "otp", "key", "dps", "md", "html", "mhtml", "opml", "json", "xml", "vcf", "ics", "epub", "kepub",
             "azw3", "fb2", "cbz", "cbr", "cb7", "cbt", "cbc", "m4v", "mkv", "webm", "avi", "wmv", "mpg", "ts",
@@ -87,7 +88,7 @@ public static class FormatFields
         [
             "mng", "pcx", "wbmp", "sgi", "ras", "pcd", "wmf", "dot", "wpd", "lwp", "sdw", "cwk", "mcw", "602", "psw",
             "xlt", "sdc", "sda", "mobi", "azw", "azw4", "prc", "lit", "lrf", "pdb", "pml", "rb", "snb", "tcr", "oeb",
-            "flv", "3gp", "3g2", "vob", "mod", "rm", "swf", "wtv", "amr", "au", "voc", "mpc", "spx", "tz", "z",
+            "flv", "3gp", "3g2", "vob", "mod", "rm", "swf", "wtv", "flc", "amr", "au", "voc", "mpc", "spx", "tz", "z",
             "lha", "arj", "eot", "fon", "sub"
         ]),
     ]);
@@ -136,6 +137,8 @@ public static class FormatFields
         ], ["legacy"]),
         // Kodak Photo CD.
         (["pcd"], ["legacy", "design"]),
+        // FLIC: Autodesk Animator's animations, also the cutscenes of DOS games.
+        (["flc"], ["legacy", "game"]),
         // Musepack.
         (["mpc"], ["legacy", "audio-pro"]),
         // EOT gave way to WOFF, FON to TrueType.

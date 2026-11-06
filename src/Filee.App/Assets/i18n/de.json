@@ -1394,5 +1394,12 @@
   "annotate.remove": "Ausgewählte Markierung entfernen (Entf)",
   "annotate.keys": "V wählt aus · Tab wählt eine Markierung, Pfeiltasten verschieben sie · P A B H T N wählen ein Werkzeug · Entf entfernt · Strg+Z macht rückgängig · Esc schließt",
   "annotate.save": "Speichern",
-  "annotate.save_next": "Speichern & weiter"
+  "annotate.save_next": "Speichern & weiter",
+  "error.p7m_unreadable": "Das ist keine signierte .p7m-Datei, die Filee öffnen kann, oder sie ist beschädigt",
+  "error.p7m_detached": "Diese .p7m enthält nur die Signatur, nicht die signierte Datei. Konvertiere stattdessen die Datei, die sie signiert",
+  "error.p7m_encrypted": "Diese .p7m ist verschlüsselt, nicht nur signiert: Nur der Schlüssel des Empfängers öffnet sie",
+  "error.p7m_unknown_content": "Die Datei in dieser .p7m hat ein Format, das Filee nicht konvertiert",
+  "error.p7m_too_large": "Die signierte Datei ist zu groß zum Öffnen",
+  "engine.p7m.name": "Signierte Dateien (integriert)",
+  "engine.p7m.description": "Holt die signierte Datei aus einer .p7m (CMS / PKCS #7: italienische E-Rechnungen, signierte PDFs) und konvertiert sie weiter. Die Signatur wird weder geprüft noch übernommen: Behalte die .p7m als Nachweis."
 }

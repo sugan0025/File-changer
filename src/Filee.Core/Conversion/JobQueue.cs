@@ -721,7 +721,11 @@ public sealed partial class JobQueue : IAsyncDisposable
                         files.Add(file);
                 }
             }
+            // An archive with a file from the internet in it still came from there, whichever file that was.
+            var mark = Platform.MarkOfTheWeb.ReadFirst(files, _log, job.CancellationToken);
             await _combiner!.CombineAsync(files, output, format.Id, job.Preset, workDir, progress, job.CancellationToken);
+            if (mark is not null && File.Exists(output))
+                Platform.MarkOfTheWeb.TryWrite(output, mark, _log);
             inputs[0].Outputs.Add(output);
             foreach (var f in inputs)
             {
@@ -830,37 +834,59 @@ public sealed partial class JobQueue : IAsyncDisposable
         if (IsEmptyFile(file.SourcePath))
             return Fail(file, "error.empty_file", null);
 
+        // An envelope (a signed .p7m) is converted as the file inside it: the route opens it first, and everything
+        // below that depends on the format (same format, frames, OCR, …) asks about the file inside.
+        var from = source;
+        var opener = _catalog.All.OfType<IEnvelopeOpener>().FirstOrDefault(o => o.Opens(source.Id));
+        if (opener is not null)
+        {
+            try
+            {
+                from = FormatRegistry.Get(opener.InnerFormat(file.SourcePath, source.Id));
+            }
+            catch (ConversionRefusedException ex)
+            {
+                _log.LogInformation("Opening {File} was refused: {Reason}", file.SourcePath, ex.Message);
+                return Fail(file, ex.ErrorKey, ex.Detail);
+            }
+        }
+
         var target = !finalOutput ? intermediate
-            : runWith.TargetFormat == BuiltInData.SameAsSource ? source.Id
+            : runWith.TargetFormat == BuiltInData.SameAsSource ? from.Id
             : runWith.TargetFormat;
 
         // "Save every frame": a video becomes a folder of pictures in one step of its own; "Extract Live/Motion Photo
         // video" likewise takes a photo's video, and "Live / Motion Photo" makes one of a video. Never for an
         // intermediate file, and never on the way to another format (video → JPG is otherwise one still frame, photo →
         // MP4 a video of the still picture).
-        var frames = finalOutput && runWith.SavesFramesOf(source.Id);
-        var motionPhoto = finalOutput && runWith.ExtractsMotionOf(source.Id);
-        var livePhoto = finalOutput && runWith.MakesLivePhotoOf(source.Id);
-        var caption = finalOutput && runWith.CaptionsVideo(source.Id);
+        var frames = finalOutput && runWith.SavesFramesOf(from.Id);
+        var motionPhoto = finalOutput && runWith.ExtractsMotionOf(from.Id);
+        var livePhoto = finalOutput && runWith.MakesLivePhotoOf(from.Id);
+        var caption = finalOutput && runWith.CaptionsVideo(from.Id);
         // "Recognize text": Tesseract writes a searchable PDF first, read on into DOCX, TXT, … from there. Also for the
         // PDFs that are merged into one.
-        var ocr = (finalOutput || target == "pdf") && runWith.RecognizesTextOf(source.Id);
-        var route = planner.Plan(source.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption);
+        var ocr = (finalOutput || target == "pdf") && runWith.RecognizesTextOf(from.Id);
+        var route = opener is null
+            ? planner.Plan(source.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption)
+            : planner.PlanThrough(source.Id, from.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption);
         if (route is null)
-            return Fail(file, "error.no_route", $"{source.Id} → {target}",
-                new RouteRequest(source.Id, target, Frames: frames, MotionPhoto: motionPhoto, LivePhoto: livePhoto, Ocr: ocr));
+            return Fail(file, "error.no_route", $"{from.Id} → {target}",
+                new RouteRequest(from.Id, target, Frames: frames, MotionPhoto: motionPhoto, LivePhoto: livePhoto, Ocr: ocr));
 
         // A step that draws text without shaping (rhwp) would break Arabic, Hebrew, Indic or Thai text: such a file
         // takes a route without it (LibreOffice), or is refused with the reason rather than written broken. One
-        // scan of the file's text answers this and the widths question below.
-        var scripts = route.Steps.FirstOrDefault(s => s.Unshaped)?.Converter is ITextShapingCheck check
+        // scan of the file's text answers this and the widths question below. Not for an envelope, whose own bytes
+        // aren't the document's.
+        var scripts = opener is null && route.Steps.FirstOrDefault(s => s.Unshaped)?.Converter is ITextShapingCheck check
             ? ScanScripts(check, file.SourcePath, source.Id)
             : null;
         if (scripts?.NeedsShaping is { } script)
         {
             _log.LogInformation("{File} has {Script} text, which {Engine} can't draw: planning a route without it",
                 file.SourcePath, script, route.Steps.First(s => s.Unshaped).Converter.DisplayName);
-            route = planner.Plan(source.Id, target, frames, shaping: true, ocr: ocr);
+            route = opener is null
+                ? planner.Plan(source.Id, target, frames, shaping: true, ocr: ocr)
+                : planner.PlanThrough(source.Id, from.Id, target, frames, shaping: true, ocr: ocr);
             if (route is null)
                 return Fail(file, "error.needs_shaping", script);
         }
@@ -956,7 +982,7 @@ public sealed partial class JobQueue : IAsyncDisposable
 
             // Under "Save as ZIP" the output is still in the work folder: the source copied over it goes into the ZIP.
             // Never with hidden parts: the source copied over the result would show them again.
-            var copiedSource = finalOutput && runWith.Output.OnlyIfSmaller && !runWith.Image.HidesAreas && inputs.Count == 1
+            var copiedSource = finalOutput && runWith.Output.OnlyIfSmaller && !runWith.Image.HidesAreas && opener is null && inputs.Count == 1
                 && CopyIfNotSmaller(file.SourcePath, inputs[0]);
             if (copiedSource)
                 file.NoticeKey = "notice.pdf_not_smaller";
@@ -976,8 +1002,10 @@ public sealed partial class JobQueue : IAsyncDisposable
             else if (finalOutput && inputs.Count == 1 && final is { Handed: 1 })
                 inputs = [NextToSource(job, file, index, inputs[0], final)];
 
-            // The source's dates are read now: "Replace the original" may send it to the Trash below.
+            // The source's dates and Mark of the Web are read now: "Replace the original" may send it to the Trash below.
             var dates = finalOutput && runWith.Output.KeepDates ? DatesOf(file.SourcePath) : null;
+            // A file converted from one that came from the internet still did (Office's macro block, SmartScreen).
+            var mark = finalOutput ? Platform.MarkOfTheWeb.Read(file.SourcePath) : null;
             if (finalOutput && !zipResult && inputs.Count == 1)
                 inputs = [ReplaceOriginal(job, file, source.Id, inputs[0], copiedSource)];
 
@@ -988,6 +1016,9 @@ public sealed partial class JobQueue : IAsyncDisposable
                 file.Outputs.AddRange(inputs);
                 if (dates is { } kept)
                     CopyDates(kept, inputs);
+                if (mark is not null)
+                    foreach (var output in inputs.Where(File.Exists))
+                        Platform.MarkOfTheWeb.TryWrite(output, mark, _log);
             }
             file.State = inputs.Count == 0 && finalOutput ? FileState.Skipped : FileState.Done;
             file.Progress = ceiling;

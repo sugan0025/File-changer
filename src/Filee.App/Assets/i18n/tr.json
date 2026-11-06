@@ -1394,5 +1394,12 @@
   "annotate.remove": "Seçili işareti kaldır (Del)",
   "annotate.keys": "V seçer · Tab işaret seçer, oklar taşır · P A B H T N araç seçer · Del kaldırır · Ctrl+Z geri alır · Esc kapatır",
   "annotate.save": "Kaydet",
-  "annotate.save_next": "Kaydet ve sonraki"
+  "annotate.save_next": "Kaydet ve sonraki",
+  "error.p7m_unreadable": "Bu, Filee'nin açabileceği imzalı bir .p7m dosyası değil ya da dosya bozuk",
+  "error.p7m_detached": "Bu .p7m yalnızca imzayı içeriyor, imzalanan dosyayı değil. Bunun yerine imzaladığı dosyayı dönüştürün",
+  "error.p7m_encrypted": "Bu .p7m yalnızca imzalı değil, şifreli: yalnızca alıcının anahtarı açabilir",
+  "error.p7m_unknown_content": "Bu .p7m içindeki dosya, Filee'nin dönüştürmediği bir türde",
+  "error.p7m_too_large": "İmzalı dosya açılamayacak kadar büyük",
+  "engine.p7m.name": "İmzalı dosyalar (yerleşik)",
+  "engine.p7m.description": ".p7m dosyasından (CMS / PKCS #7: İtalyan e-faturaları, imzalı PDF'ler) imzalı dosyayı çıkarır ve dönüştürmeye devam eder. İmza doğrulanmaz ve sonuçta kalmaz: kanıt olarak .p7m'yi saklayın."
 }

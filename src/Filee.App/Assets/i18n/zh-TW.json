@@ -1394,5 +1394,12 @@
   "annotate.remove": "移除所選標記 (Del)",
   "annotate.keys": "V 選取 · Tab 選取標記，方向鍵移動 · P A B H T N 選擇工具 · Del 移除 · Ctrl+Z 復原 · Esc 關閉",
   "annotate.save": "儲存",
-  "annotate.save_next": "儲存並下一個"
+  "annotate.save_next": "儲存並下一個",
+  "error.p7m_unreadable": "這不是 Filee 能開啟的已簽署 .p7m 檔案，或檔案已損壞",
+  "error.p7m_detached": "這個 .p7m 只包含簽章，沒有被簽署的檔案。請轉換它所簽署的檔案",
+  "error.p7m_encrypted": "這個 .p7m 已加密，而不只是簽署：只有收件人的金鑰才能開啟",
+  "error.p7m_unknown_content": "這個 .p7m 中的檔案是 Filee 不轉換的類型",
+  "error.p7m_too_large": "已簽署的檔案太大，無法開啟",
+  "engine.p7m.name": "Signed files (built-in)",
+  "engine.p7m.description": "從 .p7m（CMS / PKCS #7：義大利電子發票、已簽署的 PDF）中取出已簽署的檔案並繼續轉換。不驗證簽章，結果中也不保留簽章：如需證明請保留 .p7m。"
 }

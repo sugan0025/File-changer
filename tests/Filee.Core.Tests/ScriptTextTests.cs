@@ -28,6 +28,9 @@ public class ScriptTextTests
     [InlineData("vector.hh")]
     [InlineData("vector.hxx")]
     [InlineData("MyBot.cs")]
+    [InlineData("shop.dbml")]
+    [InlineData("HelloWorld.java")]
+    [InlineData("Legacy.JAVA")]
     public void Scripts_and_style_sheets_are_text(string name) => Assert.Equal("txt", FormatRegistry.Detect(name)?.Id);
 
     [Fact]
@@ -95,5 +98,45 @@ public class ScriptTextTests
         Assert.All(added.Where(e => e != "cs"), e => Assert.Contains(e, text));
         Assert.DoesNotContain("cs", text); // the user's own donut has it
         Assert.False(SettingsMigrations.ApplyToLibrary(60, presets, profiles));
+    }
+
+    [Fact]
+    public void Version_64_text_donuts_learn_dbml_without_taking_custom_claims()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var text = profiles.Single(p => p.Id == "text").Extensions;
+        text.Remove("dbml");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(64, presets, profiles));
+        Assert.Contains("dbml", text);
+        Assert.False(SettingsMigrations.ApplyToLibrary(64, presets, profiles));
+
+        text.Remove("dbml");
+        profiles.Insert(0, new ToolbarProfile { Id = "my-schemas", Name = "Schemas", Extensions = ["dbml"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(64, presets, profiles));
+        Assert.DoesNotContain("dbml", text); // the user's own donut has it
+    }
+
+    [Fact]
+    public void A_java_file_uses_the_text_donut() =>
+        Assert.Equal("text", ProfileSelector.Select(BuiltInData.CreateProfiles(), ["HelloWorld.java"])?.Id);
+
+    [Fact]
+    public void Version_70_text_donuts_learn_java_without_taking_custom_claims()
+    {
+        var presets = BuiltInData.CreatePresets();
+        var profiles = BuiltInData.CreateProfiles();
+        var text = profiles.Single(p => p.Id == "text").Extensions;
+        text.Remove("java");
+
+        Assert.True(SettingsMigrations.ApplyToLibrary(70, presets, profiles));
+        Assert.Contains("java", text);
+        Assert.False(SettingsMigrations.ApplyToLibrary(70, presets, profiles));
+
+        text.Remove("java");
+        profiles.Insert(0, new ToolbarProfile { Id = "my-java", Name = "Java", Extensions = ["JAVA"] });
+        Assert.False(SettingsMigrations.ApplyToLibrary(70, presets, profiles));
+        Assert.DoesNotContain("java", text); // the user's own donut has it
     }
 }

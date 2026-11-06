@@ -1,3 +1,4 @@
+using Filee.Core.Platform;
 // Unpacks every archive format Filee reads into a folder: the bundled 7-Zip for most of them, Filee's own readers for
 // ALZ, EGG and lzip. Compressed TARs (.tar.gz, .tar.lz …) and RPM payloads are unpacked stage by stage until the
 // files appear. Every stage is checked first (encryption, paths leaving the folder, disk space) and links are removed.
@@ -7,7 +8,11 @@ using Filee.Core.Formats;
 namespace Filee.Engines.Archives;
 
 /// <summary>Unpacks archives into scratch folders.</summary>
-internal sealed class ArchiveExtractor(SevenZip? sevenZip)
+/// <param name="streamLimit">
+/// The most a single compressed stream may write into a folder; <see cref="ArchiveSafety.StreamLimit"/> unless a test
+/// sets a small one.
+/// </param>
+internal sealed class ArchiveExtractor(SevenZip? sevenZip, Func<string, long>? streamLimit = null)
 {
     /// <summary>Formats read by 7-Zip.</summary>
     public static readonly IReadOnlyList<string> SevenZipFormats =
@@ -24,6 +29,12 @@ internal sealed class ArchiveExtractor(SevenZip? sevenZip)
 
     /// <summary>A TAR inside a compressed stream (or a 7z): unpacking the outer layer yields one .tar file.</summary>
     private static readonly HashSet<string> TarWrapped = ["tgz", "tbz2", "txz", "tar7z", "tz", "tlz"];
+
+    /// <summary>
+    /// One compressed stream, no names or sizes to check beforehand (bzip2 states no size, gzip one modulo 4 GiB that
+    /// its author chose).
+    /// </summary>
+    private static readonly HashSet<string> SingleStream = ["gz", "bz2", "xz", "lzma", "z", "zst", "tgz", "tbz2", "txz", "tz"];
 
     /// <summary>Formats an RPM payload comes in (7-Zip shows it as one compressed CPIO file).</summary>
     private static readonly HashSet<string> RpmPayload = ["cpio", "gz", "bz2", "xz", "lzma", "z", "zst"];
@@ -65,24 +76,63 @@ internal sealed class ArchiveExtractor(SevenZip? sevenZip)
         {
             case "alz":
                 await Task.Run(() => AlzReader.Extract(archive, folder, cancellationToken), cancellationToken);
+                PassOnMark(archive, folder);
                 break;
             case "egg":
                 await EggReader.ExtractAsync(archive, folder, sevenZip, scratchRoot, cancellationToken);
+                PassOnMark(archive, folder);
                 break;
             case "lz":
             case "tlz":
                 var output = FormatRegistry.NameWithoutExtension(archive) + (format == "tlz" ? ".tar" : "");
                 await LzipReader.DecompressAsync(archive, Path.Combine(folder, output), Require(), scratchRoot, cancellationToken);
+                PassOnMark(archive, folder);
                 break;
             default:
                 var tool = Require();
                 var entries = await tool.ListAsync(archive, cancellationToken);
                 ArchiveSafety.CheckListing(entries, name, folder);
+                // 7-Zip lists no name for some (.bz2, .xz), and never more than one file.
+                if (SingleStream.Contains(format) && entries.Count(e => !e.IsFolder) <= 1)
+                {
+                    await DecodeStreamAsync(tool, archive, format, entries.FirstOrDefault(e => !e.IsFolder), folder, cancellationToken);
+                    PassOnMark(archive, folder);
+                    break;
+                }
                 var links = entries.Where(e => e.IsSymbolicLink).Select(e => e.Path).ToList();
                 await tool.ExtractAsync(archive, folder, links, scratchRoot, cancellationToken);
                 break;
         }
     }
+
+    private async Task DecodeStreamAsync(SevenZip tool, string archive, string format, SevenZipEntry? entry, string folder,
+        CancellationToken cancellationToken)
+    {
+        var output = entry?.Path is { Length: > 0 } listed ? listed
+            : FormatRegistry.NameWithoutExtension(archive) + (TarWrapped.Contains(format) ? ".tar" : "");
+        var path = Path.Combine(folder, Path.GetFileName(output));
+        var limit = streamLimit?.Invoke(folder) ?? ArchiveSafety.StreamLimit(folder);
+        var tooLarge = ArchiveSafety.TooLarge(Path.GetFileName(archive), limit, folder);
+        try
+        {
+            await using var outputStream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 16);
+            await tool.DecodeAsync(archive, outputStream, limit, () => tooLarge, cancellationToken);
+        }
+        catch
+        {
+            ArchiveFiles.TryDeleteFile(path);
+            throw;
+        }
+        File.SetLastWriteTimeUtc(path, entry?.Modified ?? File.GetLastWriteTimeUtc(archive));
+    }
+
+    /// <summary>
+    /// Gives the files Filee's own code unpacked into <paramref name="folder"/> the archive's Mark of the Web, if it has
+    /// one (7-Zip does this itself for the files it writes).
+    /// </summary>
+    private static void PassOnMark(string archive, string folder) =>
+        MarkOfTheWeb.Copy(archive, Directory.EnumerateFiles(folder, "*",
+            new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint }));
 
     /// <summary>The single archive file a stage produced that must be unpacked as well, or null when done.</summary>
     private static (string Path, string Format)? InnerArchive(string originalFormat, string folder)

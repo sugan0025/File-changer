@@ -1394,5 +1394,12 @@
   "annotate.remove": "選択したマークを削除 (Del)",
   "annotate.keys": "V 選択 · Tab で選択、矢印で移動 · P A B H T N ツール · Del 削除 · Ctrl+Z 元に戻す · Esc 閉じる",
   "annotate.save": "保存",
-  "annotate.save_next": "保存して次へ"
+  "annotate.save_next": "保存して次へ",
+  "error.p7m_unreadable": "Filee で開ける署名付きファイル（.p7m）ではないか、ファイルが壊れています",
+  "error.p7m_detached": "この .p7m には署名だけが入っていて、署名されたファイルはありません。署名対象のファイルを変換してください",
+  "error.p7m_encrypted": "この .p7m は署名だけでなく暗号化されています。受信者の鍵でしか開けません",
+  "error.p7m_unknown_content": "この .p7m の中のファイルは、Filee が変換できない形式です",
+  "error.p7m_too_large": "署名付きファイルが大きすぎて開けません",
+  "engine.p7m.name": "Signed files (built-in)",
+  "engine.p7m.description": ".p7m（CMS / PKCS #7：イタリアの電子請求書、署名付き PDF など）から署名されたファイルを取り出して変換します。署名は検証せず、結果にも残りません。証明が必要な場合は .p7m を保管してください。"
 }

@@ -1394,5 +1394,12 @@
   "annotate.remove": "Usuń zaznaczony znak (Del)",
   "annotate.keys": "V zaznacza · Tab wybiera znak, strzałki go przesuwają · P A B H T N wybierają narzędzie · Del usuwa · Ctrl+Z cofa · Esc zamyka",
   "annotate.save": "Zapisz",
-  "annotate.save_next": "Zapisz i dalej"
+  "annotate.save_next": "Zapisz i dalej",
+  "error.p7m_unreadable": "To nie jest podpisany plik .p7m, który Filee może otworzyć, albo jest uszkodzony",
+  "error.p7m_detached": "Ten .p7m zawiera tylko podpis, a nie podpisany plik. Przekonwertuj plik, który podpisuje",
+  "error.p7m_encrypted": "Ten .p7m jest zaszyfrowany, a nie tylko podpisany: otworzy go tylko klucz odbiorcy",
+  "error.p7m_unknown_content": "Plik w tym .p7m jest typu, którego Filee nie konwertuje",
+  "error.p7m_too_large": "Podpisany plik jest za duży, by go otworzyć",
+  "engine.p7m.name": "Signed files (built-in)",
+  "engine.p7m.description": "Wyjmuje podpisany plik z .p7m (CMS / PKCS #7: włoskie e-faktury, podpisane PDF) i konwertuje go dalej. Podpis nie jest sprawdzany ani zachowywany: zachowaj .p7m jako dowód."
 }
