@@ -168,6 +168,7 @@ public partial class App : Application
 
         store.SettingsChanged += (_, _) => ApplySettings(store.Settings);
 
+        AppHost.Get<BlobCompanionService>().Start();
         AppHost.Get<TrayService>().Create(this);
         AppHost.Get<WindowService>().EnsureToast();
         AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
@@ -195,6 +196,7 @@ public partial class App : Application
             AppHost.TryGet<MemoryTrimmer>()?.Dispose();
             AppHost.TryGet<TriggerService>()?.Dispose();
             AppHost.TryGet<TrayService>()?.Dispose();
+            AppHost.TryGet<BlobCompanionService>()?.Dispose();
             AppHost.TryGet<ClipboardWatcherService>()?.Dispose();
             AppHost.TryGet<SoundService>()?.Dispose();
             AppHost.TryGet<UpdateService>()?.Dispose();

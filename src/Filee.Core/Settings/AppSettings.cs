@@ -198,6 +198,9 @@ public sealed class AppSettings
 
     public DonutSettings Donut { get; set; } = new();
 
+    /// <summary>Windows desktop Blob companion visibility and its last screen position.</summary>
+    public BlobCompanionSettings BlobCompanion { get; set; } = new();
+
     public List<TriggerGesture> Triggers { get; set; } = TriggerGesture.Defaults();
 
     /// <summary>Process names (without .exe) in which gestures never trigger.</summary>
@@ -313,6 +316,17 @@ public sealed class AppSettings
             copy.Output.ZipResult = true;
         return copy;
     }
+}
+
+/// <summary>Preferences for Filee's optional desktop Blob companion.</summary>
+public sealed class BlobCompanionSettings
+{
+    /// <summary>The companion is shown when Filee starts.</summary>
+    public bool IsVisible { get; set; } = true;
+
+    /// <summary>Last position in physical screen pixels; null uses a safe default position.</summary>
+    public int? X { get; set; }
+    public int? Y { get; set; }
 }
 
 /// <summary>Reads unexpected icon preference values as enabled while preserving valid booleans.</summary>

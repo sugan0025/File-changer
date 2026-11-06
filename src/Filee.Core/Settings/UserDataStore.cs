@@ -116,6 +116,14 @@ public sealed class UserDataStore
         Write(SettingsPath, Settings, FileeJsonContext.Default.AppSettings);
     }
 
+    /// <summary>Remembers the desktop companion position without reapplying unrelated settings.</summary>
+    public void SaveBlobCompanionPosition(int x, int y)
+    {
+        Settings.BlobCompanion.X = x;
+        Settings.BlobCompanion.Y = y;
+        Write(SettingsPath, Settings, FileeJsonContext.Default.AppSettings);
+    }
+
     /// <summary>
     /// Remembers whether the main window's navigation is collapsed (<see cref="AppSettings.NavCollapsed"/>), quietly as
     /// <see cref="SaveUiScale"/>: the window already shows it.

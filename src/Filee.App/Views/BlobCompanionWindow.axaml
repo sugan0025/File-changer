@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Filee.App.Controls"
+        x:Class="Filee.App.Views.BlobCompanionWindow"
+        Title="Filee Blob"
+        Width="104" Height="104"
+        MinWidth="104" MinHeight="104"
+        MaxWidth="104" MaxHeight="104"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        CanResize="False">
+  <Grid Background="Transparent">
+    <c:BlobatarControl Width="80" Height="80" IsAnimated="True" />
+  </Grid>
+</Window>

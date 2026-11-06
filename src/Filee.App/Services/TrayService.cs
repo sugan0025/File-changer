@@ -12,10 +12,10 @@ using Filee.Core.Settings;
 namespace Filee.App.Services;
 
 public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformServices platform, WindowService windows,
-    UpdateService updates) : IDisposable
+    UpdateService updates, BlobCompanionService blob) : IDisposable
 {
     private TrayIcon? _tray;
-    private NativeMenuItem? _open, _pause, _quit, _update;
+    private NativeMenuItem? _open, _pause, _quit, _update, _blob;
 
     public void Create(Application app)
     {
@@ -28,6 +28,8 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             store.Settings.Paused = !store.Settings.Paused;
             store.SaveSettings();
         };
+        _blob = new NativeMenuItem();
+        _blob.Click += (_, _) => blob.ToggleVisible();
         _quit = new NativeMenuItem();
         _quit.Click += (_, _) => (app.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         _update = new NativeMenuItem();
@@ -38,7 +40,7 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             Icon = new WindowIcon(iconStream),
             // Set before the icon is attached: on macOS Avalonia passes the tooltip to native code, which can't take null.
             ToolTipText = "Filee",
-            Menu = new NativeMenu { Items = { _open, _pause, new NativeMenuItemSeparator(), _quit } },
+            Menu = new NativeMenu { Items = { _open, _blob, _pause, new NativeMenuItemSeparator(), _quit } },
             IsVisible = !platform.SupportsDockVisibility || store.Settings.ShowMenuBarIcon,
         };
         _tray.Clicked += (_, _) => windows.ShowMain();
@@ -79,6 +81,8 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             menu.Items.Remove(_update!);
         }
         _open!.Header = loc["tray.open"];
+        _blob!.IsVisible = blob.IsSupported;
+        _blob.Header = blob.IsVisible ? "Hide Blob" : "Show Blob";
         _pause!.Header = store.Settings.Paused ? loc["tray.resume"] : loc["tray.pause"];
         _quit!.Header = loc["tray.quit"];
         var drag = store.Settings.Triggers.FirstOrDefault(t => t.Enabled && t.Kind == TriggerKind.Drag);

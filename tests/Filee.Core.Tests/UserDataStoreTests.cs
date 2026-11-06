@@ -7,6 +7,24 @@ namespace Filee.Core.Tests;
 
 public partial class UserDataStoreTests
 {
+    [Fact]
+    public void Blob_companion_position_and_visibility_round_trip_through_settings()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.True(store.Settings.BlobCompanion.IsVisible);
+        store.Settings.BlobCompanion.IsVisible = false;
+        store.SaveBlobCompanionPosition(1234, 567);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.False(reloaded.Settings.BlobCompanion.IsVisible);
+        Assert.Equal(1234, reloaded.Settings.BlobCompanion.X);
+        Assert.Equal(567, reloaded.Settings.BlobCompanion.Y);
+    }
+
     [Theory]
     [InlineData(30)]
     [InlineData(31)]
