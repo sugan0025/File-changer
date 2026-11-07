@@ -89,6 +89,11 @@ if (-not $Version) {
 $parts = ($Version -split '[-+]')[0].Split('.') + @('0', '0', '0')
 $major, $minor, $patch = [int]$parts[0], [int]$parts[1], [int]$parts[2]
 
+if ((Test-Path (Join-Path $Destination 'FileeExplorerMenu.dll')) -and (Test-Path (Join-Path $Destination 'FileeExplorerMenu.msix'))) {
+    Write-Host "Explorer menu already present in $Destination"
+    return
+}
+
 $zig = Get-Zig
 $env:ZIG_GLOBAL_CACHE_DIR = Join-Path $cache 'zig-cache'
 $env:ZIG_LOCAL_CACHE_DIR = Join-Path $cache 'zig-cache'
