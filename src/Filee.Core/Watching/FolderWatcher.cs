@@ -376,8 +376,13 @@ public sealed class FolderWatcher : IAsyncDisposable
         a is not null && string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)),
             Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)), FileSystemPaths.Comparison);
 
+    private bool _disposed;
+
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         _stop.Cancel();
         _watcher?.Dispose();
         if (_timer is not null)

@@ -298,7 +298,7 @@ public sealed partial class DonutMenu
                     continue;
                 // Fluid suction vortex: accelerated tangential spin and centripetal spiral
                 var spin = c * c * 0.72 + (i % 2 == 0 ? 0.04 : -0.04) * c;
-                var scale = 1.0 - Math.Pow(c, 1.6) * 0.85;
+                var scale = 1.0 - 0.8 * c;
                 var midAngle = DonutGeometry.MidAngle(i, n);
                 var pull = c * c * 16.0;
                 var dx = -Math.Cos(midAngle) * pull;
@@ -318,8 +318,8 @@ public sealed partial class DonutMenu
                     if (hot)
                         context.DrawGeometry(WithOpacity(AccentBrush, 0.8), null, wedge);
                     // Labels shrink with their slice instead of vanishing when the collapse starts.
-                    DrawLabel(context, Items![i], center, (r1 + r2) / 2, DonutGeometry.MidAngle(i, n),
-                        DonutGeometry.Span(n) * (r1 + r2) / 2 - 10, r2 - r1 - 16, bold, regular, hot);
+                    DrawSliceLabel(context, Items![i], center, r1, r2, DonutGeometry.MidAngle(i, n), DonutGeometry.Span(n), bold, regular, hot);
+
                 }
             }
 
