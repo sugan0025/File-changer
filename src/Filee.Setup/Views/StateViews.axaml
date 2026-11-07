@@ -9,7 +9,7 @@
   <DataTemplate x:Key="Setup.Welcome" x:DataType="vm:SetupViewModel">
     <Grid RowDefinitions="*,Auto">
       <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6" MaxWidth="470" Margin="24,0">
-        <c:DonutLogo Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,10" />
+        <c:BlobatarLogo Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,10" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
           <TextBlock Classes="title" Text="Filee" />
           <Border Classes="pill">
@@ -37,7 +37,7 @@
       <shared:SlideShow x:Name="Slides" VerticalAlignment="Center" MaxWidth="520" MediaWidth="304" MediaHeight="171"
                         AutoAdvance="0:0:6" IsVisible="{Binding ShowShowcase}" />
       <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="14" IsVisible="{Binding !ShowShowcase}">
-        <c:DonutLogo Width="84" Height="84" HorizontalAlignment="Center" />
+        <c:BlobatarLogo Width="84" Height="84" HorizontalAlignment="Center" Progress="{Binding Percent}" TrackProgress="True" />
         <TextBlock Classes="heading" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding ProgressTitle}" />
       </StackPanel>
       <StackPanel Grid.Row="1" Spacing="10" Margin="0,8,0,0">
@@ -101,7 +101,7 @@
   <DataTemplate x:Key="Setup.Uninstall" x:DataType="vm:SetupViewModel">
     <Grid RowDefinitions="*,Auto" Margin="32,0,32,24">
       <StackPanel VerticalAlignment="Center" Spacing="8" MaxWidth="500" HorizontalAlignment="Center">
-        <c:DonutLogo Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,6" />
+        <c:BlobatarLogo Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,6" Tone="Alert" />
         <TextBlock Classes="title" FontSize="22" TextAlignment="Center" TextWrapping="Wrap" Text="{DynamicResource installer.uninstall.title}" />
         <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding UninstallText}" />
         <Border Classes="card" Padding="14,10" Margin="0,8,0,0">
