@@ -52,6 +52,8 @@ public static class BuiltInData
         .. ImageEditPresets(),
         .. HidePresets(),
         .. AnnotatePresets(),
+        .. BackgroundPresets(),
+        .. MetadataPresets(),
         new()
         {
             Id = "tool-sheet-studio", NameKey = "preset.sheet_studio", TargetFormat = "pdf",
@@ -269,6 +271,38 @@ public static class BuiltInData
         {
             Id = AnnotateId, NameKey = "preset.annotate", TargetFormat = SameAsSource,
             Kind = PresetKind.Tool, Tool = Preset.AnnotateTool, Output = { FileNamePattern = "{name} Annotated" },
+        },
+    ];
+
+    /// <summary>Id of the built-in "Add background" tool (settings schema 72): in the palette, on no donut.</summary>
+    public const string BackgroundId = "tool-background";
+
+    /// <summary>
+    /// "Add background" (settings schema 72): a picture set on a gradient, a colour or a picture of one's own, saved as
+    /// "{name} With Background.png". In the palette only: the picture donuts are full.
+    /// </summary>
+    public static List<Preset> BackgroundPresets() =>
+    [
+        new()
+        {
+            Id = BackgroundId, NameKey = "preset.background", TargetFormat = BackgroundTool.Target,
+            Kind = PresetKind.Tool, Tool = Preset.BackgroundTool, Output = { FileNamePattern = "{name} With Background" },
+        },
+    ];
+
+    /// <summary>Id of the built-in "Metadata" tool (settings schema 73): in the palette, on no donut.</summary>
+    public const string MetadataId = "tool-metadata";
+
+    /// <summary>
+    /// "Metadata" (settings schema 73): every field of a picture, PDF, video or sound file, edited or removed with
+    /// ExifTool, the file's content untouched. In the palette only: the donuts it suits are full.
+    /// </summary>
+    public static List<Preset> MetadataPresets() =>
+    [
+        new()
+        {
+            Id = MetadataId, NameKey = "preset.metadata", TargetFormat = SameAsSource,
+            Kind = PresetKind.Tool, Tool = Preset.MetadataTool, Output = { FileNamePattern = "{name}_metadata" },
         },
     ];
 

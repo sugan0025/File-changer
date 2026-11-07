@@ -78,6 +78,10 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
     private AnnotateWindow? _annotateWindow;
 
+    private BackgroundWindow? _backgroundWindow;
+
+    private MetadataWindow? _metadataWindow;
+
     private ImageEditWindow? _imageEdit;
 
 
@@ -87,6 +91,10 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
     internal HideWindow? HideWindow => _hideWindow;
 
     internal AnnotateWindow? AnnotateWindow => _annotateWindow;
+
+    internal BackgroundWindow? BackgroundWindow => _backgroundWindow;
+
+    internal MetadataWindow? MetadataWindow => _metadataWindow;
 
     internal ImageEditWindow? ImageEdit => _imageEdit;
 
@@ -359,6 +367,14 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
             ShowAnnotateWindow(files, preset);
 
+        else if (preset.IsBackgroundTool)
+
+            ShowBackgroundWindow(files, preset);
+
+        else if (preset.IsMetadataTool)
+
+            ShowMetadataWindow(files, preset);
+
         else if (preset.IsImageEditTool)
 
             ShowImageEditWindow(files, preset);
@@ -604,6 +620,63 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
         win.Show();
         win.Activate();
     }
+
+    /// <summary>
+    /// Opens the "Add background" window on the pictures among the files. Each picture is written by an ordinary
+    /// conversion, shown in the toast.
+    /// </summary>
+    public void ShowBackgroundWindow(IReadOnlyList<string> files, Preset preset)
+    {
+        var pictures = files.Where(f => FormatRegistry.Detect(f) is { } format && HideService.CanOpen(format.Id)).ToList();
+        if (pictures.Count == 0)
+            return;
+        _backgroundWindow?.Close();
+        var conversions = services.GetRequiredService<ConversionService>();
+        var vm = new BackgroundViewModel(pictures, preset, loc, services.GetRequiredService<UserDataStore>(),
+            (path, conversion) => conversions.Start([path], conversion), services.GetService<ILogger<BackgroundViewModel>>());
+        var win = new BackgroundWindow { DataContext = vm };
+        PrepareWindow(win);
+        win.Closed += (_, _) =>
+        {
+            if (_backgroundWindow == win)
+                _backgroundWindow = null;
+            trimmer.Request();
+        };
+        _backgroundWindow = win;
+        win.Show();
+        win.Activate();
+    }
+
+    /// <summary>
+    /// Opens the "Metadata" window on the files it reads (pictures, PDFs, video, sound), one after another. Each file
+    /// is written by an ordinary conversion, shown in the toast.
+    /// </summary>
+    public void ShowMetadataWindow(IReadOnlyList<string> files, Preset preset)
+    {
+        var readable = files.Where(f => MetadataReadable(FormatRegistry.Detect(f))).ToList();
+        if (readable.Count == 0)
+            return;
+        _metadataWindow?.Close();
+        var conversions = services.GetRequiredService<ConversionService>();
+        var vm = new MetadataViewModel(readable, preset, loc, services.GetRequiredService<UserDataStore>(), new MetadataEngines(),
+            (path, conversion) => conversions.Start([path], conversion), services.GetService<ILogger<MetadataViewModel>>());
+        var win = new MetadataWindow { DataContext = vm };
+        vm.InstallRequested += () => ShowMain("engines");
+        PrepareWindow(win);
+        win.Closed += (_, _) =>
+        {
+            if (_metadataWindow == win)
+                _metadataWindow = null;
+            trimmer.Request();
+        };
+        _metadataWindow = win;
+        win.Show();
+        win.Activate();
+    }
+
+    /// <summary>The files the Metadata tool opens: pictures, PDFs, video and sound.</summary>
+    internal static bool MetadataReadable(Filee.Core.Formats.FileFormat? format) =>
+        format?.Category is FormatCategory.Image or FormatCategory.Pdf or FormatCategory.Video or FormatCategory.Audio;
 
 
 

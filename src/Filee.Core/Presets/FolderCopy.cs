@@ -7,6 +7,9 @@ public static class FolderCopy
 {
     private const string WorkPrefix = ".filee-copy-";
 
+    /// <summary>A name <see cref="IsWorkPath"/> knows: for a folder an engine works in beside the output.</summary>
+    public static string WorkName(string what) => $"{WorkPrefix}{what}-{Guid.NewGuid():N}.tmp";
+
     /// <summary>Watchers ignore unpublished copies, including files inside their temporary directories.</summary>
     public static bool IsWorkPath(string path) => path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
         .Any(part => part.StartsWith(WorkPrefix, StringComparison.Ordinal) && part.EndsWith(".tmp", StringComparison.Ordinal));

@@ -151,6 +151,8 @@ public partial class App : Application
             log.LogInformation("{Rendering}", WindowsRendering.Describe(Environment.GetEnvironmentVariable(WindowsRendering.Variable)));
             TransparentWindows.Watch(log);
         }
+        else if (Program.LinuxDrawsInSoftware)
+            log.LogInformation("Rendering: software ({Variable})", WindowsRendering.Variable);
         // macOS: ask for Accessibility with the system's own alert when the user opened Filee (not at sign-in) and
         // a drag gesture is on, once ever (see ShouldAskForPermission). The home page keeps a reminder until it is
         // given. Asked once the main window is up: asked earlier, the alert ends up behind it.
@@ -230,6 +232,9 @@ public partial class App : Application
                     });
             };
         WatchForUpdates(store);
+        // Started to the tray (at sign-in): no job or window would ask for a trim, however long Filee waits there (#957).
+        if (AppHost.Get<WindowService>().Main is null)
+            AppHost.Get<MemoryTrimmer>().Request();
         // Filee runs as administrator while Explorer doesn't (an installer started "as administrator" started it):
         // say so once, next to the tray, and on the Home page for as long as it lasts.
         if (AppHost.Get<ElevationService>().ShellCannotReachFilee)
@@ -281,6 +286,11 @@ public partial class App : Application
             if (Throttle.TryEnter("forwarded", out var held))
                 log.LogInformation("A later launch handed over {Count} argument(s){Held}", args.Length, LogThrottle.HeldText(held));
             Dispatcher.UIThread.Post(() => HandleCommandLine(CommandLine.Parse(args), forwarded: true));
+        };
+        instance.ListeningFailed += ex =>
+        {
+            if (Throttle.TryEnter("listening", out var held))
+                log.LogWarning(ex, "A later launch couldn't be taken, trying the next{Held}", LogThrottle.HeldText(held));
         };
         instance.StartListening();
     }

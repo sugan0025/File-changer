@@ -4,6 +4,7 @@
 using Filee.Engines.Ebooks;
 using Filee.Engines.Infrastructure;
 using Filee.Engines.Media;
+using Filee.Engines.Metadata;
 using Filee.Engines.Office;
 
 namespace Filee.Engines.Tests;
@@ -128,4 +129,15 @@ public sealed class SystemCopyTests : IDisposable
     [Fact]
     public void Expected_versions_come_from_engines_json() =>
         Assert.NotNull(CopyVersions.Expected("ffmpeg"));
+
+    [Fact]
+    public void An_exiftool_script_with_nothing_to_run_it_reports_the_missing_perl()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "ExifTool is a program on Windows.");
+        var script = Path.Combine(_folder, "exiftool");
+        File.WriteAllText(script, "#!/no/such/perl\nprint 1;\n");
+        EngineEnvironment.OwnCopies = new Dictionary<string, string> { ["exiftool"] = script };
+
+        Assert.Equal("engine.reason.needs_perl", new ExifToolConverter().GetStatus().ReasonKey);
+    }
 }

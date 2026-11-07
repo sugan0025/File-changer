@@ -78,7 +78,7 @@ public static class HideService
     /// <summary>The picture as a bitmap the window draws.</summary>
     public static Bitmap ToBitmap(IMagickImage<byte> image)
     {
-        var pixels = image.ToByteArray(MagickFormat.Bgra);
+        var pixels = image.GetPixels().ToByteArray(PixelMapping.BGRA) ?? image.ToByteArray(MagickFormat.Bgra);
         var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
         try
         {

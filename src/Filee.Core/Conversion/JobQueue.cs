@@ -652,11 +652,23 @@ public sealed partial class JobQueue : IAsyncDisposable
         Notify(job);
     }
 
-    /// <summary>A file that would be used as it is although the preset turns, mirrors or covers parts of it.</summary>
+    /// <summary>
+    /// Why a file the preset turns, mirrors, covers parts of, draws on or sets on a background can't be: no step of its
+    /// route changes images.
+    /// </summary>
+    private static string CannotReworkKey(ImageOptions image) =>
+        image.HidesAreas ? "error.cannot_hide"
+        : image.HasAnnotations || image.AddsBackdrop ? "error.images_only"
+        : "error.cannot_turn";
+
+    /// <summary>
+    /// A file that would be used as it is although the preset turns, mirrors, covers parts of, draws on or sets it on a
+    /// background.
+    /// </summary>
     private void FailUnturned(ConversionJob job, FileResult file, string detail)
     {
         file.State = FileState.Failed;
-        file.ErrorKey = job.Preset.Image.HidesAreas ? "error.cannot_hide" : "error.cannot_turn";
+        file.ErrorKey = CannotReworkKey(job.Preset.Image);
         file.ErrorDetail = detail;
         file.Progress = 1;
         Notify(job);
@@ -866,12 +878,15 @@ public sealed partial class JobQueue : IAsyncDisposable
         // "Recognize text": Tesseract writes a searchable PDF first, read on into DOCX, TXT, … from there. Also for the
         // PDFs that are merged into one.
         var ocr = (finalOutput || target == "pdf") && runWith.RecognizesTextOf(from.Id);
-        var route = opener is null
-            ? planner.Plan(source.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption)
+        // "Metadata": only an engine that writes the metadata and nothing else, never a route that re-encodes the file.
+        // An envelope has no such edge: opening it for the file inside would drop the changes without a word.
+        var metadata = finalOutput && runWith.EditsMetadata;
+        var route = opener is null || metadata
+            ? planner.Plan(source.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption, metadata: metadata)
             : planner.PlanThrough(source.Id, from.Id, target, frames, motionPhoto: motionPhoto, livePhoto: livePhoto, ocr: ocr, caption: caption);
         if (route is null)
             return Fail(file, "error.no_route", $"{from.Id} → {target}",
-                new RouteRequest(from.Id, target, Frames: frames, MotionPhoto: motionPhoto, LivePhoto: livePhoto, Ocr: ocr));
+                new RouteRequest(from.Id, target, Frames: frames, MotionPhoto: motionPhoto, LivePhoto: livePhoto, Ocr: ocr, Metadata: metadata));
 
         // A step that draws text without shaping (rhwp) would break Arabic, Hebrew, Indic or Thai text: such a file
         // takes a route without it (LibreOffice), or is refused with the reason rather than written broken. One
@@ -906,7 +921,7 @@ public sealed partial class JobQueue : IAsyncDisposable
         // Parts of a picture to hide likewise, once: a route that can't cover them must not write the picture uncovered.
         var turnAt = runWith.Image.ReworksPixels ? route.FirstTransformStep() : -1;
         if (runWith.Image.ReworksPixels && turnAt < 0)
-            return Fail(file, runWith.Image.HidesAreas ? "error.cannot_hide" : "error.cannot_turn", $"{source.Id} → {target}");
+            return Fail(file, CannotReworkKey(runWith.Image), $"{source.Id} → {target}");
         var unturned = turnAt < 0 ? runWith : Unturned(runWith);
 
         file.State = FileState.Running;
@@ -1051,6 +1066,8 @@ public sealed partial class JobQueue : IAsyncDisposable
             copy.Image.Rotation = ImageRotation.None;
             copy.Image.Flip = ImageFlip.None;
             copy.Image.HiddenAreas = null;
+            copy.Image.Annotations = null;
+            copy.Image.Backdrop = null;
             return copy;
         }
 
