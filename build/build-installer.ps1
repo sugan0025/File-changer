@@ -43,7 +43,7 @@ param(
     [string]$PublishDir,
     # A finished Setup program (Filee.Setup.exe from an earlier run); skips publishing src/Filee.Setup.
     [string]$SetupProgram,
-    [string]$OutputDir = (Join-Path $PSScriptRoot '..\Releases'),
+    [string]$OutputDir = '',
     [switch]$Portable,
     [string]$CertificateThumbprint,
     [switch]$CheckOnly,
@@ -51,8 +51,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$cache = Join-Path $PSScriptRoot '.cache'
+$scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+if (-not $OutputDir) { $OutputDir = Join-Path $scriptDir '..\Releases' }
+$root = (Resolve-Path (Join-Path $scriptDir '..')).Path
+$cache = Join-Path $scriptDir '.cache'
 
 function Invoke-Checked([string]$what, [scriptblock]$command) {
     & $command
