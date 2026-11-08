@@ -510,7 +510,7 @@ internal static class ImageEncoder
     /// </summary>
     private static void MatchAlpha(IEnumerable<IMagickImage<byte>> frames)
     {
-        var action = frames.All(frame => frame.IsOpaque) ? AlphaAction.Off : AlphaAction.Set;
+        var action = frames.All(frame => frame.IsOpaque) ? AlphaOption.Off : AlphaOption.Set;
         foreach (var frame in frames)
             frame.Alpha(action);
     }

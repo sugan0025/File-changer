@@ -29,7 +29,7 @@ internal static class AvifBuilder
         using var image = new MagickImage(picture.Colour, picture.Width, picture.Height);
         image.Quality = 90;
         image.Strip();
-        image.Alpha(AlphaAction.Off);
+        image.Alpha(AlphaOption.Off);
         var file = image.ToByteArray(MagickFormat.Avif);
         var meta = Find(file, 0, file.Length, "meta");
         var iprp = Find(file, meta.Start + 4, meta.End, "iprp"); // meta is a full box
