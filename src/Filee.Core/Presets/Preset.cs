@@ -1257,10 +1257,42 @@ public sealed class PdfOptions
     /// </summary>
     public bool Ocr { get; set; }
 
-    /// <summary>With <see cref="Ocr"/>: the language of the text, as a Tesseract code (<c>eng</c>, <c>deu</c>, <c>chi_sim</c>).</summary>
-    public string OcrLanguage { get; set; } = "eng";
+    /// <summary>
+    /// With <see cref="Ocr"/>: the languages of the text as Tesseract codes (<c>eng</c>, <c>deu</c>, <c>chi_sim</c>); text
+    /// that mixes languages has several, the main one first.
+    /// </summary>
+    public List<string> OcrLanguages
+    {
+        get => _ocrLanguages;
+        set => _ocrLanguages = value is { Count: > 0 } ? [.. value] : ["eng"];
+    }
+    private List<string> _ocrLanguages = ["eng"];
 
-    public PdfOptions Clone() => (PdfOptions)MemberwiseClone();
+    /// <summary>
+    /// With <see cref="Ocr"/>: the language of the text as a Tesseract code (<c>eng</c>, <c>deu</c>, <c>chi_sim</c>); text
+    /// that mixes languages has several, the main one first, joined with <c>+</c> as Tesseract takes them (<c>chi_sim+eng</c>).
+    /// </summary>
+    public string OcrLanguage
+    {
+        get => string.Join("+", _ocrLanguages);
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                _ocrLanguages = ["eng"];
+                return;
+            }
+            var parts = value.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct().ToList();
+            _ocrLanguages = parts.Count > 0 ? parts : ["eng"];
+        }
+    }
+
+    public PdfOptions Clone()
+    {
+        var copy = (PdfOptions)MemberwiseClone();
+        copy._ocrLanguages = [.. _ocrLanguages];
+        return copy;
+    }
 }
 
 /// <summary>Options for office and HWP documents.</summary>
