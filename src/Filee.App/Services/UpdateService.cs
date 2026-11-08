@@ -66,7 +66,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     {
         _log = log;
         // Downloads use their own stall timeout (StallTimeout); this one covers the API call and the response headers.
-        _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
+        _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
         _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Filee", CurrentVersion));
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
