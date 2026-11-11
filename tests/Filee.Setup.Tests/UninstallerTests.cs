@@ -28,11 +28,11 @@ public class UninstallerTests
 
         Assert.Empty(later);
         // Filee cleaned up after itself for the user first (Explorer menu, startup entry, downloaded engines).
-        Assert.Equal("run Filee.exe --uninstall-cleanup", bench.System.Calls.First(c => c.StartsWith("run ", StringComparison.Ordinal)));
+        Assert.Equal("run Hoot.exe --uninstall-cleanup", bench.System.Calls.First(c => c.StartsWith("run ", StringComparison.Ordinal)));
         Assert.Contains("unregister-menu", bench.System.Calls);
         Assert.False(Directory.Exists(bench.InstallFolder));
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "Filee.lnk")));
-        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "Filee.lnk")));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonStartMenu, "HOOT.lnk")));
+        Assert.False(File.Exists(Path.Combine(bench.Paths.CommonDesktop, "HOOT.lnk")));
         Assert.False(bench.Registry.KeyExists(Hive.LocalMachine, SetupNames.UninstallKey));
         var path = bench.Registry.Get(Hive.LocalMachine, SetupNames.MachineEnvironmentKey, "Path")!;
         Assert.Equal(@"%SystemRoot%\system32;C:\Tools", path.Text);

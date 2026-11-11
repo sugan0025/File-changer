@@ -333,7 +333,9 @@ internal static class Program
             {
                 var lines = File.ReadAllLines(launchFile);
                 File.Delete(launchFile);
-                if (lines.Length >= 1 && Path.GetFileName(lines[0]).Equals(SetupNames.AppExe, StringComparison.OrdinalIgnoreCase) && File.Exists(lines[0]))
+                if (lines.Length >= 1 &&
+                    (Path.GetFileName(lines[0]).Equals(SetupNames.AppExe, StringComparison.OrdinalIgnoreCase) ||
+                     Path.GetFileName(lines[0]).Equals(SetupNames.LegacyAppExe, StringComparison.OrdinalIgnoreCase)) && File.Exists(lines[0]))
                     Start(new LaunchRequest(lines[0], lines.Length > 1 ? lines[1] : ""), log);
                 else
                     log.Warn($"Not starting what {launchFile} names");

@@ -8,6 +8,7 @@ Releases/
 # Downloaded conversion engines (see build/fetch-engines.ps1)
 engines/
 build/.cache/
+.cache/
 
 # IDE
 .vs/

@@ -141,6 +141,7 @@ public sealed class SetupBench : IDisposable
     private void WriteApp(Action<TempFolder, string>? app)
     {
         _temp.Write(@"app\Filee.exe", "Filee 2");
+        _temp.Write(@"app\Hoot.exe", "HOOT 2");
         _temp.Write(@"app\Filee.dll", new string('a', 20_000));
         _temp.Write(@"app\cli\filee.cmd", "@\"%~dp0..\\filee-cli.exe\" %*");
         _temp.Write(@"app\filee-cli.exe", "cli");

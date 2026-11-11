@@ -205,7 +205,7 @@ if ($CheckOnly) {
     }
     $registry = Get-Content (Join-Path $sandbox 'registry.json') -Raw
     if ($registry -notmatch 'C8686E06-8327-40A2-B0F7-3DEDD61D9248\}_is1' -or $registry -notmatch 'uninstall\.exe') { throw 'Setup did not write the uninstall entry' }
-    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\Filee.lnk'))) { throw 'Setup did not create the desktop shortcut' }
+    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\HOOT.lnk'))) { throw 'Setup did not create the desktop shortcut' }
     Invoke-Setup $setupExe @()
     Invoke-Setup (Join-Path $installed 'uninstall.exe') @()
     if (Test-Path $installed) { throw "The uninstaller left $installed" }

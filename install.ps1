@@ -20,21 +20,9 @@ $installDir = Join-Path $env:LOCALAPPDATA "Programs\Hoot"
 $legacyDir = Join-Path $env:LOCALAPPDATA "Programs\Filee"
 $tempZip = Join-Path $env:TEMP "Hoot-Setup-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8)).zip"
 $stagingDir = Join-Path $env:TEMP "Hoot-Staging-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+$checksumUrl = $null
 
 try {
-    # Gracefully close running HOOT / Filee if any
-    $running = Get-Process -Name "Hoot", "Filee" -ErrorAction SilentlyContinue
-    if ($running) {
-        Write-Host "Closing running instances of HOOT / Filee..." -ForegroundColor Yellow
-        $running | Stop-Process -Force
-        Start-Sleep -Milliseconds 500
-    }
-
-    # Clean up legacy Programs\Filee folder if present
-    if (Test-Path $legacyDir) {
-        Remove-Item $legacyDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
     Write-Host "Finding latest HOOT release from GitHub..." -ForegroundColor Cyan
 
     $repo = "sugan0025/File-changer"
@@ -59,6 +47,9 @@ try {
                 }
                 if ($zipAsset) {
                     $downloadUrl = $zipAsset.browser_download_url
+                    $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-SHA256SUMS.txt'
+                    $checksumAsset = $release.assets | Where-Object { $_.name -eq $checksumName } | Select-Object -First 1
+                    if ($checksumAsset) { $checksumUrl = $checksumAsset.browser_download_url }
                 }
             }
         } catch { }
@@ -77,6 +68,9 @@ try {
             }
             if ($zipAsset) {
                 $downloadUrl = $zipAsset.browser_download_url
+                $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-SHA256SUMS.txt'
+                $checksumAsset = $release.assets | Where-Object { $_.name -eq $checksumName } | Select-Object -First 1
+                if ($checksumAsset) { $checksumUrl = $checksumAsset.browser_download_url }
             }
         } catch {
             Write-Host "Note: GitHub API release check fallback active." -ForegroundColor Gray
@@ -123,9 +117,51 @@ try {
 
     Write-Host "Download successful ($downloadUrl)!" -ForegroundColor Green
 
-    Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
-    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+    # Verify the archive against the matching release manifest when the release provides one.
+    $checksumUrls = [System.Collections.Generic.List[string]]::new()
+    if ($checksumUrl) { $checksumUrls.Add($checksumUrl) }
+    if ($latestTag) {
+        $releaseVersion = $latestTag.TrimStart('v', 'V')
+        $releaseUrl = "https://github.com/$repo/releases/download/$latestTag"
+        $checksumUrls.Add("$releaseUrl/Hoot-$releaseVersion-SHA256SUMS.txt")
+        $checksumUrls.Add("$releaseUrl/Filee-$releaseVersion-SHA256SUMS.txt")
+    }
 
+    $checksumManifest = $null
+    foreach ($url in $checksumUrls | Select-Object -Unique) {
+        try {
+            $response = Invoke-WebRequest -Uri $url -Headers @{ "User-Agent" = "Hoot-Installer" } -UseBasicParsing -TimeoutSec 15
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                $checksumManifest = $response.Content
+                break
+            }
+        } catch { }
+    }
+
+    if ($checksumManifest) {
+        $archiveName = [System.IO.Path]::GetFileName(([System.Uri]$downloadUrl).AbsolutePath)
+        $expectedHash = $null
+        foreach ($line in ($checksumManifest -split "`r?`n")) {
+            if ($line -match '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$' -and
+                [System.IO.Path]::GetFileName($Matches[2]) -ieq $archiveName) {
+                $expectedHash = $Matches[1]
+                break
+            }
+        }
+        if (-not $expectedHash) {
+            throw "The release checksum manifest does not contain an entry for $archiveName."
+        }
+
+        $actualHash = (Get-FileHash -LiteralPath $tempZip -Algorithm SHA256).Hash
+        if ($actualHash -ine $expectedHash) {
+            throw "The downloaded archive failed SHA-256 verification. Expected $expectedHash; received $actualHash."
+        }
+        Write-Host "SHA-256 verification succeeded." -ForegroundColor Green
+    } else {
+        Write-Warning "No release SHA256SUMS.txt was available; continuing with the HTTPS download."
+    }
+
+    Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
     try {
         Expand-Archive -Path $tempZip -DestinationPath $stagingDir -Force
     } catch {
@@ -148,6 +184,23 @@ try {
     if (-not (Test-Path (Join-Path $payloadDir "Hoot.exe")) -and -not (Test-Path (Join-Path $payloadDir "Filee.exe"))) {
         throw "Download succeeded, but neither Hoot.exe nor Filee.exe was found inside the zip archive."
     }
+
+    # Do not disrupt the installed copy until the archive has downloaded, verified (when a manifest is available),
+    # extracted, and its application executable has been found.
+    $running = Get-Process -Name "Hoot", "Filee" -ErrorAction SilentlyContinue |
+        Where-Object { $_.Path -and ($_.Path.StartsWith($installDir, [System.StringComparison]::OrdinalIgnoreCase) -or $_.Path.StartsWith($legacyDir, [System.StringComparison]::OrdinalIgnoreCase)) }
+    if ($running) {
+        Write-Host "Closing running HOOT / Filee instances..." -ForegroundColor Yellow
+        $running | Stop-Process -Force
+        Start-Sleep -Milliseconds 500
+    }
+
+    # Clean up the legacy folder only after the replacement payload is ready.
+    if (Test-Path $legacyDir) {
+        Remove-Item $legacyDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 
     # Copy payload to install directory
     Copy-Item -Path (Join-Path $payloadDir "*") -Destination $installDir -Recurse -Force

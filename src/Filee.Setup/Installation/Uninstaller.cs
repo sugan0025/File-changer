@@ -36,6 +36,8 @@ public sealed class Uninstaller(SetupContext context)
         progress?.Report(new SetupProgress(SetupStep.Closing, 0));
 
         var exe = Path.Combine(folder, SetupNames.AppExe);
+        if (!File.Exists(exe))
+            exe = Path.Combine(folder, SetupNames.LegacyAppExe);
         if (File.Exists(exe))
             Log.Info($"Filee --uninstall-cleanup: exit code {System.RunAndWait(exe, "--uninstall-cleanup", CleanupTimeout)}");
         foreach (var program in System.ProgramsIn(folder).Where(p => p.Id != Environment.ProcessId))
@@ -52,7 +54,10 @@ public sealed class Uninstaller(SetupContext context)
 
         var hive = PreviousInstall.HiveOf(record.Scope);
         foreach (var shortcut in new[] { context.Paths.StartMenu(record.Scope), context.Paths.Desktop(record.Scope) })
+        {
             DeleteFile(Path.Combine(shortcut, SetupNames.ShortcutName), trash, later);
+            DeleteFile(Path.Combine(shortcut, SetupNames.LegacyShortcutName), trash, later);
+        }
         if (PathVariable.Set(Registry, record.Scope, Path.Combine(folder, SetupNames.CliFolder), present: false))
         {
             System.BroadcastEnvironmentChange();

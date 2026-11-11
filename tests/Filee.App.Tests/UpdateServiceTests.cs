@@ -30,6 +30,14 @@ public class UpdateServiceTests
     public void Release_tags_compare_by_version(string? tag, string current, bool newer) =>
         Assert.Equal(newer, UpdateService.IsNewer(tag, current));
 
+    [Fact]
+    public void IsNewer_LegacyMultiPartPatch_ReturnsFalseAgainstNewerMinorVersion()
+    {
+        // v2.4.6.42 was an older release tag; version 2.5.0 must not detect it as newer
+        Assert.False(UpdateService.IsNewer("v2.4.6.42", "2.5.0"));
+        Assert.False(UpdateService.IsNewer("2.4.6.42", "2.5.0"));
+    }
+
     /// <summary>Filee works offline: a failed update check must neither throw nor report an update.</summary>
     public static TheoryData<string> OfflineFailures => ["no network", "timeout", "dropped while reading", "not json"];
 

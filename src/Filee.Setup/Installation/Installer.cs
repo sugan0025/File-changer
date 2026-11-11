@@ -122,6 +122,8 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
             // 7. Done: the old files go.
             progress?.Report(new SetupProgress(SetupStep.Finishing, 0.97));
             swap.Commit();
+            if (!choices.Portable)
+                RemoveLegacyShortcuts(choices.Scope);
             progress?.Report(new SetupProgress(SetupStep.Finishing, 1));
             Log.Info("Done");
             var launch = choices.Portable ? null : new LaunchRequest(Path.Combine(folder, SetupNames.AppExe), LaunchArguments(choices, update, updatedFrom: previous?.Version));
@@ -217,6 +219,8 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
     private void CloseFilee(string folder, bool force, bool velopack)
     {
         var exe = Path.Combine(folder, SetupNames.AppExe);
+        if (!File.Exists(exe))
+            exe = Path.Combine(folder, SetupNames.LegacyAppExe);
         if (File.Exists(exe))
         {
             var code = System.RunAndWait(exe, "--quit", QuitTimeout);
@@ -236,6 +240,23 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         {
             Log.Info($"Ending {program.Path} ({program.Id})");
             System.Kill(program.Id);
+        }
+    }
+
+    private void RemoveLegacyShortcuts(InstallScope scope)
+    {
+        foreach (var shortcut in new[] { Paths.StartMenu(scope), Paths.Desktop(scope) })
+        {
+            var legacy = Path.Combine(shortcut, SetupNames.LegacyShortcutName);
+            try
+            {
+                if (File.Exists(legacy))
+                    File.Delete(legacy);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Warn($"Could not remove the old Filee shortcut {legacy}: {ex.Message}");
+            }
         }
     }
 
@@ -265,13 +286,13 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         {
             if (!File.Exists(startMenu))
                 undo.Push(("Start menu shortcut", () => File.Delete(startMenu)));
-            System.CreateShortcut(startMenu, exe, folder, "Filee");
+            System.CreateShortcut(startMenu, exe, folder, "HOOT");
         }
         if (choices.Tasks.DesktopIcon && !choices.NoIcons)
         {
             if (!File.Exists(desktop))
                 undo.Push(("desktop shortcut", () => File.Delete(desktop)));
-            System.CreateShortcut(desktop, exe, folder, "Filee");
+            System.CreateShortcut(desktop, exe, folder, "HOOT");
         }
         else if (update && File.Exists(desktop))
         {
