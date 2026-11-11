@@ -668,6 +668,37 @@ public sealed class MetadataWindowTests : IDisposable
         Assert.True(used < 500L * 1024 * 1024, $"{used} bytes allocated");
     }
 
+    private MetadataViewModel Reading(IReadOnlyList<MetadataField> fields, params string[] files) => new(Files(files), Tool(),
+        AppHost.Get<ILocalizer>(), AppHost.Get<UserDataStore>(),
+        new MetadataEngines { Locate = () => "/fake/exiftool", Read = (_, _) => Task.FromResult(fields) }, (_, _) => { });
+
+    [AvaloniaFact]
+    public void A_field_of_a_list_ExifTool_read_only_part_of_says_why_it_cant_be_typed_in_and_can_still_be_removed()
+    {
+        TestServices.EnsureInitialized();
+        var loc = AppHost.Get<ILocalizer>();
+        var vm = Reading(
+        [
+            new MetadataField("XMP", "XMP-xmpMM", "HistorySoftwareAgent", "Camera app 1.0", true) { CutShortList = "XMP-xmpMM:History" },
+            new MetadataField("XMP", "XMP-dc", "Title", "Long history", true),
+        ], "long-history.png");
+        Wait(() => !vm.IsBusy);
+        var row = Row(vm, "XMP-xmpMM:HistorySoftwareAgent");
+
+        row.EditCommand.Execute(null);
+
+        Assert.False(row.IsEditing);
+        Assert.False(row.CanType);
+        Assert.False(row.ShowsLock); // the × beside it works
+        Assert.Equal(loc.Format("metadata.list_cut_short", "XMP-xmpMM:History"), row.Note);
+        Assert.Contains(row.Note!, row.SpokenValue, StringComparison.Ordinal);
+        Assert.True(Row(vm, "XMP-dc:Title").CanType);
+        // Remove location can't check what wasn't read for a place, and says so before anything is saved.
+        Assert.Equal(loc.Format("metadata.location_unread", "XMP-xmpMM:History"), vm.LocationNotice);
+        row.RemoveCommand.Execute(null);
+        Assert.Equal(["XMP-xmpMM:HistorySoftwareAgent"], vm.Changes().Remove);
+    }
+
     /// <summary>XMP nested in itself: a reader that walks it takes about twice as long for every level and a half.</summary>
     private static byte[] NestedXmp(int levels) => Encoding.UTF8.GetBytes(
         "<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'><rdf:Description rdf:about='' xmlns:a='a:'>"

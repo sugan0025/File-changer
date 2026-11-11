@@ -36,6 +36,9 @@ public sealed class MetadataEngines
 
 public sealed partial class MetadataViewModel : ObservableObject, IDisposable
 {
+    /// <summary>The fields out of reach of Remove location its notice names: a file can have any number.</summary>
+    private const int NamesInNotice = 12;
+
     /// <summary>Groups with a name of their own, in the order shown; any other comes after them, File last.</summary>
     private static readonly (string Group, string Key)[] KnownGroups =
     [
@@ -194,6 +197,7 @@ public sealed partial class MetadataViewModel : ObservableObject, IDisposable
 
     private bool _holdsMore;
     private IReadOnlyList<string> _outOfReach = [];
+    private IReadOnlyList<string> _cutShort = [];
     private bool _isVideo;
     private bool _removeLocationAsked;
     private bool _removeAllAsked;
@@ -265,6 +269,7 @@ public sealed partial class MetadataViewModel : ObservableObject, IDisposable
         EmbeddedNotice = _holdsMore ? _loc.Format("metadata.embedded", _loc["preset.remove_metadata"]) : "";
         CanEdit = exifTool is not null && !IsUnwritable;
         _outOfReach = CanEdit ? ExifTool.LocationOutOfReach(fields) : [];
+        _cutShort = CanEdit ? ExifTool.CutShortLists(fields) : [];
         _isVideo = CanEdit && FormatRegistry.Detect(path)?.Category == FormatCategory.Video;
         ShowLocationNotice();
         _rows = [.. fields.Where(f => !ExifTool.NotInTheFile.Contains(f.Group)).Select(f => NewRow(f, CanEdit && f.Editable, CanEdit && !f.Editable))];
@@ -279,7 +284,10 @@ public sealed partial class MetadataViewModel : ObservableObject, IDisposable
     /// <summary>What saving won't take away: a "successful" Remove location must not read as a clean file.</summary>
     private void ShowLocationNotice() => LocationNotice = string.Join("\n", new[]
     {
-        _outOfReach.Count > 0 ? _loc.Format("metadata.location_kept", string.Join(", ", _outOfReach.Select(LabelOf))) : "",
+        _outOfReach.Count > 0 ? _loc.Format("metadata.location_kept", string.Join(", ", _outOfReach.Take(NamesInNotice).Select(LabelOf))
+                                                                      + (_outOfReach.Count > NamesInNotice ? ", …" : "")) : "",
+        // What ExifTool didn't read of a long list it can't check for a place either.
+        _cutShort.Count > 0 ? _loc.Format("metadata.location_unread", string.Join(", ", _cutShort.Take(NamesInNotice)) + (_cutShort.Count > NamesInNotice ? ", …" : "")) : "",
         _isVideo ? _loc["metadata.location_tracks"] : "",
     }.Where(line => line.Length > 0));
 
@@ -668,6 +676,27 @@ public sealed partial class MetadataRowViewModel : ObservableObject
     /// <summary>A lock beside a value the file's structure decides (only when editing is possible at all).</summary>
     public bool ShowsLock { get; }
 
+    /// <summary>
+    /// Not a value to type in: a text box lays all of it out (32 KB takes most of a second, 1 MB about 16 s). It can
+    /// still be selected and removed.
+    /// </summary>
+    private bool FitsABox => Field.Value.Length <= LongestEditable;
+
+    /// <summary>
+    /// The value opens in a box when pressed; otherwise it is text to select. Not a list ExifTool read only part of:
+    /// saved from the box, it would be only that part.
+    /// </summary>
+    public bool CanType => CanEdit && FitsABox && Field.CutShortList is null;
+
+    /// <summary>Why a value that could be edited isn't offered for it: too long for a box.</summary>
+    public string? TooLongNote => CanEdit && !FitsABox ? _loc["metadata.too_long"] : null;
+
+    /// <summary>Why a value that could be edited isn't offered for it: ExifTool read only part of its list.</summary>
+    public string? CutShortNote => CanEdit && Field.CutShortList is not null ? _loc.Format("metadata.list_cut_short", Field.CutShortList) : null;
+
+    /// <summary>Why the value can't be typed in, shown beside it and spoken with it; null when it can.</summary>
+    public string? Note => CutShortNote ?? TooLongNote;
+
     /// <summary>A field the user added (not in the file yet).</summary>
     public bool IsAdded { get; init; }
 
@@ -695,7 +724,7 @@ public sealed partial class MetadataRowViewModel : ObservableObject
     {
         get
         {
-            var spoken = $"{Label}: {Value.Replace("\n", ", ", StringComparison.Ordinal)}";
+            var spoken = $"{Label}: {Cut(Value, LongestSpoken).Replace("\n", ", ", StringComparison.Ordinal)}{(Note is { } note ? $". {note}" : "")}";
             return IsRemoved ? _loc.Format("metadata.spoken_removed", spoken) : spoken;
         }
     }
@@ -706,8 +735,16 @@ public sealed partial class MetadataRowViewModel : ObservableObject
     /// can be selected and copied.
     /// </summary>
     public string ShownValue => System.Globalization.CultureInfo.CurrentUICulture.TextInfo.IsRightToLeft
-        ? string.Join("\n", Value.Split('\n').Select(line => $"\u2068{line}\u2069"))
-        : Value;
+        ? string.Join("\n", Cut(Value, LongestShown).Split('\n').Select(line => $"\u2068{line}\u2069"))
+        : Cut(Value, LongestShown);
+
+    private static string Cut(string value, int length) => value.Length <= length
+        ? value
+        : value[..(char.IsHighSurrogate(value[length - 1]) ? length - 1 : length)] + "…";
+
+    internal const int LongestShown = 32 * 1024;
+    internal const int LongestEditable = LongestShown;
+    private const int LongestSpoken = 1000;
 
     /// <summary>What a screen reader says for × ("Remove Title").</summary>
     public string RemoveName => _loc.Format("metadata.remove_named", Label);
@@ -740,7 +777,7 @@ public sealed partial class MetadataRowViewModel : ObservableObject
     [RelayCommand]
     private void Edit()
     {
-        if (CanEdit && !IsRemoved)
+        if (CanType && !IsRemoved)
             IsEditing = true;
     }
 
