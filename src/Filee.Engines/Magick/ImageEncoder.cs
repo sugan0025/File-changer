@@ -205,13 +205,13 @@ internal static class ImageEncoder
 
     /// <summary>
     /// How much <see cref="ApplyOptions"/> resizes a width x height image before <see cref="FitFormat"/> (1 when it
-    /// does not). Custom sizing with the aspect kept takes one scale for both sides; stretched, the height's factor
-    /// is what a tall run of pages has to fit.
+    /// does not). Custom sizing with the aspect kept takes one scale for both sides (never above 1 for a box that
+    /// only shrinks); stretched, the height's factor is what a tall run of pages has to fit.
     /// </summary>
     public static double ResizeScale(double width, double height, ImageOptions options) =>
         options.CustomSize is { Width: > 0, Height: > 0 } custom
             ? custom.LockAspect
-                ? Math.Min(custom.ClampedWidth / width, custom.ClampedHeight / height)
+                ? custom.FitScale(width, height)
                 : custom.ClampedHeight / height
             : options.ClampedMinShortEdge is { } minShortEdge
                 ? MinShortEdgeScale(width, height, minShortEdge)
@@ -324,9 +324,10 @@ internal static class ImageEncoder
             var customHeight = custom.ClampedHeight;
             if (custom.LockAspect)
             {
-                // The file's own shape is kept: scaled up or down to the largest size that fits inside the box. Both
-                // sides come from one scale, so the aspect already matches and Resize keeps it, as it always does.
-                var scale = Math.Min(customWidth / (double)image.Width, customHeight / (double)image.Height);
+                // The file's own shape is kept: scaled up or down to the largest size that fits inside the box (only
+                // down when the box is a maximum, #1270). Both sides come from one scale, so the aspect already
+                // matches and Resize keeps it, as it always does.
+                var scale = custom.FitScale(image.Width, image.Height);
                 if (scale != 1)
                     image.Resize((uint)Math.Max(1, Math.Round(image.Width * scale)), (uint)Math.Max(1, Math.Round(image.Height * scale)));
             }
@@ -496,7 +497,7 @@ internal static class ImageEncoder
             frames[i].Write(path, format);
             // Animations and multi-page files written above aren't fitted: the queue refuses them when they're too large.
             if (options is { MaxSizeMb: > 0 } or { MinSizeMb: > 0 })
-                FitToSize(frames[i], path, format, SizeLimit.Bytes(options.MaxSizeMb), SizeLimit.MinimumBytes(options.MinSizeMb));
+                FitToSize(frames[i], path, format, SizeLimit.Bytes(options.MaxSizeMb), SizeLimit.MinimumBytes(options.MinSizeMb), options.MaxSizeKeepsPixels);
             written.Add(path);
         }
         return written;
@@ -518,17 +519,28 @@ internal static class ImageEncoder
     /// <summary>A fitted picture is never made smaller than this long edge (nor than its own): below it, it's a thumbnail.</summary>
     internal const int MinFittedLongEdge = 640;
 
+    /// <summary>The lowest quality <see cref="FitToSize"/> saves at.</summary>
+    internal const int MinFittedQuality = 50;
+
+    /// <summary>
+    /// The lowest quality <see cref="FitToSize"/> saves at when the picture keeps its pixels: blocky, but asked for in
+    /// place of a smaller picture (#1270).
+    /// </summary>
+    internal const int MinKeptPixelsQuality = 10;
+
     /// <summary>
     /// Saves <paramref name="image"/> again until <paramref name="path"/> is at most <paramref name="limit"/> bytes: a
-    /// lower quality first (down to 50, where a lossy format still looks fine), then fewer pixels, but never below a
-    /// long edge of <see cref="MinFittedLongEdge"/>. Refuses when it still doesn't fit, rather than hand over a file
-    /// that breaks the limit or a thumbnail. Under <paramref name="minimum"/> (#662), a lossy format is saved again at a
-    /// higher quality, never with more pixels, up to 100 or until the next step would break the limit; the queue tells
-    /// about a file that stays under it.
+    /// lower quality first (down to <see cref="MinFittedQuality"/>, where a lossy format still looks fine), then fewer
+    /// pixels, but never below a long edge of <see cref="MinFittedLongEdge"/>. With <paramref name="keepPixels"/> the
+    /// pixels stay and only the quality goes down, to <see cref="MinKeptPixelsQuality"/>. Refuses when it still doesn't
+    /// fit, rather than hand over a file that breaks the limit or a thumbnail. Under <paramref name="minimum"/> (#662), a
+    /// lossy format is saved again at a higher quality, never with more pixels, up to 100 or until the next step would
+    /// break the limit; the queue tells about a file that stays under it.
     /// </summary>
     /// <param name="limit">Most bytes; 0 = no limit.</param>
     /// <param name="minimum">Fewest bytes; 0 = no minimum.</param>
-    internal static void FitToSize(IMagickImage<byte> image, string path, MagickFormat format, long limit, long minimum = 0)
+    /// <param name="keepPixels">Never make the picture smaller (<see cref="ImageOptions.MaxSizeKeepsPixels"/>).</param>
+    internal static void FitToSize(IMagickImage<byte> image, string path, MagickFormat format, long limit, long minimum = 0, bool keepPixels = false)
     {
         var size = new FileInfo(path).Length;
         if (limit <= 0)
@@ -541,21 +553,24 @@ internal static class ImageEncoder
             lossy = false;
 
         var floor = Math.Min(MinFittedLongEdge, Math.Max(image.Width, image.Height));
+        var lowestQuality = (uint)(keepPixels ? MinKeptPixelsQuality : MinFittedQuality);
         byte[]? bestBytes = null;
+        byte[]? lastLossyBytes = null;
         IMagickImage<byte>? bestImage = null;
 
         if (size > limit)
         {
-            // 1. Try lowering quality down to 50 in memory (no disk I/O, no pixel loss)
+            // 1. Try lowering quality down to lowestQuality in memory (no disk I/O, no pixel loss)
             if (lossy)
             {
                 using var probe = image.Clone();
                 uint q = probe.Quality is > 0 and <= 100 ? probe.Quality : 90;
-                while (q > 50)
+                while (q > lowestQuality)
                 {
-                    q = (uint)Math.Max(50, (int)q - 10);
+                    q = (uint)Math.Max(lowestQuality, (int)q - 10);
                     probe.Quality = q;
                     var probeBytes = probe.ToByteArray(format);
+                    lastLossyBytes = probeBytes;
                     if (probeBytes.Length <= limit)
                     {
                         bestBytes = probeBytes;
@@ -565,11 +580,14 @@ internal static class ImageEncoder
                 }
             }
 
-            // 2. If still over limit, downsample dimensions - always scaling from the pristine original image
-            if (bestBytes is null)
+            if (bestBytes is null && keepPixels && lastLossyBytes is not null)
+                bestBytes = lastLossyBytes;
+
+            // 2. If still over limit and not keepPixels, downsample dimensions - always scaling from the pristine original image
+            if (bestBytes is null && !keepPixels)
             {
                 var currentSize = size;
-                var currentQuality = lossy ? 50u : (image.Quality > 0 ? image.Quality : 90u);
+                var currentQuality = lossy ? lowestQuality : (image.Quality > 0 ? image.Quality : 90u);
                 var currentScale = 1.0;
                 var longEdge = Math.Max(image.Width, image.Height);
 
