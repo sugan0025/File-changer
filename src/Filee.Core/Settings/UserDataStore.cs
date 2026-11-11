@@ -1042,8 +1042,11 @@ internal static class SettingsMigrations
             presets.InsertRange(background < 0 ? presets.Count : background + 1, BuiltInData.MetadataPresets());
             changed = true;
         }
-
+        // v75: property lists (#1256) learn the data donut; custom claims stay put.
+        if (from < 75)
+            changed |= LearnExtensions(profiles, out _, ["plist"]);
         return changed;
+    }
     }
 
     private static bool AddPdfSheets(List<Preset> presets)

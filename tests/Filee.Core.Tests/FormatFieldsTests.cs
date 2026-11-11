@@ -31,7 +31,7 @@ public class FormatFieldsTests
         "flc", "flv", "fodg", "fodp", "fods", "fodt", "fon", "geojson", "glb", "gltf", "gpx", "gz", "h264", "h265", "har",
         "hdr", "htmlz", "icns", "ipynb", "jar", "jp2", "jsonl", "kml", "kmz", "lha", "lit", "lrf", "lwp", "lz",
         "lzma", "m4s", "man", "mcw", "mediawiki", "miff", "mng", "mobi", "mod", "mp2", "mpc", "mxf", "obj", "oeb",
-        "org", "otf", "pam", "pcd", "pcx", "pdb", "pfm", "plt", "ply", "pml", "ppm", "prc", "ps", "psb", "psd",
+        "org", "otf", "pam", "pcd", "pcx", "pdb", "pfm", "plist", "plt", "ply", "pml", "ppm", "prc", "ps", "psb", "psd",
         "psw", "qoi", "ras", "raw", "rb", "rm", "rpm", "rst", "scc", "sda", "sdc", "sdw", "sgi", "shp", "snb", "spx",
         "ssa", "stl", "sub", "swf", "tak", "tar", "tar7z", "tbz2", "tcr", "tex", "textile", "tgz", "tlz", "toml",
         "tta", "ttf", "ttml", "txtz", "txz", "typ", "tz", "usm", "vob", "voc", "w64", "wbmp", "wmf", "woff", "woff2",
@@ -49,7 +49,7 @@ public class FormatFieldsTests
         { "science", ["dcm", "fits"] },
         { "developer", [
                 "bz2", "cab", "cpio", "cur", "deb", "fodg", "fodp", "fods", "fodt", "gz", "har", "icns", "jar",
-                "jsonl", "lz", "lzma", "m4s", "man", "miff", "pam", "pfm", "ppm", "qoi", "rpm", "tar", "tar7z",
+                "jsonl", "lz", "lzma", "m4s", "man", "miff", "pam", "pfm", "plist", "ppm", "qoi", "rpm", "tar", "tar7z",
                 "tbz2", "tgz", "tlz", "toml", "txz", "xbm", "xpm", "xz", "yaml"
             ] },
         { "writing", ["adoc", "cgm", "dbk", "htmlz", "mediawiki", "org", "rst", "tex", "textile", "txtz", "typ"] },
@@ -76,7 +76,7 @@ public class FormatFieldsTests
         { "science", ["dcm", "fits", "ipynb", "jp2"] },
         { "developer", [
                 "bz2", "cab", "caf", "chm", "cpio", "cur", "deb", "fodg", "fodp", "fods", "fodt", "gz", "har",
-                "icns", "ipynb", "jar", "jsonl", "lz", "lzma", "m4s", "man", "miff", "pam", "pfm", "ppm", "qoi",
+                "icns", "ipynb", "jar", "jsonl", "lz", "lzma", "m4s", "man", "miff", "pam", "pfm", "plist", "ppm", "qoi",
                 "rpm", "tar", "tar7z", "tbz2", "tgz", "tlz", "toml", "txz", "xbm", "xpm", "xz", "yaml"
             ] },
         { "writing", ["adoc", "cgm", "chm", "dbk", "htmlz", "mediawiki", "org", "rst", "tex", "textile", "txtz", "typ"] },
@@ -144,7 +144,7 @@ public class FormatFieldsTests
             {
                 [FormatGrade.Everyday] = 19,
                 [FormatGrade.General] = 95,
-                [FormatGrade.Specialist] = 107,
+                [FormatGrade.Specialist] = 108,
                 [FormatGrade.Legacy] = 51,
             },
             counts);
