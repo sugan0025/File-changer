@@ -185,8 +185,19 @@ public class EnginesPageTests
         Pump();
         try
         {
+            var page = window.GetVisualDescendants().OfType<EnginesPage>().Single();
+            var pageVm = (EnginesPageViewModel)page.DataContext!;
+            var totalOffline = 0;
+            foreach (var cat in new[] { 0, 1, 2 })
+            {
+                pageVm.SelectCategory(cat);
+                Pump();
+                totalOffline += window.GetVisualDescendants().OfType<Button>().Count(b => Equals(b.Content, "Offline") && b.IsVisible);
+            }
+            Assert.Equal(EngineDownloads.Packages.Count(EngineDownloads.CanDownload), totalOffline);
+            pageVm.SelectCategory(1);
+            Pump();
             var offline = window.GetVisualDescendants().OfType<Button>().Where(b => Equals(b.Content, "Offline") && b.IsVisible).ToList();
-            Assert.Equal(EngineDownloads.Packages.Count(EngineDownloads.CanDownload), offline.Count);
             var menu = Assert.IsType<MenuFlyout>(offline[0].Flyout);
             menu.ShowAt(offline[0]);
             Pump();
