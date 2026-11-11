@@ -271,6 +271,7 @@ public sealed class RadialController(
 
 
     private bool _toClipboard;  // the click-mode donut's files came from the clipboard: their results go back on it
+    private bool _dragBackFace; // the drag gesture opens the donut on its back face, once files enter it
 
 
 
@@ -331,6 +332,8 @@ public sealed class RadialController(
 
 
     /// selection, nothing at all) never shows anything and closes when the button is released.
+    /// <paramref name="backFace"/>: the gesture opens the donut on its back face (the front when the back has no slice
+    /// for the files).
 
 
 
@@ -338,7 +341,7 @@ public sealed class RadialController(
 
 
 
-    public void ShowForDrag(int x, int y)
+    public void ShowForDrag(int x, int y, bool backFace = false)
 
 
 
@@ -383,6 +386,7 @@ public sealed class RadialController(
 
 
         _converted = false;
+        _dragBackFace = backFace;
 
 
 
@@ -459,6 +463,8 @@ public sealed class RadialController(
 
 
     /// <paramref name="toClipboard"/>: the files came from the clipboard, and their results go back on it.
+    /// <paramref name="backFace"/>: open on the back face (a shortcut set to it), or the front when the back has no slice
+    /// for the files.
 
 
 
@@ -470,7 +476,7 @@ public sealed class RadialController(
 
 
 
-        bool toClipboard = false)
+        bool toClipboard = false, bool backFace = false)
 
 
 
@@ -546,7 +552,7 @@ public sealed class RadialController(
 
 
 
-        viewModel.Load(files, clickMode: true);
+        viewModel.Load(files, clickMode: true, backFace);
 
 
 
@@ -1046,7 +1052,7 @@ public sealed class RadialController(
 
 
 
-            viewModel.Load(files, clickMode: false);
+            viewModel.Load(files, clickMode: false, _dragBackFace);
 
 
 
