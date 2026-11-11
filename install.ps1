@@ -71,37 +71,46 @@ try {
         }
     }
 
-    # Fallback to direct latest release asset URL
-    if (-not $downloadUrl) {
-        $downloadUrl = "https://github.com/$repo/releases/latest/download/Filee-win-Portable.zip"
-    }
-
-    Write-Host "Downloading Filee ($downloadUrl)..." -ForegroundColor Cyan
+    # Candidate download URLs (API discovery -> releases/latest -> direct v2.4.6 fallback)
+    $candidateUrls = [System.Collections.Generic.List[string]]::new()
+    if ($downloadUrl) { $candidateUrls.Add($downloadUrl) }
+    $candidateUrls.Add("https://github.com/$repo/releases/latest/download/Filee-win-Portable.zip")
+    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-win-Portable.zip")
+    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-2.4.6-win-Portable.zip")
 
     $downloaded = $false
-    if ($curlExe) {
-        try {
-            & $curlExe -sSfL "$downloadUrl" -o "$tempZip" 2>$null
-            if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 10000) {
-                $downloaded = $true
-            }
-        } catch { }
+    foreach ($url in $candidateUrls) {
+        Write-Host "Attempting download from $url..." -ForegroundColor Cyan
+        if ($curlExe) {
+            try {
+                & $curlExe -sSfL "$url" -o "$tempZip" 2>$null
+                if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 1000000) {
+                    $downloaded = $true
+                    $downloadUrl = $url
+                    break
+                }
+            } catch { }
+        }
+
+        if (-not $downloaded) {
+            try {
+                $webClient = New-Object System.Net.WebClient
+                $webClient.Headers.Add("User-Agent", "Filee-Installer")
+                $webClient.DownloadFile($url, $tempZip)
+                if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 1000000) {
+                    $downloaded = $true
+                    $downloadUrl = $url
+                    break
+                }
+            } catch { }
+        }
     }
 
-    if (-not $downloaded) {
-        try {
-            $webClient = New-Object System.Net.WebClient
-            $webClient.Headers.Add("User-Agent", "Filee-Installer")
-            $webClient.DownloadFile($downloadUrl, $tempZip)
-            if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 10000) {
-                $downloaded = $true
-            }
-        } catch { }
+    if (-not $downloaded -or -not (Test-Path $tempZip) -or (Get-Item $tempZip).Length -lt 1000000) {
+        throw "Failed to download Filee zip from available sources. Please check your internet connection."
     }
 
-    if (-not (Test-Path $tempZip) -or (Get-Item $tempZip).Length -lt 1000) {
-        throw "Failed to download Filee zip from $downloadUrl. Please verify your internet connection."
-    }
+    Write-Host "Download successful ($downloadUrl)!" -ForegroundColor Green
 
     Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
     New-Item -ItemType Directory -Force -Path $installDir | Out-Null

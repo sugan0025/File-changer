@@ -104,7 +104,29 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 
 ---
 
-## 🚀 Quick Start (Building from Source)
+## 🚀 Quick Start
+
+### ⚡ 1-Click Install & Update for Windows (Recommended)
+
+Share this single PowerShell command line with your friends to install **File-changer** or instantly upgrade an older Filee installation to the latest version:
+
+```powershell
+irm https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
+```
+
+> **Alternative (using `curl.exe` in CMD / PowerShell):**
+> ```cmd
+> curl.exe -sL https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
+> ```
+
+#### What this command line does:
+- 🔄 **Replaces Old Versions**: If you or your friends have an older/upstream Filee installation where the update button says *"Filee is up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.4.6`).
+- 🏴‍☠️ **Applies Custom Branding**: Installs the custom Luffy icon, frosted Liquid Glass themes, and Blobatar mascot assets.
+- 🚀 **Enables In-App Updates**: Automatically writes the local `.installed` marker so future automatic background updates check and pull directly from `sugan0025/File-changer`.
+
+---
+
+### 🛠️ Building from Source
 
 If you prefer building from source, you only need the [.NET 10 SDK](https://dotnet.microsoft.com/download):
 
