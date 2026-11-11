@@ -1055,7 +1055,6 @@ internal static class SettingsMigrations
             changed |= LearnExtensions(profiles, out _, ["osm"]);
         return changed;
     }
-    }
 
     private static bool AddPdfSheets(List<Preset> presets)
     {
