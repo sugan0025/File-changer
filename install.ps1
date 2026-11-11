@@ -16,7 +16,8 @@ Write-Host "            HOOT - Desktop Installation             " -ForegroundCol
 Write-Host " ===================================================" -ForegroundColor Cyan
 Write-Host ""
 
-$installDir = Join-Path $env:LOCALAPPDATA "Programs\Filee"
+$installDir = Join-Path $env:LOCALAPPDATA "Programs\Hoot"
+$legacyDir = Join-Path $env:LOCALAPPDATA "Programs\Filee"
 $tempZip = Join-Path $env:TEMP "Hoot-Setup-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8)).zip"
 $stagingDir = Join-Path $env:TEMP "Hoot-Staging-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
 
@@ -24,9 +25,14 @@ try {
     # Gracefully close running HOOT / Filee if any
     $running = Get-Process -Name "Hoot", "Filee" -ErrorAction SilentlyContinue
     if ($running) {
-        Write-Host "Closing running instance of HOOT..." -ForegroundColor Yellow
+        Write-Host "Closing running instances of HOOT / Filee..." -ForegroundColor Yellow
         $running | Stop-Process -Force
         Start-Sleep -Milliseconds 500
+    }
+
+    # Clean up legacy Programs\Filee folder if present
+    if (Test-Path $legacyDir) {
+        Remove-Item $legacyDir -Recurse -Force -ErrorAction SilentlyContinue
     }
 
     Write-Host "Finding latest HOOT release from GitHub..." -ForegroundColor Cyan
@@ -169,23 +175,40 @@ try {
         Join-Path $installDir "Filee.exe"
     }
 
-    # Desktop Shortcut: Create HOOT.lnk pointing to Hoot.exe; remove old Filee.lnk if present
-    $desktopPath = [Environment]::GetFolderPath("Desktop")
-    $oldShortcutFile = Join-Path $desktopPath "Filee.lnk"
-    if (Test-Path $oldShortcutFile) {
-        Remove-Item $oldShortcutFile -Force -ErrorAction SilentlyContinue
+    # Shortcuts: Create HOOT.lnk pointing to Hoot.exe; remove old Filee.lnk if present
+    $desktopPaths = @(
+        [Environment]::GetFolderPath("Desktop"),
+        (Join-Path $env:USERPROFILE "Desktop"),
+        (Join-Path $env:USERPROFILE "OneDrive\Desktop")
+    ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
+
+    $wscript = New-Object -ComObject WScript.Shell
+
+    foreach ($dp in $desktopPaths) {
+        $oldLnk = Join-Path $dp "Filee.lnk"
+        if (Test-Path $oldLnk) { Remove-Item $oldLnk -Force -ErrorAction SilentlyContinue }
+        $sc = $wscript.CreateShortcut((Join-Path $dp "HOOT.lnk"))
+        $sc.TargetPath = $targetExe
+        $sc.WorkingDirectory = $installDir
+        $sc.IconLocation = "$targetExe,0"
+        $sc.Description = "HOOT - Fast Local File Converter"
+        $sc.Save()
     }
 
-    $shortcutFile = Join-Path $desktopPath "HOOT.lnk"
-    $wscript = New-Object -ComObject WScript.Shell
-    $shortcut = $wscript.CreateShortcut($shortcutFile)
-    $shortcut.TargetPath = $targetExe
-    $shortcut.WorkingDirectory = $installDir
-    $shortcut.IconLocation = "$targetExe,0"
-    $shortcut.Description = "HOOT - Fast Local File Converter"
-    $shortcut.Save()
+    # Start Menu Shortcut
+    $startMenu = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
+    if (Test-Path $startMenu) {
+        $oldStartLnk = Join-Path $startMenu "Filee.lnk"
+        if (Test-Path $oldStartLnk) { Remove-Item $oldStartLnk -Force -ErrorAction SilentlyContinue }
+        $startSc = $wscript.CreateShortcut((Join-Path $startMenu "HOOT.lnk"))
+        $startSc.TargetPath = $targetExe
+        $startSc.WorkingDirectory = $installDir
+        $startSc.IconLocation = "$targetExe,0"
+        $startSc.Description = "HOOT - Fast Local File Converter"
+        $startSc.Save()
+    }
 
-    Write-Host "Desktop shortcut created: $shortcutFile" -ForegroundColor Green
+    Write-Host "Desktop and Start Menu shortcuts created for HOOT!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Installation Complete! Launching HOOT..." -ForegroundColor Green
     Write-Host ""
