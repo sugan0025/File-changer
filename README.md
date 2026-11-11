@@ -108,15 +108,15 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 
 ### ⚡ 1-Click Install & Update for Windows (Recommended)
 
-Share this single PowerShell command line with your friends to install **File-changer** or instantly upgrade an older Filee installation to the latest version:
+Share this single PowerShell command line with your friends to install **File-changer** or instantly upgrade an older Filee installation to the latest version. It sets modern TLS security so it works on all versions of Windows PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
+[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
 ```
 
-> **Alternative (using `curl.exe` in CMD / PowerShell):**
-> ```cmd
-> curl.exe -sL https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
+> **Alternative (using built-in `curl.exe` in CMD / PowerShell):**
+> ```powershell
+> curl.exe --ssl-no-revoke -fsSL https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
 > ```
 
 #### What this command line does:

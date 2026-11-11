@@ -41,7 +41,7 @@ try {
     # Attempt 1: Query GitHub API using curl.exe
     if ($curlExe) {
         try {
-            $json = & $curlExe -sL -H "User-Agent: Filee-Installer" "https://api.github.com/repos/$repo/releases/latest"
+            $json = & $curlExe --ssl-no-revoke -sL -m 15 -H "User-Agent: Filee-Installer" "https://api.github.com/repos/$repo/releases/latest"
             if ($json) {
                 $release = $json | ConvertFrom-Json
                 $latestTag = $release.tag_name
@@ -71,10 +71,12 @@ try {
         }
     }
 
-    # Candidate download URLs (API discovery -> releases/latest -> direct v2.4.6 fallback)
+    # Candidate download URLs (API discovery -> releases/latest -> direct releases)
     $candidateUrls = [System.Collections.Generic.List[string]]::new()
     if ($downloadUrl) { $candidateUrls.Add($downloadUrl) }
     $candidateUrls.Add("https://github.com/$repo/releases/latest/download/Filee-win-Portable.zip")
+    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Filee-win-Portable.zip")
+    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Filee-2.4.6.42-win-Portable.zip")
     $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-win-Portable.zip")
     $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-2.4.6-win-Portable.zip")
 
@@ -83,7 +85,7 @@ try {
         Write-Host "Attempting download from $url..." -ForegroundColor Cyan
         if ($curlExe) {
             try {
-                & $curlExe -sSfL "$url" -o "$tempZip" 2>$null
+                & $curlExe --ssl-no-revoke -sSfL -m 180 "$url" -o "$tempZip" 2>$null
                 if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 1000000) {
                     $downloaded = $true
                     $downloadUrl = $url
