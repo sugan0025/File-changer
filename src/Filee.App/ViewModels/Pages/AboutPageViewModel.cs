@@ -91,6 +91,7 @@ public sealed partial class AboutPageViewModel : ObservableObject, IDisposable
         UpdateAvailable = newer is not null && !_updates.IsBusy;
         UpdateStatus = UpdateTexts.Status(_updates, _loc) is { } progress ? progress
             : newer is not null ? _loc.Format("general.update_available", newer)
+            : afterCheck && _updates.LastCheckFailed ? _loc["update.failed"]
             : afterCheck ? _loc.Format("general.update_none", UpdateService.CurrentVersion)
             : "";
     }

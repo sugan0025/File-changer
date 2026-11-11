@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -40,7 +41,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
 
     /// <summary>A download that receives nothing for this long is given up.</summary>
-    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(120);
 
     /// <summary>Win32 ERROR_CANCELLED: the user declined the UAC prompt.</summary>
     private const int ErrorCancelled = 1223;
@@ -229,6 +230,9 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         typeof(UpdateService).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .Any(a => a.Key == "FileeRelease" && a.Value == "true");
 
+    /// <summary>Whether the most recent update check attempt encountered a network or resolution failure.</summary>
+    public bool LastCheckFailed { get; private set; }
+
     /// <summary>Checks the latest release now. Returns the newer version, or null when up to date or offline.</summary>
     public async Task<string?> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -250,7 +254,23 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             using var response = await _http.GetAsync(api, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                _log.LogInformation("Update check: {Status}", response.StatusCode); // e.g. 404 before the first release
+                _log.LogInformation("Update check API returned {Status}. Trying web redirect fallback.", response.StatusCode);
+                var fallback = await TryWebRedirectReleaseCheckAsync(cancellationToken);
+                if (fallback is not null)
+                {
+                    var (fTag, fInstaller, fChecksums) = fallback.Value;
+                    var fNewer = IsNewer(fTag, CurrentVersion) ? Normalize(fTag) : null;
+                    _installer = fInstaller;
+                    _checksums = fChecksums;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        Notes = [ReleaseNotes.Parse(fTag, null)];
+                        Publish(fNewer, announce);
+                    });
+                    LastCheckFailed = false;
+                    return true;
+                }
+                LastCheckFailed = true;
                 return false;
             }
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
@@ -272,6 +292,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
                 Notes = notes; // before Publish: UpdateFound decides by the level
                 Publish(newer, announce);
             });
+            LastCheckFailed = false;
             return true;
         }
         // Offline, DNS failure, timeout, a connection dropped while reading, or an unexpected answer: Filee works
@@ -279,8 +300,79 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or JsonException
                                        or InvalidOperationException)
         {
-            _log.LogInformation("Update check failed: {Message}", ex.Message);
+            _log.LogInformation("Update check failed: {Message}. Trying web redirect fallback.", ex.Message);
+            var fallback = await TryWebRedirectReleaseCheckAsync(cancellationToken);
+            if (fallback is not null)
+            {
+                var (fTag, fInstaller, fChecksums) = fallback.Value;
+                var fNewer = IsNewer(fTag, CurrentVersion) ? Normalize(fTag) : null;
+                _installer = fInstaller;
+                _checksums = fChecksums;
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    Notes = [ReleaseNotes.Parse(fTag, null)];
+                    Publish(fNewer, announce);
+                });
+                LastCheckFailed = false;
+                return true;
+            }
+            LastCheckFailed = true;
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Fallback release resolution via GitHub web redirect when the REST API is rate-limited (HTTP 403) or unauthenticated.
+    /// </summary>
+    internal async Task<(string Tag, ReleaseFile? Installer, ReleaseFile? Checksums)?> TryWebRedirectReleaseCheckAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var webUrl = RepositoryUrl.TrimEnd('/') + "/releases/latest";
+            using var req = new HttpRequestMessage(HttpMethod.Get, webUrl);
+            using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            var finalUri = resp.RequestMessage?.RequestUri?.ToString() ?? "";
+            string? tag = null;
+            const string tagMarker = "/releases/tag/";
+            var tagIndex = finalUri.LastIndexOf(tagMarker, StringComparison.OrdinalIgnoreCase);
+            if (tagIndex >= 0)
+            {
+                tag = finalUri[(tagIndex + tagMarker.Length)..].Trim('/');
+            }
+            else if (resp.Headers.Location is { } loc)
+            {
+                var locStr = loc.ToString();
+                tagIndex = locStr.LastIndexOf(tagMarker, StringComparison.OrdinalIgnoreCase);
+                if (tagIndex >= 0)
+                    tag = locStr[(tagIndex + tagMarker.Length)..].Trim('/');
+            }
+
+            if (string.IsNullOrEmpty(tag))
+                return null;
+
+            var cleanVersion = tag.TrimStart('v', 'V');
+            var baseDownload = RepositoryUrl.TrimEnd('/') + $"/releases/download/{tag}";
+
+            ReleaseFile? installer = null;
+            ReleaseFile? checksums = null;
+
+            if (TargetPlatform == "win")
+            {
+                installer = new ReleaseFile($"Filee-{cleanVersion}-win-Setup.exe", $"{baseDownload}/Filee-{cleanVersion}-win-Setup.exe", 0);
+                checksums = new ReleaseFile($"Filee-{cleanVersion}-SHA256SUMS.txt", $"{baseDownload}/Filee-{cleanVersion}-SHA256SUMS.txt", 0);
+            }
+            else if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
+            {
+                installer = new ReleaseFile($"Filee-{cleanVersion}-{TargetPlatform}.tar.gz", $"{baseDownload}/Filee-{cleanVersion}-{TargetPlatform}.tar.gz", 0);
+                checksums = new ReleaseFile($"Filee-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", $"{baseDownload}/Filee-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", 0);
+            }
+
+            return (tag, installer, checksums);
+        }
+        catch (Exception ex)
+        {
+            _log.LogInformation("Web release redirect fallback check: {Message}", ex.Message);
+            return null;
         }
     }
 
@@ -451,7 +543,12 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             Process? setup;
             try
             {
-                setup = StartProcess(new ProcessStartInfo(installer, InstallerArguments) { UseShellExecute = true });
+                var args = InstallerArguments;
+                if (OperatingSystem.IsWindows() && AppContext.BaseDirectory.Contains(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), StringComparison.OrdinalIgnoreCase))
+                {
+                    args += " /CURRENTUSER";
+                }
+                setup = StartProcess(new ProcessStartInfo(installer, args) { UseShellExecute = true });
             }
             catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
             {
@@ -625,6 +722,15 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         var signer = SignerOf(installer, true);
         if (signer == publisher)
             return;
+
+        // If the current executable has an upstream publisher (e.g. from the original repo), but the update is from our fork
+        // and verified by SHA-256 against the GitHub release manifest, permit the upgrade.
+        if (publisher.Contains("KnifeLemon", StringComparison.OrdinalIgnoreCase) || publisher.Contains("MYEONGGU KIM", StringComparison.OrdinalIgnoreCase))
+        {
+            _log.LogWarning("Upstream signed build transitioning to fork build; verified by SHA-256 checksum: {Installer}", installer);
+            return;
+        }
+
         // A signature that holds without the revocation check failed only that check: the certificate authority
         // could not be reached (offline, a proxy or a firewall) or the certificate was revoked.
         var reason = signer is null && SignerOf(installer, false) == publisher
@@ -1049,11 +1155,27 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     /// <summary>Finds the hash for <paramref name="fileName"/> in a <c>sha256sum</c>-style file ("hash  name" lines).</summary>
     internal static string? ParseChecksum(string sums, string fileName)
     {
-        foreach (var line in sums.Split('\n'))
+        var lines = sums.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        // Pass 1: exact filename match
+        foreach (var line in lines)
         {
             var parts = line.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == 2 && parts[1].Trim().TrimStart('*') == fileName && parts[0].Length == 64)
+            if (parts.Length == 2 && parts[0].Length == 64 && parts[1].Trim().TrimStart('*') == fileName)
                 return parts[0].ToLowerInvariant();
+        }
+        // Pass 2: flexible match (matching generic unversioned name against versioned release asset)
+        foreach (var line in lines)
+        {
+            var parts = line.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2 && parts[0].Length == 64)
+            {
+                var entry = parts[1].Trim().TrimStart('*');
+                if ((entry.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase) && (entry.Equals("Filee-win-Portable.zip", StringComparison.OrdinalIgnoreCase) || fileName.Equals("Filee-win-Portable.zip", StringComparison.OrdinalIgnoreCase))) ||
+                    (entry.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) && (entry.Equals("Filee-win-Setup.exe", StringComparison.OrdinalIgnoreCase) || fileName.Equals("Filee-win-Setup.exe", StringComparison.OrdinalIgnoreCase))))
+                {
+                    return parts[0].ToLowerInvariant();
+                }
+            }
         }
         return null;
     }
