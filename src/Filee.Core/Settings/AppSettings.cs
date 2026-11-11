@@ -56,6 +56,13 @@ public sealed class ThemeSettings
 
     public CircadianSettings Circadian { get; set; } = new();
 
+    /// <summary>
+    /// Draws the UI in the system's own font (Segoe UI on Windows, San Francisco on macOS, fontconfig's default on
+    /// Linux) instead of the embedded Noto fonts, which still draw what it lacks. Off as before it existed; a missing
+    /// value reads as off, so it needs no schema step.
+    /// </summary>
+    public bool UseSystemFont { get; set; }
+
     public ThemeSettings Clone()
     {
         var clone = (ThemeSettings)MemberwiseClone();
