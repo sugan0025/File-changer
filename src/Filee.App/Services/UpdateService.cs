@@ -107,8 +107,12 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             return true;
         try
         {
-            var defaultLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Filee");
-            if (string.Equals(Path.GetFullPath(folder).TrimEnd('\\', '/'), Path.GetFullPath(defaultLocal).TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase))
+            var fullFolder = Path.GetFullPath(folder).TrimEnd('\\', '/');
+            var localPrograms = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var defaultFilee = Path.GetFullPath(Path.Combine(localPrograms, "Programs", "Filee")).TrimEnd('\\', '/');
+            var defaultHoot = Path.GetFullPath(Path.Combine(localPrograms, "Programs", "Hoot")).TrimEnd('\\', '/');
+            if (string.Equals(fullFolder, defaultFilee, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(fullFolder, defaultHoot, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
         catch
@@ -358,8 +362,8 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
 
             if (TargetPlatform == "win")
             {
-                installer = new ReleaseFile($"Filee-{cleanVersion}-win-Setup.exe", $"{baseDownload}/Filee-{cleanVersion}-win-Setup.exe", 0);
-                checksums = new ReleaseFile($"Filee-{cleanVersion}-SHA256SUMS.txt", $"{baseDownload}/Filee-{cleanVersion}-SHA256SUMS.txt", 0);
+                installer = new ReleaseFile($"Hoot-{cleanVersion}-win-Setup.exe", $"{baseDownload}/Hoot-{cleanVersion}-win-Setup.exe", 0);
+                checksums = new ReleaseFile($"Hoot-{cleanVersion}-SHA256SUMS.txt", $"{baseDownload}/Hoot-{cleanVersion}-SHA256SUMS.txt", 0);
             }
             else if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
             {
@@ -486,24 +490,27 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
                 }
 
                 var payloadDir = stagingDir;
-                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                if (!File.Exists(Path.Combine(payloadDir, "Hoot.exe")) && !File.Exists(Path.Combine(payloadDir, "Filee.exe")))
                 {
                     var candidates = Directory.GetDirectories(stagingDir, "*", SearchOption.AllDirectories)
-                        .Where(d => File.Exists(Path.Combine(d, "Filee.exe")))
+                        .Where(d => File.Exists(Path.Combine(d, "Hoot.exe")) || File.Exists(Path.Combine(d, "Filee.exe")))
                         .ToList();
                     if (candidates.Count > 0)
                         payloadDir = candidates[0];
                 }
 
-                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                if (!File.Exists(Path.Combine(payloadDir, "Hoot.exe")) && !File.Exists(Path.Combine(payloadDir, "Filee.exe")))
                 {
-                    Fail("payload", new InvalidDataException("Extracted update archive does not contain Filee.exe"));
+                    Fail("payload", new InvalidDataException("Extracted update archive does not contain Hoot.exe or Filee.exe"));
                     return;
                 }
 
                 var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
                 var currentPid = Environment.ProcessId;
-                var targetExe = Path.Combine(appDir, "Filee.exe");
+                // Prefer Hoot.exe; fall back to Filee.exe for upstream-built releases
+                var targetExe = File.Exists(Path.Combine(appDir, "Hoot.exe"))
+                    ? Path.Combine(appDir, "Hoot.exe")
+                    : Path.Combine(appDir, "Filee.exe");
 
                 var script =
                     $"$pidToWait = {currentPid}; " +
@@ -567,10 +574,21 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             if (setup is null)
                 return;
 
-            using (setup)
-                await setup.WaitForExitAsync();
-            _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
-            Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
+            try
+            {
+                using (setup)
+                    await setup.WaitForExitAsync();
+                _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
+                Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                // The installer may kill this process before WaitForExitAsync completes or before
+                // ExitCode can be read ("No process is associated with this object").  That is the
+                // success path – Setup closes Filee, updates it in place and restarts it.
+                _log.LogInformation("Installer ended (process detached): {Message}", ex.Message);
+                Step = UpdateStep.Idle;
+            }
             return;
         }
 

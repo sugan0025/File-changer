@@ -88,14 +88,6 @@ try {
     if ($downloadUrl) { $candidateUrls.Add($downloadUrl) }
     $candidateUrls.Add("https://github.com/$repo/releases/latest/download/Hoot-win-Portable.zip")
     $candidateUrls.Add("https://github.com/$repo/releases/latest/download/Filee-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Hoot-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Hoot-2.4.6.42-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Filee-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6.42/Filee-2.4.6.42-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Hoot-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Hoot-2.4.6-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-win-Portable.zip")
-    $candidateUrls.Add("https://github.com/$repo/releases/download/v2.4.6/Filee-2.4.6-win-Portable.zip")
 
     $downloaded = $false
     foreach ($url in $candidateUrls) {

@@ -126,7 +126,7 @@ Share this single PowerShell command line with your friends to install **HOOT** 
 > ```
 
 #### What this command line does:
-- 🔄 **Replaces Old Versions**: If you or your friends have an older installation where the update button says *"You're up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.4.6`).
+- 🔄 **Replaces Old Versions**: If you or your friends have an older installation where the update button says *"You're up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.5.0`).
 - 🦉 **Applies HOOT Branding**: Installs the custom HOOT icon, frosted Liquid Glass themes, and Blobatar Owl mascot assets.
 - 🚀 **Enables In-App Updates**: Automatically writes the local `.installed` marker so future automatic background updates check and pull directly from `sugan0025/File-changer`.
 
