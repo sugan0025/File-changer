@@ -74,7 +74,11 @@ if ($CheckOnly) {
     $PublishDir = Join-Path $check 'app'
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli'), (Join-Path $PublishDir 'engines\rhwp') | Out-Null
     Set-Content (Join-Path $PublishDir 'Filee.exe') 'stub' -NoNewline
+    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
+    Set-Content (Join-Path $PublishDir 'filee-cli.exe') 'stub' -NoNewline
+    Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
     Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
+    Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
     Set-Content (Join-Path $PublishDir 'engines\rhwp\rhwp.exe') 'stub' -NoNewline
     $OutputDir = $check
 }
@@ -103,6 +107,12 @@ elseif (-not $PublishDir) {
     Get-ChildItem $PublishDir -Filter 'lib*.pdb' | Remove-Item
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
     Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
+    # Primary HOOT executable and CLI
+    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
+    if (Test-Path (Join-Path $PublishDir 'filee-cli.exe')) {
+        Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
+    }
+    Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
     # Next to Filee.exe: the Explorer menu package's external location is the install folder.
     $architecture = $Runtime.Substring(4)
     & (Join-Path $PSScriptRoot 'build-explorer-menu.ps1') -Destination $PublishDir -Version $Version -Architecture $architecture
@@ -114,7 +124,21 @@ elseif (-not $PublishDir) {
     & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Runtime $Runtime -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines') @runtimeTo
 }
 $PublishDir = (Resolve-Path $PublishDir).Path
+if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe')) -and (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) {
+    Copy-Item (Join-Path $PublishDir 'Hoot.exe') (Join-Path $PublishDir 'Filee.exe') -Force
+}
+if ((Test-Path (Join-Path $PublishDir 'Filee.exe')) -and -not (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) {
+    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
+}
+if ((Test-Path (Join-Path $PublishDir 'filee-cli.exe')) -and -not (Test-Path (Join-Path $PublishDir 'hoot-cli.exe'))) {
+    Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
+}
+if (-not (Test-Path (Join-Path $PublishDir 'cli\hoot.cmd'))) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
+    Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
+}
 if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe'))) { throw "Filee.exe is missing in $PublishDir" }
+if (-not (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) { throw "Hoot.exe is missing in $PublishDir" }
 if (-not $CheckOnly) {
     # Without them rhwp and unhwp fail on PCs without the Visual C++ Redistributable (#248). They go into the payload
     # and the portable zip; Setup checks again after unpacking (RuntimeCheck) on the user's PC.
@@ -176,7 +200,7 @@ if ($CheckOnly) {
     }
     $installed = Join-Path $sandbox 'Program Files\Filee'
     Invoke-Setup $setupExe @('/MERGETASKS=desktopicon')
-    foreach ($file in 'Filee.exe', 'cli\filee.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
+    foreach ($file in 'Filee.exe', 'Hoot.exe', 'cli\filee.cmd', 'cli\hoot.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
         if (-not (Test-Path (Join-Path $installed $file))) { throw "Setup did not install $file" }
     }
     $registry = Get-Content (Join-Path $sandbox 'registry.json') -Raw
@@ -190,7 +214,13 @@ if ($CheckOnly) {
     return
 }
 
+# Output packaging: produce both Filee and Hoot setup executables, portable zips, and checksum manifests.
+$hootPrefix = if ($Runtime -eq 'win-x64') { "Hoot-$Version-win" } else { "Hoot-$Version-$Runtime" }
+$hootSetupExe = Join-Path $OutputDir "$hootPrefix-Setup.exe"
+Copy-Item $setupExe $hootSetupExe -Force
+
 $files = @($setupExe)
+$hootFiles = @($hootSetupExe)
 if ($Portable) {
     $zip = Join-Path $OutputDir "$prefix-Portable.zip"
     Remove-Item $zip -ErrorAction SilentlyContinue
@@ -198,10 +228,19 @@ if ($Portable) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::CreateFromDirectory($PublishDir, $zip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
     $files += $zip
+
+    $hootZip = Join-Path $OutputDir "$hootPrefix-Portable.zip"
+    Copy-Item $zip $hootZip -Force
+    $hootFiles += $hootZip
 }
 
 # Checksums for people who verify their download.
 $sums = Join-Path $OutputDir $(if ($Runtime -eq 'win-x64') { "Filee-$Version-SHA256SUMS.txt" } else { "$prefix-SHA256SUMS.txt" })
 $files | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path $_ -Leaf)" } |
     Set-Content $sums -Encoding ascii
-Get-Item ($files + $sums) | Format-Table Name, Length
+
+$hootSums = Join-Path $OutputDir $(if ($Runtime -eq 'win-x64') { "Hoot-$Version-SHA256SUMS.txt" } else { "$hootPrefix-SHA256SUMS.txt" })
+$hootFiles | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path $_ -Leaf)" } |
+    Set-Content $hootSums -Encoding ascii
+
+Get-Item ($files + $hootFiles + $sums + $hootSums) | Format-Table Name, Length

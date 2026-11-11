@@ -1,4 +1,4 @@
-// Keeps one Filee per Windows session, or per user across Unix launcher/terminal sessions.
+// Keeps one HOOT/Filee instance per Windows session, or per user across Unix launcher/terminal sessions.
 // Later launches forward arguments through a named pipe.
 
 using System.IO.Pipes;
@@ -35,8 +35,10 @@ public sealed class SingleInstance : IDisposable
     public static SingleInstance Acquire() => Acquire(DefaultName);
 
     /// <summary>
-    /// The mutex and pipe name for a user. A copy started with FILEE_DATA_DIR (<paramref name="dataDirectoryOverride"/>)
-    /// gets a name of its own, so it neither forwards to nor receives from the Filee the user runs.
+    /// The mutex and pipe name for a user. Both Hoot.exe and Filee.exe share this stable identity
+    /// so they cooperate seamlessly as a single instance regardless of which executable was launched.
+    /// A copy started with HOOT_DATA_DIR or FILEE_DATA_DIR (<paramref name="dataDirectoryOverride"/>)
+    /// gets a name of its own, so it neither forwards to nor receives from the primary instance.
     /// </summary>
     internal static string NameFor(string userName, string? dataDirectoryOverride)
     {

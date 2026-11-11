@@ -246,26 +246,38 @@ internal static class Program
         return true;
     }
 
-    /// <summary>Other running processes started from <paramref name="exe"/> (the caller disposes them).</summary>
+    private static readonly string[] KnownAppExeNames = ["Hoot", "Filee"];
+
+    /// <summary>Other running processes started from <paramref name="exe"/> or its alias (the caller disposes them).</summary>
     private static List<Process> OtherProcessesOfThisExe(string exe)
     {
         var found = new List<Process>();
-        foreach (var process in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(exe)))
+        var exeBase = Path.GetFileNameWithoutExtension(exe);
+        var dir = Path.GetDirectoryName(exe);
+        var targetNames = KnownAppExeNames.Contains(exeBase, StringComparer.OrdinalIgnoreCase)
+            ? KnownAppExeNames
+            : [exeBase];
+
+        foreach (var name in targetNames)
         {
-            try
+            foreach (var process in Process.GetProcessesByName(name))
             {
-                if (process.Id != Environment.ProcessId
-                    && string.Equals(process.MainModule?.FileName, exe, Filee.Core.Platform.FileSystemPaths.Comparison))
+                try
                 {
-                    found.Add(process);
-                    continue;
+                    if (process.Id != Environment.ProcessId
+                        && (string.Equals(process.MainModule?.FileName, exe, Filee.Core.Platform.FileSystemPaths.Comparison)
+                            || (dir != null && string.Equals(Path.GetDirectoryName(process.MainModule?.FileName), dir, Filee.Core.Platform.FileSystemPaths.Comparison))))
+                    {
+                        found.Add(process);
+                        continue;
+                    }
                 }
+                catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+                {
+                    // Exited meanwhile, or another user's process we may not inspect.
+                }
+                process.Dispose();
             }
-            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
-            {
-                // Exited meanwhile, or another user's process we may not inspect.
-            }
-            process.Dispose();
         }
         return found;
     }

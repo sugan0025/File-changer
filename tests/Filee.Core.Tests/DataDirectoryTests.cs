@@ -28,6 +28,26 @@ public class DataDirectoryTests
         }
     }
 
+    [Fact]
+    public void Hoot_data_dir_variable_moves_the_default_data_folder()
+    {
+        using var dir = new TempDir();
+        var before = Environment.GetEnvironmentVariable(UserDataStore.HootDirectoryVariable);
+        try
+        {
+            Environment.SetEnvironmentVariable(UserDataStore.HootDirectoryVariable, dir.Path + Path.DirectorySeparatorChar);
+            Assert.Equal(Path.GetFullPath(dir.Path), UserDataStore.OverrideDirectory);
+            Assert.Equal(Path.GetFullPath(dir.Path), UserDataStore.DefaultDirectory);
+
+            Environment.SetEnvironmentVariable(UserDataStore.HootDirectoryVariable, null);
+            Assert.Null(UserDataStore.OverrideDirectory);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(UserDataStore.HootDirectoryVariable, before);
+        }
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

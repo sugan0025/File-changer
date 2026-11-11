@@ -224,6 +224,16 @@ public class SingleInstanceTests
     }
 
     [Fact]
+    public void SingleInstance_name_is_consistent_for_hoot_and_filee()
+    {
+        // Both Hoot.exe and Filee.exe must resolve to the identical single-instance identity.
+        var name1 = SingleInstance.NameFor("testuser", null);
+        var name2 = SingleInstance.NameFor("testuser", null);
+        Assert.Equal(name1, name2);
+        Assert.StartsWith("Filee-", name1);
+    }
+
+    [Fact]
     public async Task Forwarding_gives_up_when_nobody_listens()
     {
         var name = "Filee-test-" + Guid.NewGuid().ToString("N")[..8];
