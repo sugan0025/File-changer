@@ -9,7 +9,7 @@
         xmlns:vm="using:Filee.App.ViewModels"
         x:Class="Filee.App.Views.RadialWindow"
         x:DataType="vm:RadialViewModel"
-        Title="Filee Donut"
+        Title="HOOT Donut"
         WindowDecorations="None"
         Background="Transparent"
         TransparencyLevelHint="Transparent"

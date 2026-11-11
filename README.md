@@ -1,13 +1,19 @@
 <!-- ========================================================================= -->
-<!-- FILE-CHANGER: LIQUID GLASS OFFLINE CONVERTER FOR WINDOWS, MACOS & LINUX           -->
+<!-- HOOT: FAST LOCAL FILE CONVERTER FOR WINDOWS, MACOS & LINUX                -->
 <!-- ========================================================================= -->
 
 <div align="center">
 
-# ⚡ File-changer
+# 🦉 HOOT — Fast Local File Converter
+
+*Convert, optimize, and transform your files in a hoot.*
+
+*Proudly watched over by our Blobatar Owl mascot.*
+
+<br>
 
 <a href="https://git.io/typing-svg">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=19&duration=3000&pause=1000&color=60A5FA&center=true&vCenter=true&repeat=true&width=750&height=45&lines=Liquid+Glass+Aesthetic+%E2%80%A2+Ambient+Backdrop+Blur+%26+Specular+Borders;Instant+Drag+%26+Drop+Donut+Wheel+%E2%80%A2+Subtle+Synthesized+Audio+Chimes;Clipboard+Auto-Detector+%E2%80%A2+Quick+Conversion+Notification+HUD;100%25+Offline+Local+Engine+%E2%80%A2+Zero+Telemetry+%E2%80%A2+Windows+%26+macOS" alt="File-changer Typist" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=19&duration=3000&pause=1000&color=60A5FA&center=true&vCenter=true&repeat=true&width=750&height=45&lines=Liquid+Glass+Aesthetic+%E2%80%A2+Ambient+Backdrop+Blur+%26+Specular+Borders;Instant+Drag+%26+Drop+Donut+Wheel+%E2%80%A2+Subtle+Synthesized+Audio+Chimes;Clipboard+Auto-Detector+%E2%80%A2+Quick+Conversion+Notification+HUD;100%25+Offline+Local+Engine+%E2%80%A2+Zero+Telemetry+%E2%80%A2+Windows+%26+macOS" alt="HOOT Typist" />
 </a>
 
 <br><br>
@@ -34,7 +40,7 @@
 <br><br>
 
 <p align="center">
-  <b>A modern, high-performance offline desktop file converter engineered with a custom frosted Liquid Glass interface, Luffy Gear 5 backdrop scrim, synthesized audio chimes, clipboard auto-detection, and native multiplatform support for Windows, macOS, and Linux.</b>
+  <b>A modern, high-performance offline desktop file converter engineered with a custom frosted Liquid Glass interface, synthesized audio chimes, clipboard auto-detection, and native multiplatform support for Windows, macOS, and Linux. Proudly watched over by our Blobatar Owl mascot.</b>
 </p>
 
 [📥 Downloads](#-pre-built-downloads) &nbsp;•&nbsp; [✨ Features](#-features) &nbsp;•&nbsp; [🎯 How It Works](#-how-it-works) &nbsp;•&nbsp; [🚀 Quick Start](#-quick-start) &nbsp;•&nbsp; [📁 Architecture](#-project-architecture) &nbsp;•&nbsp; [🛠 Tech Stack](#-tech-stack) &nbsp;•&nbsp; [👤 Author & Credits](#-author--credits)
@@ -45,7 +51,7 @@
 
 ## 📋 Overview
 
-**File-changer** brings effortless, private, and offline conversion directly to your mouse cursor. Hold <kbd>Ctrl</kbd> on Windows or <kbd>Option</kbd> on macOS, drag any file, and release it over an interactive donut menu wheel to convert documents, images, video, and audio instantly.
+**HOOT** brings effortless, private, and offline conversion directly to your mouse cursor. Hold <kbd>Ctrl</kbd> on Windows or <kbd>Option</kbd> on macOS, drag any file, and release it over an interactive donut menu wheel to convert documents, images, video, and audio instantly. In a hoot!
 
 ```yaml
 Application Status   : Production Ready (Windows x64 · macOS Apple Silicon · Linux x64)
@@ -108,7 +114,7 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 
 ### ⚡ 1-Click Install & Update for Windows (Recommended)
 
-Share this single PowerShell command line with your friends to install **File-changer** or instantly upgrade an older Filee installation to the latest version. It sets modern TLS security so it works on all versions of Windows PowerShell:
+Share this single PowerShell command line with your friends to install **HOOT** or instantly upgrade an older installation to the latest version. It sets modern TLS security so it works on all versions of Windows PowerShell:
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = 3072; irm https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
@@ -120,8 +126,8 @@ Share this single PowerShell command line with your friends to install **File-ch
 > ```
 
 #### What this command line does:
-- 🔄 **Replaces Old Versions**: If you or your friends have an older/upstream Filee installation where the update button says *"Filee is up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.4.6`).
-- 🏴‍☠️ **Applies Custom Branding**: Installs the custom Luffy icon, frosted Liquid Glass themes, and Blobatar mascot assets.
+- 🔄 **Replaces Old Versions**: If you or your friends have an older installation where the update button says *"You're up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.4.6`).
+- 🦉 **Applies HOOT Branding**: Installs the custom HOOT icon, frosted Liquid Glass themes, and Blobatar Owl mascot assets.
 - 🚀 **Enables In-App Updates**: Automatically writes the local `.installed` marker so future automatic background updates check and pull directly from `sugan0025/File-changer`.
 
 ---

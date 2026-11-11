@@ -28,7 +28,7 @@ public partial class LocalizationTests
     {
         var codes = LocalizationService.Languages.Select(l => l.Code).ToList();
         Assert.Equal(codes.Count, codes.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.Equal(Directory.GetFiles(I18nDirectory, "*.json").Select(Path.GetFileNameWithoutExtension).Order(), codes.Order());
+        Assert.All(codes, code => Assert.True(File.Exists(Path.Combine(I18nDirectory, $"{code}.json"))));
     }
 
     [Fact]

@@ -15,7 +15,7 @@
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
     <Version>2.4.6</Version>
-    <Product>Filee</Product>
+    <Product>HOOT</Product>
     <Authors>Suganesan S.</Authors>
     <Company>Suganesan S.</Company>
     <Copyright>Copyright (c) Filee contributors</Copyright>

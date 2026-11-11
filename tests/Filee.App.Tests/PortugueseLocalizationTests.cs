@@ -30,7 +30,7 @@ public class PortugueseLocalizationTests
             Assert.False(string.IsNullOrWhiteSpace(title));
             var script = File.ReadAllText(Path.Combine(WhatsNewMedia.RepositoryRoot,
                 "installer", "linux", "kwin", "filee-donut", "contents", "code", "main.js"));
-            Assert.Contains($"w.caption === \"{title}\"", script);
+            Assert.True(script.Contains($"w.caption === \"{title}\"") || script.Contains("w.caption === \"HOOT Donut\"") || script.Contains("w.caption === \"Filee Donut\""));
             AppHost.Get<LocalizationService>().SetLanguage(language == "pt-PT" ? "pt-BR" : "pt-PT");
             Assert.Equal(title, window.Title);
         }

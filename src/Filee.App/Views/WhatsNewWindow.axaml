@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="using:Filee.App.Controls"
         x:Class="Filee.App.Views.WhatsNewWindow"
-        Title="Filee"
+        Title="HOOT"
         Icon="avares://Filee/Assets/Icons/filee.ico"
         Width="560"
         SizeToContent="Height"

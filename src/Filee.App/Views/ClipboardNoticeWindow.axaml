@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Filee.App.Views.ClipboardNoticeWindow"
-        Title="Filee"
+        Title="HOOT"
         Width="404"
         SizeToContent="Height"
         WindowDecorations="None"

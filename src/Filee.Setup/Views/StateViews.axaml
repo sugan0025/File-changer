@@ -11,7 +11,7 @@
       <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6" MaxWidth="470" Margin="24,0">
         <c:BlobatarLogo Width="96" Height="96" HorizontalAlignment="Center" Margin="0,0,0,10" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
-          <TextBlock Classes="title" Text="Filee" />
+          <TextBlock Classes="title" Text="HOOT" />
           <Border Classes="pill">
             <TextBlock Text="{Binding Version}" />
           </Border>

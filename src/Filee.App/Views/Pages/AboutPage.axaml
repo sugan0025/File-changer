@@ -12,7 +12,7 @@
         <Image Source="avares://Filee/Assets/Icons/filee.png" Width="72" Height="72" />
         <StackPanel VerticalAlignment="Center" Spacing="4">
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="Filee" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
+            <TextBlock Text="HOOT" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />
             <!-- The version as a small pill, tinted with the accent (it follows the accent the user picked). The text colour
                  is set in the code-behind: the accent itself on dark, the deeper accent on light. -->
             <Border Classes="badge" Padding="10,3" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Center"
