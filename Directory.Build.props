@@ -16,6 +16,8 @@
 
     <Version>2.5.0</Version>
     <Product>HOOT</Product>
+    <AssemblyTitle>HOOT</AssemblyTitle>
+    <Description>HOOT</Description>
     <Authors>Suganesan S.</Authors>
     <Company>Suganesan S.</Company>
     <Copyright>Copyright (c) Filee contributors</Copyright>
