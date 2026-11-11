@@ -1185,10 +1185,23 @@ public sealed class PdfOptions
     /// </summary>
     public bool AskPageRange { get; set; }
 
-
-    /// <summary>For PDF → PDF: write every page as its own file.</summary>
+    /// <summary>
+    /// For PDF → PDF: write the pages into several files, every page as its own file unless <see cref="SplitEvery"/>
+    /// or <see cref="SplitParts"/> groups them (<see cref="Conversion.PageGroups"/>).
+    /// </summary>
     public bool SplitPages { get; set; }
 
+    /// <summary>
+    /// With <see cref="SplitPages"/>: this many pages to a file, the last file taking what is left (#1259). 0 or 1 is
+    /// one page per file, so a preset saved before it reads unchanged; a Filee from before it makes one file per page.
+    /// </summary>
+    public int SplitEvery { get; set; }
+
+    /// <summary>
+    /// With <see cref="SplitPages"/>: the pages in this many files of the same length, give or take a page (halves,
+    /// thirds, #1259). Over <see cref="SplitEvery"/>; 0 or 1 is off.
+    /// </summary>
+    public int SplitParts { get; set; }
     /// <summary>
     /// For PDF → PDF: put this many pages on each sheet ("Pages per sheet", N-up, #737), one of
     /// <see cref="SheetLayouts"/>; 0 keeps one page per sheet.
