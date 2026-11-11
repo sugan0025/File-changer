@@ -31,7 +31,7 @@ public class FormatFieldsTests
         "flc", "flv", "fodg", "fodp", "fods", "fodt", "fon", "geojson", "glb", "gltf", "gpx", "gz", "h264", "h265", "har",
         "hdr", "htmlz", "icns", "ipynb", "jar", "jp2", "jsonl", "kml", "kmz", "lha", "lit", "lrf", "lwp", "lz",
         "lzma", "m4s", "man", "mcw", "mediawiki", "miff", "mng", "mobi", "mod", "mp2", "mpc", "mxf", "obj", "oeb",
-        "org", "otf", "pam", "pcd", "pcx", "pdb", "pfm", "plist", "plt", "ply", "pml", "ppm", "prc", "ps", "psb", "psd",
+        "org", "osm", "otf", "pam", "pcd", "pcx", "pdb", "pfm", "plist", "plt", "ply", "pml", "ppm", "prc", "ps", "psb", "psd",
         "psw", "qoi", "ras", "raw", "rb", "rm", "rpm", "rst", "scc", "sda", "sdc", "sdw", "sgi", "shp", "snb", "spx",
         "ssa", "stl", "sub", "swf", "tak", "tar", "tar7z", "tbz2", "tcr", "tex", "textile", "tgz", "tlz", "toml",
         "tta", "ttf", "ttml", "txtz", "txz", "typ", "tz", "usm", "vob", "voc", "w64", "wbmp", "wmf", "woff", "woff2",
@@ -42,7 +42,7 @@ public class FormatFieldsTests
     {
         { "cad", ["dwg"] },
         { "model3d", ["fbx", "glb", "gltf", "ply"] },
-        { "geo", ["fit", "geojson", "gpx", "kml", "kmz", "shp"] },
+        { "geo", ["fit", "geojson", "gpx", "kml", "kmz", "osm", "shp"] },
         { "font", ["otf", "ttf", "woff", "woff2"] },
         { "game", ["bik", "dds", "usm"] },
         { "design", ["ai", "cdr", "dst", "eps", "exr", "hdr", "plt", "ps", "psb", "psd", "raw", "xcf"] },
@@ -69,7 +69,7 @@ public class FormatFieldsTests
     {
         { "cad", ["3mf", "dwg", "dxf", "obj", "stl"] },
         { "model3d", ["3mf", "fbx", "glb", "gltf", "obj", "ply", "stl"] },
-        { "geo", ["fit", "geojson", "gpx", "kml", "kmz", "shp"] },
+        { "geo", ["fit", "geojson", "gpx", "kml", "kmz", "osm", "shp"] },
         { "font", ["eot", "fon", "otf", "ttf", "woff", "woff2"] },
         { "game", ["bik", "dds", "flc", "tga", "usm"] },
         { "design", ["ai", "cdr", "dst", "eps", "exr", "hdr", "jp2", "pcd", "plt", "ps", "psb", "psd", "raw", "xcf"] },
@@ -144,7 +144,7 @@ public class FormatFieldsTests
             {
                 [FormatGrade.Everyday] = 19,
                 [FormatGrade.General] = 95,
-                [FormatGrade.Specialist] = 108,
+                [FormatGrade.Specialist] = 109,
                 [FormatGrade.Legacy] = 51,
             },
             counts);
