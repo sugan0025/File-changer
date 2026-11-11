@@ -263,8 +263,9 @@ public sealed class FolderWatcher : IAsyncDisposable
         }
     }
 
-    /// <summary>True for files a watch folder never converts: temporary, hidden or system files, unknown formats,
-    /// anything inside the output or originals folder, and names the rule's <see cref="WatchRule.Include"/> leaves out.</summary>
+    /// <summary>True for files a watch folder never converts: temporary, hidden or system files, programs, unknown
+    /// formats, anything inside the output or originals folder, and names the rule's <see cref="WatchRule.Include"/>
+    /// leaves out.</summary>
     public static bool ShouldIgnore(string path, WatchRule rule)
     {
         if (Presets.FolderCopy.IsWorkPath(path))
@@ -281,7 +282,9 @@ public sealed class FolderWatcher : IAsyncDisposable
             return true;
         if (!rule.IncludeSubfolders && !SameFolder(Path.GetDirectoryName(path), rule.Folder))
             return true;
-        if (FormatRegistry.Detect(path) is null)
+        // A program is read as its icon only when one is dropped or named: a watched Downloads folder would otherwise turn
+        // every installer into a picture, and "Move to originals" would move the installer away.
+        if (FormatRegistry.Detect(path) is null || FormatRegistry.IsProgram(path))
             return true;
         if (!FileNameFilter.Of(rule.Include).Matches(name))
             return true;
