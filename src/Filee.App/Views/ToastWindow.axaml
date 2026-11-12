@@ -5,7 +5,7 @@
         xmlns:s="using:Filee.App.Services"
         x:Class="Filee.App.Views.ToastWindow"
         x:DataType="s:ConversionService"
-        Title="Filee"
+        Title="HOOT"
         Width="384"
         SizeToContent="Height"
         WindowDecorations="None"

@@ -3,7 +3,7 @@
 // on the Activity and desktop in use, whenever it is mapped. Install it with kpackagetool6 and enable it; see installer/linux/INSTALL.txt.
 
 function isDonut(w) {
-    return String(w.resourceClass).toLowerCase() === "filee" && w.caption === "Filee Donut";
+    return String(w.resourceClass).toLowerCase() === "filee" && w.caption === "HOOT";
 }
 
 function centreOnCursor(w) {

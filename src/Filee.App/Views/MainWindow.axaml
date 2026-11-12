@@ -11,7 +11,7 @@
 
         x:DataType="vm:MainWindowViewModel"
 
-        Title="Filee"
+        Title="HOOT"
 
         Icon="avares://Filee/Assets/Icons/filee.ico"
 
@@ -55,7 +55,7 @@
 
           <StackPanel VerticalAlignment="Center" IsVisible="{Binding !IsNavCollapsed}">
 
-            <TextBlock Text="Filee" FontSize="18" FontWeight="Bold" />
+            <TextBlock Text="HOOT" FontSize="18" FontWeight="Bold" />
 
             <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
 

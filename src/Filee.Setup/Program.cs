@@ -475,7 +475,7 @@ internal static class Program
     private static void Tell(SetupOptions options, string text, uint icon)
     {
         if (options.CanShowMessages)
-            NativeMethods.MessageBox(0, text, "Filee Setup", NativeMethods.MB_OK | icon | NativeMethods.MB_SETFOREGROUND);
+            NativeMethods.MessageBox(0, text, "HOOT Setup", NativeMethods.MB_OK | icon | NativeMethods.MB_SETFOREGROUND);
     }
 }
 

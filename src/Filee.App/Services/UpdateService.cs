@@ -67,7 +67,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         _log = log;
         // Downloads use their own stall timeout (StallTimeout); this one covers the API call and the response headers.
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Filee", CurrentVersion));
+        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("HOOT", CurrentVersion));
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
@@ -394,24 +394,25 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
                 }
 
                 var payloadDir = stagingDir;
-                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                if (!File.Exists(Path.Combine(payloadDir, "Hoot.exe")) && !File.Exists(Path.Combine(payloadDir, "Filee.exe")))
                 {
                     var candidates = Directory.GetDirectories(stagingDir, "*", SearchOption.AllDirectories)
-                        .Where(d => File.Exists(Path.Combine(d, "Filee.exe")))
+                        .Where(d => File.Exists(Path.Combine(d, "Hoot.exe")) || File.Exists(Path.Combine(d, "Filee.exe")))
                         .ToList();
                     if (candidates.Count > 0)
                         payloadDir = candidates[0];
                 }
 
-                if (!File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                var payloadExeName = File.Exists(Path.Combine(payloadDir, "Hoot.exe")) ? "Hoot.exe" : "Filee.exe";
+                if (!File.Exists(Path.Combine(payloadDir, payloadExeName)))
                 {
-                    Fail("payload", new InvalidDataException("Extracted update archive does not contain Filee.exe"));
+                    Fail("payload", new InvalidDataException("Extracted update archive does not contain Hoot.exe or Filee.exe"));
                     return;
                 }
 
                 var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
                 var currentPid = Environment.ProcessId;
-                var targetExe = Path.Combine(appDir, "Filee.exe");
+                var targetExe = Path.Combine(appDir, payloadExeName);
 
                 var script =
                     $"$pidToWait = {currentPid}; " +
@@ -988,21 +989,27 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             }
             else
             {
-                throw new InvalidDataException("Archive does not contain a single valid Filee payload with install.sh");
+                throw new InvalidDataException("Archive does not contain a single valid HOOT/Filee payload with install.sh");
             }
         }
 
         var installSh = Path.Combine(payloadDir, "install.sh");
-        var fileeExe = Path.Combine(payloadDir, "Filee");
-        if (!File.Exists(installSh) || !File.Exists(fileeExe))
+        var appExecutable = new[]
         {
-            throw new InvalidDataException("Archive is missing install.sh or Filee executable in the payload directory.");
+            Path.Combine(payloadDir, "HOOT"),
+            Path.Combine(payloadDir, "Filee"),
+            Path.Combine(payloadDir, "HOOT.app", "Contents", "MacOS", "Filee"),
+            Path.Combine(payloadDir, "Filee.app", "Contents", "MacOS", "Filee"),
+        }.FirstOrDefault(File.Exists);
+        if (!File.Exists(installSh) || appExecutable is null)
+        {
+            throw new InvalidDataException("Archive is missing install.sh or the HOOT/Filee executable in the payload directory.");
         }
 
         if (OperatingSystem.IsLinux())
         {
             EnsureExecutable(installSh);
-            EnsureExecutable(fileeExe);
+            EnsureExecutable(appExecutable);
             var cli = Path.Combine(payloadDir, "filee-cli");
             if (File.Exists(cli))
                 EnsureExecutable(cli);

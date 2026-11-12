@@ -15,7 +15,9 @@
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
     <Version>2.4.2</Version>
-    <Product>Filee</Product>
+    <Product>HOOT</Product>
+    <AssemblyTitle>HOOT</AssemblyTitle>
+    <Description>HOOT file conversion companion</Description>
     <Authors>Suganesan S.</Authors>
     <Company>Suganesan S.</Company>
     <Copyright>Copyright (c) Filee contributors</Copyright>

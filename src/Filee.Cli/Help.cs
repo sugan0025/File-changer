@@ -1,4 +1,4 @@
-// Usage text of the "filee" command.
+// Usage text of the "hoot" command.
 
 using System.Reflection;
 using Filee.Core.Watching;
@@ -14,48 +14,48 @@ internal static class Help
     {
         "convert" => Convert,
         "watch" => Watch,
-        "formats" => "Usage: filee formats [<format>] [--json]\n\nLists every format, or what one format converts to.\n" +
+        "formats" => "Usage: hoot formats [<format>] [--json]\n\nLists every format, or what one format converts to.\n" +
                      "With --json, prints the same as JSON (for scripts and other programs).\n",
-        "presets" => "Usage: filee presets [--json]\n\nLists the presets saved in Filee (built-in and your own).\n" +
+        "presets" => "Usage: hoot presets [--json]\n\nLists the presets saved in HOOT (built-in and your own).\n" +
                      "With --json, prints the same as JSON (for scripts and other programs).\n",
         "engines" => Engines,
         _ => General,
     };
 
     private const string General = """
-        Filee: convert files offline from the command line.
+        HOOT: convert files offline from the command line.
 
         Usage:
-          filee convert <files or folders...> --to <format> [options]
-          filee convert <files or folders...> --preset <preset> [options]
-          filee watch <folder> --to <format> [options]
-          filee formats [<format>] [--json]
-          filee presets [--json]
-          filee engines [--json]
-          filee engines (install | remove) <engine> [--json]
-          filee help [<command>]
-          filee version
+          hoot convert <files or folders...> --to <format> [options]
+          hoot convert <files or folders...> --preset <preset> [options]
+          hoot watch <folder> --to <format> [options]
+          hoot formats [<format>] [--json]
+          hoot presets [--json]
+          hoot engines [--json]
+          hoot engines (install | remove) <engine> [--json]
+          hoot help [<command>]
+          hoot version
 
         Examples:
-          filee convert photo.heic --to jpg
-          filee convert *.png --to webp --quality 80 -o converted
-          filee convert D:\Scans --recursive --preset to-pdf
-          filee watch D:\Inbox --to pdf --move-originals
-          filee engines install pandoc
+          hoot convert photo.heic --to jpg
+          hoot convert *.png --to webp --quality 80 -o converted
+          hoot convert D:\Scans --recursive --preset to-pdf
+          hoot watch D:\Inbox --to pdf --move-originals
+          hoot engines install pandoc
 
-        Presets and engines are the ones in the Filee app. Exit codes: 0 nothing failed (skipped
+        Presets and engines are the ones in HOOT. Exit codes: 0 nothing failed (skipped
         files included), 1 some failed or were cancelled, 2 wrong arguments or a missing input, 3 nothing to
         convert.
 
         """;
 
     private const string Engines = """
-        Usage: filee engines [--json]
-               filee engines install <engine> [--json] [--quiet]
-               filee engines remove <engine> [--json] [--quiet]
+        Usage: hoot engines [--json]
+               hoot engines install <engine> [--json] [--quiet]
+               hoot engines remove <engine> [--json] [--quiet]
 
         Lists the optional engines of Settings → Engines (LibreOffice, Pandoc, FFmpeg, …), or installs or removes
-        one with the same download and checks as the app. 'remove' only removes what Filee downloaded; your own copy
+        one with the same download and checks as the app. 'remove' only removes what HOOT downloaded; your own copy
         and one found on this computer are left alone.
 
         Options:
@@ -65,13 +65,13 @@ internal static class Help
         """;
 
     private const string Convert = """
-        Usage: filee convert <files or folders...> (--to <format> | --preset <preset>) [options]
+        Usage: hoot convert <files or folders...> (--to <format> | --preset <preset>) [options]
 
-        Files can be wildcards (*.heic). Folders convert the files in them that Filee knows.
+        Files can be wildcards (*.heic). Folders convert the files in them that HOOT knows.
 
         Options:
-          -t, --to <format>      Target format, e.g. jpg, png, pdf, docx, mp4 (see 'filee formats')
-          -p, --preset <preset>  A preset from the app, by id or name (see 'filee presets')
+          -t, --to <format>      Target format, e.g. jpg, png, pdf, docx, mp4 (see 'hoot formats')
+          -p, --preset <preset>  A preset from the app, by id or name (see 'hoot presets')
           -o, --output <folder>  Save there instead of next to the sources
           -r, --recursive        Include sub folders
               --sort <order>     The order files merge in: name, name-desc, modified, modified-desc, created or
@@ -90,7 +90,7 @@ internal static class Help
         """;
 
     private static string Watch => FormattableString.Invariant($"""
-        Usage: filee watch <folder> (--to <format> | --preset <preset>) [options]
+        Usage: hoot watch <folder> (--to <format> | --preset <preset>) [options]
 
         Converts files that land in the folder until Ctrl+C. Files are converted once they are complete (no
         longer growing or open in another program). Output goes to a "converted" folder inside it unless -o is given.

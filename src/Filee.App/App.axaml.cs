@@ -102,9 +102,18 @@ public partial class App : Application
         // Global gestures → donut toolbar
         var triggers = AppHost.Get<TriggerService>();
         var radial = AppHost.Get<RadialController>();
+        var blobCompanion = AppHost.Get<BlobCompanionService>();
         var platform = AppHost.Get<IPlatformServices>();
-        triggers.DragStarted += (_, e) => radial.ShowForDrag(e.X, e.Y);
-        triggers.DragEnded += (_, _) => radial.OnDragGestureEnded();
+        triggers.DragStarted += (_, e) =>
+        {
+            blobCompanion.SetGestureActive(true);
+            radial.ShowForDrag(e.X, e.Y);
+        };
+        triggers.DragEnded += (_, _) =>
+        {
+            radial.OnDragGestureEnded();
+            blobCompanion.SetGestureActive(false);
+        };
         triggers.SelectionGesture += async (_, e) =>
         {
             if (_selectionPending || store.Settings.Paused)

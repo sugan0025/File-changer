@@ -520,6 +520,38 @@ public class UpdateServiceTests
     }
 
     [Fact]
+    public void ExtractLinuxArchive_accepts_hoot_primary_payload()
+    {
+        var folder = TempFolder();
+        var archiveFile = Path.Combine(folder, "hoot.tar.gz");
+        var tarBytes = CreateTarGz(writer =>
+        {
+            AddFileEntry(writer, "HOOT-1.0.0-linux-x64/HOOT", "hoot executable");
+            AddFileEntry(writer, "HOOT-1.0.0-linux-x64/install.sh", "#!/bin/sh\n");
+        });
+        File.WriteAllBytes(archiveFile, tarBytes);
+
+        var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, Path.Combine(folder, "extracted"));
+        Assert.True(File.Exists(Path.Combine(payloadDir, "HOOT")));
+    }
+
+    [Fact]
+    public void ExtractLinuxArchive_accepts_the_HOOT_macos_bundle_layout()
+    {
+        var folder = TempFolder();
+        var archiveFile = Path.Combine(folder, "hoot-macos.tar.gz");
+        var tarBytes = CreateTarGz(writer =>
+        {
+            AddFileEntry(writer, "HOOT-1.0.0-osx-arm64/install.sh", "#!/bin/sh\n");
+            AddFileEntry(writer, "HOOT-1.0.0-osx-arm64/HOOT.app/Contents/MacOS/Filee", "app executable");
+        });
+        File.WriteAllBytes(archiveFile, tarBytes);
+
+        var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, Path.Combine(folder, "extracted"));
+        Assert.True(File.Exists(Path.Combine(payloadDir, "HOOT.app", "Contents", "MacOS", "Filee")));
+    }
+
+    [Fact]
     public void ExtractLinuxArchive_rejects_path_traversal()
     {
         var folder = TempFolder();

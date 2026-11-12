@@ -327,7 +327,30 @@ public sealed class BlobCompanionSettings
     /// <summary>Last position in physical screen pixels; null uses a safe default position.</summary>
     public int? X { get; set; }
     public int? Y { get; set; }
+
+    /// <summary>Idle personality intensity. Adaptive is the default; companion audio is opt-in.</summary>
+    public BlobCompanionActivity Activity { get; set; } = BlobCompanionActivity.Adaptive;
+    public bool AudioEnabled { get; set; }
+    public bool HatchSeen { get; set; }
+    /// <summary>Dim the companion while Windows reports fullscreen or presentation mode. Off by default.</summary>
+    public bool CinemaDimEnabled { get; set; }
+    /// <summary>Offer occasional stretch animations after extended active use. Off by default.</summary>
+    public bool StretchReminderEnabled { get; set; }
+    public BlobAppAwarenessSettings AppAwareness { get; set; } = new();
 }
+
+/// <summary>Local foreground-app reactions for the desktop companion. App names are keys, never usage history.</summary>
+public sealed class BlobAppAwarenessSettings
+{
+    /// <summary>False by default. No foreground app name or browser title is queried until enabled.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>The initial opt-in set. Turning awareness on enables these entries; each can be switched off.</summary>
+    public List<string> EnabledApps { get; set; } =
+    ["claude", "chatgpt", "antigravity", "chrome", "file-explorer", "netflix", "spotify", "whatsapp", "gemini", "linkedin"];
+}
+
+public enum BlobCompanionActivity { Calm, Adaptive, Playful, Off }
 
 /// <summary>Reads unexpected icon preference values as enabled while preserving valid booleans.</summary>
 internal sealed class IconPreferenceJsonConverter : JsonConverter<bool>

@@ -1,8 +1,12 @@
 using System;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Filee.App.Controls;
+using Filee.App.Services;
+using Filee.App.Services.Triggers;
+using Filee.App.Views;
 using Xunit;
 
 namespace Filee.App.Tests;
@@ -10,6 +14,23 @@ namespace Filee.App.Tests;
 [Collection("Motion")]
 public class BlobatarTests
 {
+    [AvaloniaFact]
+    public void Companion_window_loads_the_existing_blob_control()
+    {
+        TestServices.EnsureInitialized();
+        var window = new BlobCompanionWindow(AppHost.Get<RadialController>(), AppHost.Get<TriggerService>());
+        try
+        {
+            Assert.Equal(104, window.Width);
+            var root = Assert.IsType<Grid>(window.Content);
+            Assert.Contains(root.Children, control => control is BlobatarControl { Name: "Blob" });
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [Theory]
     [InlineData(BlobatarTone.Idle, 132, 113, 226)]        // #8471E2 (0.71)
     [InlineData(BlobatarTone.Alert, 164, 153, 247)]       // #A499F7 (0.49)
@@ -79,6 +100,76 @@ public class BlobatarTests
         // At end of blink (~150ms) eye scale should recover to 1.0
         state.Update(0.10);
         Assert.True(state.BlinkScaleY > 0.9, $"Blink scale should recover: {state.BlinkScaleY}");
+    }
+
+    [Fact]
+    public void Paused_and_napping_companion_states_hold_the_sleepy_pose()
+    {
+        var state = new BlobatarState();
+        state.SetPaused(true);
+        state.Update(0.08);
+        Assert.InRange(state.Frame.Sleepy, 0.95f, 1f);
+
+        state.SetPaused(false);
+        state.SetNapping(true);
+        state.Update(0.08);
+        Assert.InRange(state.Frame.Sleepy, 0.95f, 1f);
+    }
+
+    [Fact]
+    public void Bored_hop_uses_a_small_ballistic_jump()
+    {
+        var state = new BlobatarState();
+        state.TriggerBoredHop();
+        state.Update(0.05);
+        Assert.InRange(state.FloatY, 0.5, 5.0);
+    }
+
+    [Fact]
+    public void Companion_swallow_does_not_change_the_radial_blobs_legacy_drop_hop()
+    {
+        var wheelBlob = new BlobatarState();
+        wheelBlob.Drop();
+        for (var i = 0; i < 18; i++) wheelBlob.Update(1 / 60.0);
+        Assert.True(wheelBlob.FloatY > 0, "The radial Blob's legacy gulp-and-hop must remain intact.");
+
+        var companion = new BlobatarState { CompanionMode = true };
+        companion.CompanionDrop();
+        for (var i = 0; i < 30; i++) companion.Update(1 / 60.0);
+        Assert.Equal(0, companion.FloatY);
+        Assert.NotEqual(1, companion.ScaleY);
+    }
+
+    [Fact]
+    public void Companion_swallow_keyframes_start_flight_gulp_and_settle_in_order()
+    {
+        var start = BlobSwallowTimeline.At(0);
+        var flight = BlobSwallowTimeline.At(.62);
+        var twitchLeft = BlobSwallowTimeline.At(.68);
+        var twitchRight = BlobSwallowTimeline.At(.78);
+        var gulp = BlobSwallowTimeline.At(.84);
+        var settled = BlobSwallowTimeline.At(1);
+
+        Assert.Equal(0, start.TokenProgress);
+        Assert.Equal(1, start.TokenScale);
+        Assert.True(flight.TokenVisible);
+        Assert.Equal(1, flight.TokenProgress);
+        Assert.NotEqual(0, twitchLeft.EyeBlink);
+        Assert.True(twitchLeft.EyeBlink > 0 && twitchRight.EyeBlink > 0,
+            "The synchronized eye reaction should be active before the gulp without sending either eye in a separate direction.");
+        Assert.False(twitchLeft.Gulp);
+        Assert.True(gulp.Gulp);
+        Assert.True(gulp.MouthOpen > 0);
+        Assert.False(settled.TokenVisible);
+        Assert.Equal(0, settled.MouthOpen);
+    }
+
+    [Fact]
+    public void Windows_extension_icon_provider_uses_the_shell_association()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        using var icon = WindowsFileTypeIconProvider.TryGet(".pdf");
+        Assert.NotNull(icon);
     }
 
     [Fact]
@@ -276,5 +367,14 @@ public class BlobatarTests
         var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(100, 100));
         using var context = bitmap.CreateDrawingContext();
         BlobatarRenderer.Render(context, new Rect(0, 0, 100, 100), state);
+    }
+
+    [AvaloniaFact]
+    public void Renderer_draws_the_companion_swallow_mouth_without_error()
+    {
+        var state = new BlobatarState();
+        var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(100, 100));
+        using var context = bitmap.CreateDrawingContext();
+        BlobatarRenderer.Render(context, new Rect(0, 0, 100, 100), state, mouthOpen: 1f);
     }
 }

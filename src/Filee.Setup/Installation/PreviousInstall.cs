@@ -36,7 +36,8 @@ public sealed record PreviousInstall(
         if (string.IsNullOrWhiteSpace(folder))
             return null;
         folder = Path.TrimEndingDirectorySeparator(Environment.ExpandEnvironmentVariables(folder.Trim().Trim('"')));
-        if (!File.Exists(Path.Combine(folder, SetupNames.AppExe)))
+        if (!File.Exists(Path.Combine(folder, SetupNames.AppExe))
+            && !File.Exists(Path.Combine(folder, "Filee.exe")))
             return null;
         var byInno = registry.Get(hive, key, SetupNames.InnoVersionValue) is not null
                      || File.Exists(Path.Combine(folder, SetupNames.InnoUninstallerFiles[0]));
@@ -80,7 +81,8 @@ public sealed record PreviousInstall(
         system.ExplorerMenuSupported && system.IsExplorerMenuRegistered(),
         RecordedTasks?.Startup ?? true,
         PathVariable.IsOnPath(registry, Scope, Path.Combine(Folder, SetupNames.CliFolder)),
-        File.Exists(Path.Combine(paths.Desktop(Scope), SetupNames.ShortcutName)));
+        File.Exists(Path.Combine(paths.Desktop(Scope), SetupNames.ShortcutName))
+        || File.Exists(Path.Combine(paths.Desktop(Scope), "Filee.lnk")));
 }
 
 /// <summary>Filee 1.1 and earlier, installed by Velopack into %LocalAppData%\Filee for one user.</summary>
@@ -101,12 +103,14 @@ public static class VelopackInstall
         log.Info($"Removing Filee 1.1 (Velopack) from {root}; settings and engines stay");
         // Its Explorer menu entry points into the folder that goes next.
         system.UnregisterExplorerMenu();
-        foreach (var file in new[] { "Update.exe", SetupNames.AppExe })
+        foreach (var file in new[] { "Update.exe", SetupNames.AppExe, "Filee.exe" })
             DeleteFile(Path.Combine(root, file), system, log);
         FileSwap.DeleteTree(Path.Combine(root, "current"), system, log);
         FileSwap.DeleteTree(Path.Combine(root, "packages"), system, log);
         DeleteFile(Path.Combine(paths.UserStartMenu, SetupNames.ShortcutName), system, log);
         DeleteFile(Path.Combine(paths.UserDesktop, SetupNames.ShortcutName), system, log);
+        DeleteFile(Path.Combine(paths.UserStartMenu, "Filee.lnk"), system, log);
+        DeleteFile(Path.Combine(paths.UserDesktop, "Filee.lnk"), system, log);
         registry.DeleteKey(Hive.CurrentUser, SetupNames.VelopackUninstallKey);
     }
 

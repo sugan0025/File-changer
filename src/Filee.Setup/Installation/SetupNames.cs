@@ -18,9 +18,9 @@ public static class SetupNames
     public const string MachineEnvironmentKey = @"SYSTEM\CurrentControlSet\Control\Session Manager\Environment";
     public const string UserEnvironmentKey = "Environment";
 
-    public const string AppName = "Filee";
+    public const string AppName = "HOOT";
     public const string Publisher = "Suganesan S.";
-    public const string AppExe = "Filee.exe";
+    public const string AppExe = "Hoot.exe";
 
     /// <summary>The uninstaller next to Filee.exe (UpdateService.IsInstalled looks for it).</summary>
     public const string UninstallerExe = "uninstall.exe";
@@ -35,7 +35,7 @@ public static class SetupNames
     public static readonly IReadOnlyList<string> InnoUninstallerFiles = ["unins000.exe", "unins000.dat", "unins000.msg"];
 
     /// <summary>Start menu and desktop shortcut name.</summary>
-    public const string ShortcutName = "Filee.lnk";
+    public const string ShortcutName = "HOOT.lnk";
 
     /// <summary>Registry values Setup adds to the uninstall key (Inno Setup kept the same in "Inno Setup: …").</summary>
     public const string TasksValue = "Filee Setup: Tasks";

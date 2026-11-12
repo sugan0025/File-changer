@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Filee.App.Views.ClipboardNoticeWindow"
-        Title="Filee"
+        Title="HOOT"
         Width="404"
         SizeToContent="Height"
         WindowDecorations="None"
@@ -23,7 +23,7 @@
           </Button>
           <TextBlock x:Name="TitleText" Text="Clipboard content ready" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
         </DockPanel>
-        <TextBlock x:Name="DescriptionText" Classes="caption" Text="New image or file copied. Convert with Filee?" TextWrapping="Wrap" />
+        <TextBlock x:Name="DescriptionText" Classes="caption" Text="New image or file copied. Convert with HOOT?" TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
           <Button Classes="accent" Click="OnConvert" Padding="12,5" Content="Convert now" />
           <Button Content="Dismiss" Click="OnClose" Padding="12,5" />

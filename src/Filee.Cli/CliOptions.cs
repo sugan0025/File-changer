@@ -1,4 +1,4 @@
-// Parses the "filee" command line. Kept dependency-free: a handful of commands and options.
+// Parses the "hoot" command line. Kept dependency-free: a handful of commands and options.
 
 using Filee.Core.Platform;
 using Filee.Core.Presets;
@@ -159,10 +159,10 @@ internal sealed record CliOptions
             "convert" when options.Inputs.Count == 0 => "Give at least one file or folder to convert.",
             "convert" or "watch" when options.To is null == (options.Preset is null) => "Use either --to <format> or --preset <preset>.",
             "watch" when options.Inputs.Count != 1 => "Give exactly one folder to watch.",
-            "watch" when options.Sort is not null => "--sort only works with 'filee convert'.",
+            "watch" when options.Sort is not null => "--sort only works with 'hoot convert'.",
             "engines" when options.Inputs.Count > 0 && options.Inputs[0].ToLowerInvariant() is not ("install" or "remove") =>
-                $"Unknown engines command '{options.Inputs[0]}'. Use 'filee engines', 'filee engines install <id>' or 'filee engines remove <id>'.",
-            "engines" when options.Inputs.Count == 1 => $"Give the engine to {options.Inputs[0].ToLowerInvariant()}, e.g. 'filee engines {options.Inputs[0].ToLowerInvariant()} pandoc'.",
+                $"Unknown engines command '{options.Inputs[0]}'. Use 'hoot engines', 'hoot engines install <id>' or 'hoot engines remove <id>'.",
+            "engines" when options.Inputs.Count == 1 => $"Give the engine to {options.Inputs[0].ToLowerInvariant()}, e.g. 'hoot engines {options.Inputs[0].ToLowerInvariant()} pandoc'.",
             "engines" when options.Inputs.Count > 2 => "Give one engine at a time.",
             _ => null,
         };

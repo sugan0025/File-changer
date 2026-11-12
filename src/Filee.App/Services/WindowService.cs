@@ -257,7 +257,7 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
 
-            Title = "Filee",
+            Title = "HOOT",
 
         };
 

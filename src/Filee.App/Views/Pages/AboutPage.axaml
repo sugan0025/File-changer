@@ -11,7 +11,7 @@
       <StackPanel Orientation="Horizontal" Spacing="18">
         <Image Source="avares://Filee/Assets/Icons/filee.png" Width="72" Height="72" />
         <StackPanel VerticalAlignment="Center" Spacing="4">
-          <TextBlock Text="Filee" FontSize="24" FontWeight="Bold" />
+          <TextBlock Text="HOOT" FontSize="24" FontWeight="Bold" />
           <TextBlock Classes="muted" Text="{Binding Version}" />
           <TextBlock Classes="muted" Text="Developer: Suganesan S." />
           <TextBlock Classes="muted" Text="{DynamicResource about.license}" />

@@ -14,6 +14,32 @@
         </StackPanel>
         <ToggleSwitch Content="{DynamicResource general.start_with_system}" IsChecked="{Binding StartWithSystem}" />
         <ToggleSwitch Content="Sound effects &amp; haptic feedback" IsChecked="{Binding SoundEffects}" />
+        <StackPanel Spacing="8" IsVisible="{Binding IsWindows}">
+          <ToggleSwitch Content="Desktop Blob companion" IsChecked="{Binding BlobCompanionEnabled}" />
+          <TextBlock Classes="label" Text="Blob activity" />
+          <ComboBox ItemsSource="{Binding BlobActivityChoices}" SelectedItem="{Binding BlobActivity}" MinWidth="240" AutomationProperties.Name="Blob activity" />
+          <ToggleSwitch Content="Blob sounds (off by default)" IsChecked="{Binding BlobAudioEnabled}" />
+          <ToggleSwitch Content="Dim Blob during fullscreen (off by default)" IsChecked="{Binding CinemaDimEnabled}" />
+          <ToggleSwitch Content="Optional stretch reminders (off by default)" IsChecked="{Binding StretchReminderEnabled}" />
+          <Border Margin="0,8,0,0" Padding="12" CornerRadius="10" Background="{DynamicResource SurfaceAltBrush}">
+            <StackPanel Spacing="6">
+              <ToggleSwitch Content="Environmental awareness (local, off by default)" IsChecked="{Binding AppAwarenessEnabled}" />
+              <TextBlock Classes="caption" Text="When enabled, HOOT reacts once when a selected app comes to the foreground. App names and window titles stay on this device." TextWrapping="Wrap" />
+              <WrapPanel IsEnabled="{Binding AppAwarenessAppsEnabled}">
+                <ToggleSwitch Content="Claude" IsChecked="{Binding AwarenessClaude}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="ChatGPT" IsChecked="{Binding AwarenessChatGpt}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Antigravity" IsChecked="{Binding AwarenessAntigravity}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Chrome" IsChecked="{Binding AwarenessChrome}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="File Explorer" IsChecked="{Binding AwarenessExplorer}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Netflix" IsChecked="{Binding AwarenessNetflix}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Spotify" IsChecked="{Binding AwarenessSpotify}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="WhatsApp" IsChecked="{Binding AwarenessWhatsApp}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Gemini" IsChecked="{Binding AwarenessGemini}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="LinkedIn" IsChecked="{Binding AwarenessLinkedIn}" Margin="0,0,12,4" />
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
         <ToggleSwitch Content="Auto-detect clipboard content (quick convert)" IsChecked="{Binding ClipboardAutoDetect}" />
         <ToggleSwitch x:Name="ShowInDockSwitch" Content="{DynamicResource general.show_in_dock}"
                       IsChecked="{Binding ShowInDock}" IsVisible="{Binding SupportsDockVisibility}" />

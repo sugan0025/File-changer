@@ -15,7 +15,7 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
     UpdateService updates, BlobCompanionService blob) : IDisposable
 {
     private TrayIcon? _tray;
-    private NativeMenuItem? _open, _pause, _quit, _update, _blob;
+    private NativeMenuItem? _open, _pause, _quit, _update, _blob, _blobNap30, _blobNap60, _blobQuietQuips;
 
     public void Create(Application app)
     {
@@ -30,6 +30,12 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
         };
         _blob = new NativeMenuItem();
         _blob.Click += (_, _) => blob.ToggleVisible();
+        _blobNap30 = new NativeMenuItem { Header = "Nap Blob for 30 minutes" };
+        _blobNap30.Click += (_, _) => blob.NapFor(TimeSpan.FromMinutes(30));
+        _blobNap60 = new NativeMenuItem { Header = "Nap Blob for 1 hour" };
+        _blobNap60.Click += (_, _) => blob.NapFor(TimeSpan.FromHours(1));
+        _blobQuietQuips = new NativeMenuItem { Header = "Quiet app quips for 1 hour" };
+        _blobQuietQuips.Click += (_, _) => blob.QuietAppQuipsFor(TimeSpan.FromHours(1));
         _quit = new NativeMenuItem();
         _quit.Click += (_, _) => (app.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         _update = new NativeMenuItem();
@@ -39,8 +45,8 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
         {
             Icon = new WindowIcon(iconStream),
             // Set before the icon is attached: on macOS Avalonia passes the tooltip to native code, which can't take null.
-            ToolTipText = "Filee",
-            Menu = new NativeMenu { Items = { _open, _blob, _pause, new NativeMenuItemSeparator(), _quit } },
+            ToolTipText = "HOOT",
+            Menu = new NativeMenu { Items = { _open, _blob, _blobNap30, _blobNap60, _blobQuietQuips, _pause, new NativeMenuItemSeparator(), _quit } },
             IsVisible = !platform.SupportsDockVisibility || store.Settings.ShowMenuBarIcon,
         };
         _tray.Clicked += (_, _) => windows.ShowMain();
@@ -82,7 +88,10 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
         }
         _open!.Header = loc["tray.open"];
         _blob!.IsVisible = blob.IsSupported;
-        _blob.Header = blob.IsVisible ? "Hide Blob" : "Show Blob";
+        _blobNap30!.IsVisible = blob.IsSupported;
+        _blobNap60!.IsVisible = blob.IsSupported;
+        _blobQuietQuips!.IsVisible = blob.IsSupported;
+        _blob.Header = blob.IsEnabled ? "Hide Blob" : "Show Blob";
         _pause!.Header = store.Settings.Paused ? loc["tray.resume"] : loc["tray.pause"];
         _quit!.Header = loc["tray.quit"];
         var drag = store.Settings.Triggers.FirstOrDefault(t => t.Enabled && t.Kind == TriggerKind.Drag);
