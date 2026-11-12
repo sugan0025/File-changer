@@ -12,14 +12,14 @@ using Filee.Core.Settings;
 namespace Filee.App.Services;
 
 public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformServices platform, WindowService windows,
-    UpdateService updates) : IDisposable
+    UpdateService updates, BlobCompanionService blob) : IDisposable
 {
     private TrayIcon? _tray;
-    private NativeMenuItem? _open, _pause, _quit, _update;
+    private NativeMenuItem? _open, _pause, _quit, _update, _blob, _blobNap30, _blobNap60, _blobQuietQuips;
 
     public void Create(Application app)
     {
-        using var iconStream = AssetLoader.Open(new Uri("avares://Filee/Assets/Icons/filee.ico"));
+        using var iconStream = AssetLoader.Open(new Uri("avares://Hoot/Assets/Icons/filee.ico"));
         _open = new NativeMenuItem();
         _open.Click += (_, _) => windows.ShowMain();
         _pause = new NativeMenuItem();
@@ -28,6 +28,14 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             store.Settings.Paused = !store.Settings.Paused;
             store.SaveSettings();
         };
+        _blob = new NativeMenuItem();
+        _blob.Click += (_, _) => blob.ToggleVisible();
+        _blobNap30 = new NativeMenuItem();
+        _blobNap30.Click += (_, _) => blob.NapFor(TimeSpan.FromMinutes(30));
+        _blobNap60 = new NativeMenuItem();
+        _blobNap60.Click += (_, _) => blob.NapFor(TimeSpan.FromHours(1));
+        _blobQuietQuips = new NativeMenuItem();
+        _blobQuietQuips.Click += (_, _) => blob.QuietAppQuipsFor(TimeSpan.FromHours(1));
         _quit = new NativeMenuItem();
         _quit.Click += (_, _) => (app.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         _update = new NativeMenuItem();
@@ -38,7 +46,7 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             Icon = new WindowIcon(iconStream),
             // Set before the icon is attached: on macOS Avalonia passes the tooltip to native code, which can't take null.
             ToolTipText = "HOOT",
-            Menu = new NativeMenu { Items = { _open, _pause, new NativeMenuItemSeparator(), _quit } },
+            Menu = new NativeMenu { Items = { _open, _blob, _blobNap30, _blobNap60, _blobQuietQuips, _pause, new NativeMenuItemSeparator(), _quit } },
             IsVisible = !platform.SupportsDockVisibility || store.Settings.ShowMenuBarIcon,
         };
         _tray.Clicked += (_, _) => windows.ShowMain();
@@ -79,6 +87,14 @@ public sealed class TrayService(UserDataStore store, ILocalizer loc, IPlatformSe
             menu.Items.Remove(_update!);
         }
         _open!.Header = loc["tray.open"];
+        _blob!.IsVisible = blob.IsSupported;
+        _blobNap30!.IsVisible = blob.IsSupported;
+        _blobNap60!.IsVisible = blob.IsSupported;
+        _blobQuietQuips!.IsVisible = blob.IsSupported;
+        _blob.Header = loc[blob.IsEnabled ? "tray.blob.hide" : "tray.blob.show"];
+        _blobNap30!.Header = loc["tray.blob.nap_30"];
+        _blobNap60!.Header = loc["tray.blob.nap_60"];
+        _blobQuietQuips!.Header = loc["tray.blob.quiet_quips"];
         _pause!.Header = store.Settings.Paused ? loc["tray.resume"] : loc["tray.pause"];
         _quit!.Header = loc["tray.quit"];
         var drag = store.Settings.Triggers.FirstOrDefault(t => t.Enabled && t.Kind == TriggerKind.Drag);

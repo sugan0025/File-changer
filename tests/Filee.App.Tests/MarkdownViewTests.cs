@@ -19,7 +19,7 @@ public class MarkdownViewTests
     public void Third_party_notices_render_as_headings_tables_and_links()
     {
         TestServices.EnsureInitialized("en");
-        using var reader = new StreamReader(AssetLoader.Open(new Uri("avares://Filee/Assets/THIRD-PARTY-NOTICES.md")));
+        using var reader = new StreamReader(AssetLoader.Open(new Uri("avares://Hoot/Assets/THIRD-PARTY-NOTICES.md")));
         var markdown = reader.ReadToEnd();
 
         var view = Show(markdown);

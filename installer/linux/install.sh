@@ -96,7 +96,7 @@ PY
 
 # Validate required tools and incoming payload files before doing anything.
 command -v python3 >/dev/null 2>&1 || {
-    printf '%s\n' "Python 3 is required to install Filee." >&2
+    printf '%s\n' "Python 3 is required to install HOOT." >&2
     exit 1
 }
 
@@ -114,7 +114,7 @@ fi
 # A first install on GNOME replaces an extension folder only when it carries our marker.
 if [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ] && [ -d "$source_dir/gnome/$gnome_extension_id" ] \
     && { [ -e "$gnome_extension_dir" ] || [ -L "$gnome_extension_dir" ]; } && ! gnome_extension_is_ours; then
-    printf '%s\n' "A GNOME extension that Filee didn't install exists at $gnome_extension_dir. Remove or rename it before installing Filee."
+    printf '%s\n' "A GNOME extension that HOOT didn't install exists at $gnome_extension_dir. Remove or rename it before installing HOOT."
     exit 1
 fi
 
@@ -125,11 +125,15 @@ if [ "$upgrade" -eq 0 ]; then
         exit 1
     fi
     if [ -e "$bin_dir/filee" ] || [ -L "$bin_dir/filee" ]; then
-        printf '%s\n' "$bin_dir/filee already exists. Remove or rename it before installing Filee."
+        printf '%s\n' "$bin_dir/filee already exists. Remove or rename it before installing HOOT."
+        exit 1
+    fi
+    if [ -e "$bin_dir/hoot" ] || [ -L "$bin_dir/hoot" ]; then
+        printf '%s\n' "$bin_dir/hoot already exists. Remove or rename it before installing HOOT."
         exit 1
     fi
     if [ -e "$desktop_file" ] || [ -L "$desktop_file" ]; then
-        printf '%s\n' "$desktop_file already exists. Remove or rename it before installing Filee."
+        printf '%s\n' "$desktop_file already exists. Remove or rename it before installing HOOT."
         exit 1
     fi
 
@@ -138,7 +142,13 @@ if [ "$upgrade" -eq 0 ]; then
     printf '%s\n' 'com.filee.app' > "$install_dir/.filee-package"
     rm -f "$install_dir/.filee-upgrade-token"
     ln -s "$install_dir/filee-cli" "$bin_dir/filee"
+    ln -s "$install_dir/hoot-cli" "$bin_dir/hoot"
 else
+    if { [ -e "$bin_dir/hoot" ] || [ -L "$bin_dir/hoot" ]; } \
+        && [ "$(readlink "$bin_dir/hoot" 2>/dev/null || true)" != "$install_dir/hoot-cli" ]; then
+        printf '%s\n' "$bin_dir/hoot belongs to another command; leaving it untouched." >&2
+        exit 1
+    fi
     # Upgrade existing installation: verify it is genuine and safely swap in place.
     if [ ! -d "$install_dir" ] || [ -L "$install_dir" ]; then
         printf '%s\n' "No existing installation found at $install_dir to upgrade." >&2
@@ -153,14 +163,14 @@ else
 
     marker=$(tr -d '\r\n' < "$marker_file" 2>/dev/null || true)
     if [ "$marker" != "com.filee.app" ]; then
-        printf '%s\n' "Cannot upgrade: $install_dir was not installed by Filee." >&2
+        printf '%s\n' "Cannot upgrade: $install_dir was not installed by HOOT." >&2
         exit 1
     fi
 
     # Tell running instance to save and exit cleanly before touching files.
     if [ -x "$install_dir/Filee" ]; then
         if ! "$install_dir/Filee" --quit; then
-            printf '%s\n' "Could not gracefully shut down the running Filee instance. Please exit Filee and try again." >&2
+            printf '%s\n' "Could not gracefully shut down the running HOOT instance. Please exit HOOT and try again." >&2
             exit 1
         fi
     fi
@@ -230,7 +240,7 @@ else
             fi
 
             if [ ! -d "$install_dir" ] && mv "$backup_dir" "$install_dir" 2>/dev/null; then
-                printf '%s\n' "Update failed. Restored the previous Filee installation." >&2
+                printf '%s\n' "Update failed. Restored the previous HOOT installation." >&2
                 if [ -d "$failed_dir" ]; then
                     printf '%s\n' "Quarantined failed update files preserved at: $failed_dir" >&2
                 fi
@@ -289,6 +299,7 @@ else
 
     # Refresh launcher symlink (using -f to overwrite existing link atomically).
     ln -sf "$install_dir/filee-cli" "$bin_dir/filee"
+    ln -sf "$install_dir/hoot-cli" "$bin_dir/hoot"
 fi
 
 # GNOME Shell extension. A first install puts it in place on GNOME and asks GNOME to enable it. An upgrade refreshes
@@ -300,7 +311,7 @@ if [ -d "$install_dir/gnome/$gnome_extension_id" ]; then
     elif [ "$is_gnome" = true ] && [ ! -e "$gnome_extension_dir" ] && [ ! -L "$gnome_extension_dir" ]; then
         gnome_extension_note=added
     elif [ "$is_gnome" = true ]; then
-        printf '%s\n' "Left $gnome_extension_dir as it is: Filee didn't install it." >&2
+        printf '%s\n' "Left $gnome_extension_dir as it is: HOOT didn't install it." >&2
     fi
     if [ -n "$gnome_extension_note" ]; then
         if copy_gnome_extension; then
@@ -330,8 +341,8 @@ def desktop_value(value):
     return str(value).replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r')
 
 desktop.write_text(
-    '[Desktop Entry]\nType=Application\nName=Filee\n'
-    'Comment=Convert files with Filee\n'
+    '[Desktop Entry]\nType=Application\nName=HOOT\n'
+    'Comment=Convert files with HOOT\n'
     f'Exec={quoted_exec(str(app / "Filee"))} --convert %F\n'
     f'Icon={desktop_value(app / "filee.png")}\n'
     'Terminal=false\nCategories=Utility;\nX-Filee-Managed=true\n', encoding='utf-8')
@@ -342,17 +353,17 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 
 if [ "$upgrade" -eq 1 ]; then
-    printf '%s\n' "Upgraded Filee at $install_dir."
+    printf '%s\n' "Upgraded HOOT at $install_dir."
 else
-    printf '%s\n' "Installed Filee at $install_dir" "CLI: $bin_dir/filee (add $bin_dir to PATH if needed)."
+    printf '%s\n' "Installed HOOT at $install_dir" "CLI: $bin_dir/hoot (legacy alias: $bin_dir/filee). Add $bin_dir to PATH if needed."
 fi
 
 if [ -n "$gnome_extension_note" ] && [ "$upgrade" -eq 0 ] && [ "$is_gnome" = true ]; then
-    printf '%s\n' 'GNOME Wayland: enable "Filee donut at the cursor" in Extensions.' \
+    printf '%s\n' 'GNOME Wayland: enable "HOOT donut at the cursor" in Extensions.' \
         'Sign out and sign in if the extension is not listed yet. Then hold Ctrl and drag a file in Files.' \
         'No administrator access or input group is required. See GNOME-WAYLAND.md.'
 elif [ "$gnome_extension_note" = added ]; then
-    printf '%s\n' 'GNOME Wayland: added the "Filee donut at the cursor" extension. Sign out and sign in, then enable it in Extensions.'
+    printf '%s\n' 'GNOME Wayland: added the "HOOT donut at the cursor" extension. Sign out and sign in, then enable it in Extensions.'
 elif [ "$gnome_extension_note" = updated ]; then
-    printf '%s\n' 'GNOME: updated the "Filee donut at the cursor" extension. Sign out and sign in so GNOME Shell loads it.'
+    printf '%s\n' 'GNOME: updated the "HOOT donut at the cursor" extension. Sign out and sign in so GNOME Shell loads it.'
 fi

@@ -55,7 +55,7 @@ public sealed record EngineCopy(EngineCopyStatus Status, string? Folder, bool Fr
 
 /// <summary>Another Filee (the app, the CLI or a second copy) is installing or removing the same package.</summary>
 public sealed class EngineBusyException(string packageId)
-    : IOException($"{packageId} is being installed by another Filee. Try again when it has finished.")
+    : IOException($"{packageId} is being installed by another HOOT. Try again when it has finished.")
 {
     public string PackageId { get; } = packageId;
 }

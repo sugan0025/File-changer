@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Filee.App.Views.UpdateProgressWindow"
         Title="HOOT"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="440"
         SizeToContent="Height"
         CanResize="False"
@@ -11,7 +11,7 @@
         ShowInTaskbar="False">
   <Border Classes="card" Margin="16" Padding="20">
     <DockPanel>
-      <Image DockPanel.Dock="Left" Source="avares://Filee/Assets/Icons/filee.png" Width="44" Height="44"
+      <Image DockPanel.Dock="Left" Source="avares://Hoot/Assets/Icons/filee.png" Width="44" Height="44"
              VerticalAlignment="Top" Margin="0,0,16,0" />
       <StackPanel Spacing="10">
         <StackPanel Spacing="3">

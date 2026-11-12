@@ -9,7 +9,7 @@
     <TextBlock Classes="h1" Text="{DynamicResource about.title}" />
     <Border Classes="card">
       <StackPanel Orientation="Horizontal" Spacing="18">
-        <Image Source="avares://Filee/Assets/Icons/filee.png" Width="72" Height="72" />
+        <Image Source="avares://Hoot/Assets/Icons/filee.png" Width="72" Height="72" />
         <StackPanel VerticalAlignment="Center" Spacing="4">
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="HOOT" FontSize="24" FontWeight="Bold" VerticalAlignment="Center" />

@@ -31,7 +31,12 @@ public sealed class BlobatarState
     private BlobatarTone _tone = BlobatarTone.Idle;
     private System.Numerics.Vector2? _pointer;
     private float _deadzone = 4.5f, _sensitivity = 50f, _hover;
+    private float _dragLean, _dragStretch;
+    private float _restLean, _fullness, _eyeRollDegrees, _eyeRollDuration, _eyeRollRemaining;
     private bool _dragOver, _audio;
+    private bool _curious, _paused, _napping;
+    private bool _companionMode;
+    private bool _suppressAutonomousWinks;
     private double _acc;
 
     private BlobatarBrushCache? _cache;
@@ -98,21 +103,55 @@ public sealed class BlobatarState
         }
     }
 
+    /// <summary>Changes the companion's tint without invoking celebratory hop behavior.</summary>
+    public void SetToneQuiet(BlobatarTone tone)
+    {
+        _tone = tone;
+        _look.Update(0f, AppHost.TryGet<CircadianService>(), tone);
+    }
+
     public void TriggerBounce(double impulse = 0.45) => _physics.Bounce((float)impulse);
     public void TriggerTiltWobble(double degrees = 8.0) => _physics.Wobble((float)degrees);
     public void TriggerBlink(int count = 1) => _physics.Blink(count);
+    public void TriggerBoredHop() => _physics.BoredHop();
+    public void CancelBoredHop() => _physics.CancelBoredHop();
+    public void TriggerStretch() => _physics.Stretch();
     public void TriggerWink(bool leftEye = true) => _physics.Wink(leftEye);
     public void SetHappy(double amount = 1.0, double duration = 1.2) { if (amount > 0) _physics.Happy((float)duration); }
 
     public void Press() => _physics.Press();
     public void Release() => _physics.Release();
     public void Drop() => _physics.Drop();
+    public void CompanionDrop() => _physics.CompanionDrop();
     public void Startle(double stimulusDx) => _physics.Startle((float)stimulusDx);
     public void Proud() => _physics.Proud();
     public void Celebrate() => _physics.Celebrate();
     public void Poke() => _physics.Poke();
     public void SetThinking(bool thinking, double load = 0) { _physics.Thinking = thinking; _physics.Load = (float)load; }
     public void SetDragOver(bool over) => _dragOver = over;
+    public bool SuppressNonBoredHops
+    {
+        get => _physics.SuppressNonBoredHops;
+        set => _physics.SuppressNonBoredHops = value;
+    }
+    public void SetDragMotion(double leanDegrees, double stretch)
+    {
+        _dragLean = (float)Math.Clamp(leanDegrees, -14, 14);
+        _dragStretch = (float)Math.Clamp(stretch, 0, .08);
+    }
+    public void SetRestLean(double degrees) => _restLean = (float)Math.Clamp(degrees, -8, 8);
+    public void SetCompanionFullness(double amount) => _fullness = (float)Math.Clamp(amount, 0, 1);
+    public void TriggerCompanionEyeRoll(double degrees = 10, double duration = 1.4)
+    {
+        _eyeRollDegrees = (float)Math.Clamp(degrees, 0, 18);
+        _eyeRollDuration = _eyeRollRemaining = (float)Math.Clamp(duration, .2, 3);
+    }
+    public void SetCurious(bool curious) => _curious = curious;
+    public void SetPaused(bool paused) { _paused = paused; if (paused) _eyeRollRemaining = 0; }
+    public void SetNapping(bool napping) { _napping = napping; if (napping) _eyeRollRemaining = 0; }
+    public bool CompanionMode { get => _companionMode; set => _companionMode = value; }
+    /// <summary>Temporarily prevents a one-eye idle wink during the desktop companion's file animation.</summary>
+    public bool SuppressAutonomousWinks { get => _suppressAutonomousWinks; set => _suppressAutonomousWinks = value; }
 
     /// <summary>0..1 proximity boost from outside (the donut's hovered slice): the body leans and stretches as if the cursor were close.</summary>
     public void SetHoverEnergy(double amount) => _hover = (float)Math.Clamp(amount, 0.0, 1.0);
@@ -146,13 +185,27 @@ public sealed class BlobatarState
         _look.Update((float)dt, AppHost.TryGet<CircadianService>(), _tone);
         var look = _look.Current;
 
+        var eyeRoll = 0f;
+        if (motionEnabled && _companionMode && !_paused && !_napping && _eyeRollRemaining > 0)
+        {
+            var elapsed = _eyeRollDuration - _eyeRollRemaining;
+            var progress = elapsed / _eyeRollDuration;
+            eyeRoll = _eyeRollDegrees * MathF.PI / 180f
+                * MathF.Sin(elapsed * MathF.Tau * 1.35f) * (1 - Math.Clamp(progress, 0, 1));
+            _eyeRollRemaining = MathF.Max(0, _eyeRollRemaining - (float)dt);
+        }
+
         var h = DateTime.Now.TimeOfDay.TotalHours;
         var clockSleepy = !look.Active ? 0f
             : h >= 12 ? BlobMath.Sm(21f, 23.5f, (float)h) : 1f - BlobMath.Sm(4.5f, 6f, (float)h);
 
         var inp = new BlobatarInput
         {
-            Pointer = _pointer, DragOver = _dragOver, Hover = _hover, ClockSleepy = clockSleepy,
+            Pointer = _pointer, DragOver = _dragOver, Curious = _curious, Paused = _paused, Napping = _napping,
+            CompanionMode = _companionMode, SuppressAutonomousWinks = _suppressAutonomousWinks,
+            DragLean = _dragLean, DragStretch = _dragStretch, RestLean = _restLean,
+            Fullness = _fullness, CompanionEyeRoll = eyeRoll,
+            Hover = _hover, ClockSleepy = clockSleepy,
             Intensity = look.Intensity, Deadzone = _deadzone, Sensitivity = _sensitivity,
         };
 
@@ -344,7 +397,7 @@ public static class BlobatarRenderer
         return new Point(FaceX + (x - FaceX) / PlumpX, BodyCy + (y - BodyCy) / PlumpY);
     }
 
-    public static void Render(DrawingContext context, Rect bounds, BlobatarState state)
+    public static void Render(DrawingContext context, Rect bounds, BlobatarState state, float mouthOpen = 0f)
     {
         var size = Math.Min(bounds.Width, bounds.Height);
         var scale = size / 70.0;
@@ -393,8 +446,8 @@ public static class BlobatarRenderer
                         context.DrawGeometry(null, cache.RimPen, body);
                     }
 
-                    if (f.Smile > 0.05f)
-                        DrawMouth(context, cache, f.Smile);
+                    if (f.Smile > 0.05f || mouthOpen > 0.015f)
+                        DrawMouth(context, cache, f.Smile, mouthOpen);
                 }
             }
 
@@ -404,8 +457,16 @@ public static class BlobatarRenderer
         }
     }
 
-    private static void DrawMouth(DrawingContext context, BlobatarBrushCache cache, double smile)
+    private static readonly IBrush OpenMouthBrush = new SolidColorBrush(Color.Parse("#392B5A"));
+    private static readonly Pen OpenMouthPen = new(new SolidColorBrush(Color.Parse("#6E58A8")), 1.2);
+
+    private static void DrawMouth(DrawingContext context, BlobatarBrushCache cache, double smile, double mouthOpen)
     {
+        if (mouthOpen > .015)
+        {
+            context.DrawEllipse(OpenMouthBrush, OpenMouthPen, new Point(FaceX, 57.0), 3.9, 1.0 + 4.0 * mouthOpen);
+            return;
+        }
         using (context.PushTransform(Matrix.CreateScale(1.0, smile) * Matrix.CreateTranslation(FaceX, 56.8)))
         using (context.PushOpacity(Math.Min(1.0, smile * 1.5)))
             context.DrawGeometry(null, cache.MouthPen, UnitSmileGeometry);

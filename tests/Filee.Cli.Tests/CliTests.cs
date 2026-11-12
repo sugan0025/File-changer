@@ -636,7 +636,7 @@ public sealed class CliTests : IDisposable
 
         (code, output, _) = await Run("--version");
         Assert.Equal(Cli.Success, code);
-        Assert.StartsWith("filee ", output);
+        Assert.StartsWith("hoot ", output);
     }
 
     [Fact]

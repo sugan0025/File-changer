@@ -1,4 +1,4 @@
-// "filee engines": the optional engines of Settings → Engines, listed, installed and removed with the app's own
+// "hoot engines": the optional engines of Settings → Engines, listed, installed and removed with the app's own
 // installer (EngineInstaller), so the CLI downloads, verifies and unpacks exactly as the app does. 'download' saves an
 // engine's files for a computer without internet, where 'install --from' installs them (#447). Results go to
 // stdout (one JSON document with --json, errors included); progress goes to stderr (one JSON object per line with
@@ -20,7 +20,7 @@ internal static class EnginesCommand
         var id = options.Inputs[1];
         if (EngineDownloads.Packages.FirstOrDefault(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)) is not { } package)
         {
-            errors.WriteLine($"filee: unknown engine '{id}'. Run 'filee engines' for the list.");
+            errors.WriteLine($"hoot: unknown engine '{id}'. Run 'hoot engines' for the list.");
             return Cli.UsageError;
         }
         var result = options.Inputs[0].ToLowerInvariant() switch
@@ -35,7 +35,7 @@ internal static class EnginesCommand
 
     /// <summary>What install, download or remove did: <paramref name="State"/> is installed, saved, removed, skipped, failed or cancelled.</summary>
     /// <param name="Message">The line for people: what was done, why nothing was, or the error.</param>
-    /// <param name="Version">The version of Filee's download, once it is installed or saved.</param>
+    /// <param name="Version">The version of HOOT's download, once it is installed or saved.</param>
     /// <param name="Files">The files 'download' saved.</param>
     private sealed record Result(string Id, string State, string Message, string? Version = null, string? ErrorKey = null,
         IReadOnlyList<string>? Files = null);
@@ -66,7 +66,7 @@ internal static class EnginesCommand
         if (options.Json)
             return;
         if (failed)
-            errors.WriteLine($"filee: {result.Message}");
+            errors.WriteLine($"hoot: {result.Message}");
         else if (!options.Quiet)
             output.WriteLine(result.Message);
     }
@@ -108,13 +108,13 @@ internal static class EnginesCommand
                 _ when downloadable => $"{Bytes(DownloadSize(engines, package))} download, {Bytes(package.InstalledSize)} on disk",
                 _ => UnavailableReason(package),
             };
-            // The version Filee downloads; next to a copy Filee didn't download it would read as that copy's version.
+            // The version HOOT downloads; next to a copy HOOT didn't download it would read as that copy's version.
             var version = downloadable && copy.Status != EngineCopyStatus.OwnCopy ? Version(engines, package) : "";
             output.WriteLine($"{package.Id,-12} {status,-16} {version,-8} {size}");
         }
         output.WriteLine();
-        output.WriteLine("Install one with: filee engines install <id>");
-        output.WriteLine("Without internet: 'filee engines download <id> -o <folder>' on another computer, then 'filee engines install <id> --from <folder>' here.");
+        output.WriteLine("Install one with: hoot engines install <id>");
+        output.WriteLine("Without internet: 'hoot engines download <id> -o <folder>' on another computer, then 'hoot engines install <id> --from <folder>' here.");
         return Cli.Success;
     }
 
@@ -151,7 +151,7 @@ internal static class EnginesCommand
     // ───────────────────────── Install and remove ─────────────────────────
 
     /// <summary>
-    /// As the Engines page offers it: a package not installed, Filee's download of an outdated one, and Filee's download
+    /// As the Engines page offers it: a package not installed, HOOT's download of an outdated one, and HOOT's download
     /// over a copy found on the PC (it is the tested version). The user's own copy is left in use.
     /// </summary>
     private static async Task<Result> InstallAsync(EnginePackage package, CliOptions options, CliHost host, TextWriter errors,
@@ -229,17 +229,17 @@ internal static class EnginesCommand
         }
         return new Result(package.Id, "saved",
             $"Saved {package.Id} {version} to {folder}: {string.Join(", ", files.Select(Path.GetFileName))}. "
-            + $"Install it there with: filee engines install {package.Id} --from <folder>", version, Files: files);
+            + $"Install it there with: hoot engines install {package.Id} --from <folder>", version, Files: files);
     }
 
-    /// <summary>Removes Filee's download, as the Engines page allows it; a copy Filee didn't download is never touched.</summary>
+    /// <summary>Removes HOOT's download, as the Engines page allows it; a copy HOOT didn't download is never touched.</summary>
     private static Result Remove(EnginePackage package, EngineInstaller engines)
     {
         var copy = engines.StatusOf(package);
         if (copy.Status == EngineCopyStatus.OwnCopy)
             return new Result(package.Id, "skipped", copy.FromSystem
-                ? $"{package.Id} uses the copy found at {copy.Folder}; Filee didn't download it."
-                : $"{package.Id} uses your own copy at {copy.Folder}; Filee didn't download it.");
+                ? $"{package.Id} uses the copy found at {copy.Folder}; HOOT didn't download it."
+                : $"{package.Id} uses your own copy at {copy.Folder}; HOOT didn't download it.");
         if (copy.Status == EngineCopyStatus.NotInstalled)
             return new Result(package.Id, "skipped", $"{package.Id} is not installed.");
         try
@@ -253,7 +253,7 @@ internal static class EnginesCommand
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return new Result(package.Id, "failed", $"{package.Id} is in use; close Filee or wait for the conversion to finish.");
+            return new Result(package.Id, "failed", $"{package.Id} is in use; close HOOT or wait for the conversion to finish.");
         }
     }
 
@@ -269,14 +269,14 @@ internal static class EnginesCommand
     private static bool CanDownload(EngineInstaller engines, EnginePackage package) =>
         package.Components.Count > 0 && package.Components.All(engines.Components.ContainsKey);
 
-    /// <summary>The version Filee downloads: its main component's (the first).</summary>
+    /// <summary>The version HOOT downloads: its main component's (the first).</summary>
     private static string Version(EngineInstaller engines, EnginePackage package) => engines.Components[package.Components[0]].Version;
 
     private static long DownloadSize(EngineInstaller engines, EnginePackage package) =>
         package.Components.Sum(c => engines.Components[c].Size);
 
     private static string UnavailableReason(EnginePackage package) =>
-        EngineDownloads.UnavailableReason(package) ?? $"No Filee download of {package.Id} is available for {EngineDownloads.RuntimeIdentifier}.";
+        EngineDownloads.UnavailableReason(package) ?? $"No HOOT download of {package.Id} is available for {EngineDownloads.RuntimeIdentifier}.";
 
     /// <summary>"297 MB", "1.3 GB", as Settings → Engines shows sizes.</summary>
     private static string Bytes(long bytes) => bytes >= 1_000_000_000

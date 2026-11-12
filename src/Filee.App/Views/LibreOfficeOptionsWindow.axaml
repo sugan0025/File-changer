@@ -6,7 +6,7 @@
         x:Class="Filee.App.Views.LibreOfficeOptionsWindow"
         x:DataType="vm:EnginesPageViewModel"
         Title="{DynamicResource engines.lo_title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="520"
         SizeToContent="Height"
         CanResize="False"

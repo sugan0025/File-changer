@@ -21,20 +21,20 @@ public sealed class MacOSIntegrationTests
     [Fact]
     public void ServiceSwitchWritesTheEntrySystemSettingsUses()
     {
-        Assert.Equal("\"com.filee.app - Convert with Filee - convertFiles\"", MacOSIntegrationFiles.ServiceStatusKey);
+        Assert.Equal("\"com.filee.app - Convert with HOOT - convertFiles\"", MacOSIntegrationFiles.ServiceStatusKey);
         Assert.Contains("\"enabled_context_menu\" = 0;", MacOSIntegrationFiles.ServiceStatus(false));
         Assert.Contains("\"ContextMenu\" = 1;", MacOSIntegrationFiles.ServiceStatus(true));
     }
 
     [Fact]
-    public void AppBundleDeclaresTheServiceFileeAnswers()
+    public void AppBundleDeclaresTheServiceHOOTAnswers()
     {
         var installer = Path.Combine(RepositoryRoot(), "installer", "macos");
         var root = ReadPlist(File.ReadAllText(Path.Combine(installer, "Info.plist")));
         var service = Property(root, "NSServices").Element("dict")!;
         Assert.Equal(MacOSServicesProvider.MenuItem, Property(Property(service, "NSMenuItem"), "default").Value);
         Assert.Equal(MacOSServicesProvider.Message, Property(service, "NSMessage").Value);
-        Assert.Equal("Filee", Property(service, "NSPortName").Value);
+        Assert.Equal("Hoot", Property(service, "NSPortName").Value);
         Assert.Equal("public.item", Property(service, "NSSendFileTypes").Element("string")!.Value);
         // Each translation names the same menu title.
         foreach (var strings in Directory.GetFiles(installer, "ServicesMenu.strings", SearchOption.AllDirectories))
@@ -64,7 +64,7 @@ public sealed class MacOSIntegrationTests
         foreach (var (key, value) in permissions)
         {
             Assert.NotEqual(Property(root, key).Value, value);
-            Assert.StartsWith("O Filee ", value);
+            Assert.StartsWith("O HOOT ", value);
             Assert.True(value.IsNormalized(), $"{language}: {key} is not NFC");
         }
         Assert.Contains(files, permissions["NSAppleEventsUsageDescription"]);

@@ -6,7 +6,7 @@
         x:Class="Filee.App.Views.GroupEditorWindow"
         x:DataType="vm:GroupEditorViewModel"
         Title="{DynamicResource group.editor_title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="480" Height="560" MinWidth="400" MinHeight="420"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">

@@ -222,7 +222,7 @@ public sealed class AnimatedImageTests : IDisposable
         window.Show();
         Dispatcher.UIThread.RunJobs();
         Assert.False(image.HasPicture);
-        image.Source = new Uri("avares://Filee/Assets/WhatsNew/0.0.0/none.webp");
+        image.Source = new Uri("avares://Hoot/Assets/WhatsNew/0.0.0/none.webp");
         Assert.False(image.HasPicture);
         window.Close();
     }

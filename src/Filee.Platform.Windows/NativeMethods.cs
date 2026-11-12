@@ -9,6 +9,9 @@ internal static partial class NativeMethods
     public const int SM_CXDRAG = 68;
     public const uint GA_ROOT = 2;
     public const uint GA_ROOTOWNER = 3;
+    public const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+    public const uint WINEVENT_OUTOFCONTEXT = 0x0000;
+    public const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
     public const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
 
     [StructLayout(LayoutKind.Sequential)]
@@ -26,6 +29,34 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial nint GetForegroundWindow();
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    public delegate void WinEventProc(nint hook, uint eventType, nint hwnd, int idObject, int idChild, uint eventThread, uint eventTime);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern nint SetWinEventHook(uint eventMin, uint eventMax, nint eventHookModule, WinEventProc callback,
+        uint processId, uint threadId, uint flags);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnhookWinEvent(nint hook);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextLengthW")]
+    public static partial int GetWindowTextLength(nint hwnd);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int GetWindowText(nint hwnd, [Out] char[] text, int maxCount);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetLastInputInfo(ref LASTINPUTINFO info);
 
     public const uint ASFW_ANY = uint.MaxValue;
 
@@ -48,6 +79,9 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial int GetSystemMetrics(int index);
+
+    [LibraryImport("shell32.dll")]
+    public static partial int SHQueryUserNotificationState(out int state);
 
     [LibraryImport("kernel32.dll")]
     public static partial nint GetCurrentProcess();

@@ -36,6 +36,21 @@ public interface IPlatformServices
     /// </summary>
     ForegroundWindowInfo? GetForegroundWindow() => null;
 
+    /// <summary>Minimal foreground identity for optional local companion reactions; browser titles are transient.</summary>
+    ForegroundAppContext? GetForegroundAppContext() => null;
+
+    /// <summary>Elapsed time since any system input, without exposing key or pointer contents.</summary>
+    TimeSpan? GetSystemIdleTime() => null;
+
+    /// <summary>True while Windows reports a full-screen or presentation state; does not inspect window titles.</summary>
+    bool IsPresentationModeActive() => false;
+
+    /// <summary>Subscribes to foreground-window changes. The callback contains transient identity only.</summary>
+    IDisposable? WatchForegroundChanges(Action<ForegroundAppContext?> callback) => null;
+
+    /// <summary>Watches only the bounds of a focused editable control; no text or values are returned.</summary>
+    IDisposable? WatchFocusedInputBounds(Action<PlatformScreenBounds?> callback) => null;
+
     /// <summary>
     /// Names of the apps that have a window open now, as <see cref="ProcessNameAt"/> reports them, sorted, without
     /// Filee. Windows reports a main window per process; macOS and Linux list the windows on screen.
@@ -175,6 +190,16 @@ public sealed record ClipboardContent(IReadOnlyList<string> Files, byte[]? Pictu
 
 /// <summary>The window in front: its process name as <see cref="IPlatformServices.ProcessNameAt"/> reports it, and whether it belongs to the file manager or desktop.</summary>
 public sealed record ForegroundWindowInfo(string? ProcessName, bool IsFileManager);
+
+/// <summary>Foreground process identity and, only for browsers, a transient window title used for local matching.</summary>
+public sealed record ForegroundAppContext(string? ProcessName, string? WindowTitle = null, int ProcessId = 0,
+    long WindowHandle = 0, string? WindowClass = null)
+{
+    public bool IsDesktop => WindowClass is "Progman" or "WorkerW";
+}
+
+/// <summary>Physical screen-pixel bounds reported by a platform accessibility API.</summary>
+public readonly record struct PlatformScreenBounds(int X, int Y, int Width, int Height);
 
 /// <summary>Whether "Convert with Filee" is in the top-level Windows 11 File Explorer menu (not just "Show more options").</summary>
 public enum ModernContextMenuState

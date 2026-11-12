@@ -102,9 +102,18 @@ public partial class App : Application
         // Global gestures → donut toolbar
         var triggers = AppHost.Get<TriggerService>();
         var radial = AppHost.Get<RadialController>();
+        var blobCompanion = AppHost.Get<BlobCompanionService>();
         var platform = AppHost.Get<IPlatformServices>();
-        triggers.DragStarted += (_, e) => radial.ShowForDrag(e.X, e.Y, OpensBack(e));
-        triggers.DragEnded += (_, _) => radial.OnDragGestureEnded();
+        triggers.DragStarted += (_, e) =>
+        {
+            blobCompanion.SetGestureActive(true);
+            radial.ShowForDrag(e.X, e.Y, OpensBack(e));
+        };
+        triggers.DragEnded += (_, _) =>
+        {
+            radial.OnDragGestureEnded();
+            blobCompanion.SetGestureActive(false);
+        };
         triggers.SelectionGesture += async (_, e) =>
         {
             if (_selectionPending || store.Settings.Paused)
@@ -170,6 +179,7 @@ public partial class App : Application
 
         store.SettingsChanged += (_, _) => ApplySettings(store.Settings);
 
+        AppHost.Get<BlobCompanionService>().Start();
         AppHost.Get<TrayService>().Create(this);
         AppHost.Get<WindowService>().EnsureToast();
         AppHost.Get<ConversionService>().FeedbackDue += (_, _) => AppHost.Get<WindowService>().ShowFeedbackNotice();
@@ -197,6 +207,7 @@ public partial class App : Application
             AppHost.TryGet<MemoryTrimmer>()?.Dispose();
             AppHost.TryGet<TriggerService>()?.Dispose();
             AppHost.TryGet<TrayService>()?.Dispose();
+            AppHost.TryGet<BlobCompanionService>()?.Dispose();
             AppHost.TryGet<ClipboardWatcherService>()?.Dispose();
             AppHost.TryGet<SoundService>()?.Dispose();
             AppHost.TryGet<UpdateService>()?.Dispose();

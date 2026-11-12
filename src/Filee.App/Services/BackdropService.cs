@@ -52,7 +52,7 @@ public static class BackdropService
     {
         try
         {
-            var uri = new Uri("avares://Filee/Assets/Backgrounds/app_bg.png");
+            var uri = new Uri("avares://Hoot/Assets/Backgrounds/app_bg.png");
             using var stream = AssetLoader.Open(uri);
             using var origBitmap = SKBitmap.Decode(stream);
             if (origBitmap == null) return null;

@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Filee.App.Controls"
+        x:Class="Filee.App.Views.BlobCompanionWindow"
+        Title="HOOT Blob"
+        Width="104" Height="104"
+        MinWidth="104" MinHeight="104"
+        MaxWidth="104" MaxHeight="104"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        CanResize="False"
+        DragDrop.AllowDrop="True">
+  <Grid x:Name="Root" Background="Transparent">
+    <c:BlobatarControl x:Name="Blob" Width="80" Height="80" IsAnimated="True" MaxFramesPerSecond="30"
+                       PointerReactionsEnabled="False" AudioEnabled="False"
+                       RenderTransformOrigin="50%,50%" />
+    <Canvas x:Name="SwallowLayer" IsHitTestVisible="False" ClipToBounds="False">
+      <TextBlock x:Name="CompanionGlyph" Text="z" FontSize="14" FontWeight="Bold"
+                 Foreground="#FF6E58A8" IsVisible="False" Opacity="0" />
+      <Border x:Name="FileToken" Width="34" Height="30" CornerRadius="7" Padding="2"
+              Background="#FFFDFEFF" BorderBrush="#FF6E58A8" BorderThickness="1"
+              IsVisible="False" Opacity="0" RenderTransformOrigin="50%,50%">
+        <Border.RenderTransform><ScaleTransform ScaleX="1" ScaleY="1" /></Border.RenderTransform>
+        <StackPanel Orientation="Horizontal" Spacing="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Image x:Name="FileTokenIcon" Width="17" Height="17" Stretch="Uniform" IsVisible="False" />
+          <TextBlock x:Name="FileTokenLabel" Text="FILE" FontSize="6" FontWeight="Bold"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FF392B5A" />
+        </StackPanel>
+      </Border>
+    </Canvas>
+    <Popup x:Name="ThoughtPopup" PlacementTarget="{Binding #Blob}" Placement="Top"
+           IsLightDismissEnabled="False" IsHitTestVisible="False">
+      <StackPanel Spacing="4" HorizontalAlignment="Center">
+        <Border x:Name="ThoughtCloud" MinWidth="112" MaxWidth="144" Padding="10,7"
+                Background="#FFFDFEFF" BorderBrush="#FF6E58A8" BorderThickness="1.5"
+                CornerRadius="18" BoxShadow="0 2 8 0 #44000000" Opacity="0">
+          <Border.Transitions>
+            <Transitions>
+              <DoubleTransition Property="Opacity" Duration="0:0:0.22" />
+            </Transitions>
+          </Border.Transitions>
+          <TextBlock x:Name="ThoughtText" Text="No files to feed me ??" TextWrapping="Wrap" TextAlignment="Center"
+                     Foreground="#FF392B5A" FontSize="12" FontWeight="SemiBold" />
+        </Border>
+        <Ellipse Width="8" Height="8" Fill="#FFFDFEFF" Stroke="#FF6E58A8" StrokeThickness="1"
+                 HorizontalAlignment="Center" />
+      </StackPanel>
+    </Popup>
+  </Grid>
+</Window>

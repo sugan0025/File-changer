@@ -109,7 +109,7 @@ public sealed class EnginesCommandTests : IDisposable
         (code, output, _) = await Run("engines");
         Assert.Equal(0, code);
         Assert.Contains(output.Split('\n'), l => l.StartsWith("pandoc ", StringComparison.Ordinal) && l.Contains("not installed") && l.Contains("1.0"));
-        Assert.Contains("filee engines install <id>", output);
+        Assert.Contains("hoot engines install <id>", output);
     }
 
     [Fact]
@@ -172,13 +172,13 @@ public sealed class EnginesCommandTests : IDisposable
             var result = JsonDocument.Parse(output).RootElement;
             Assert.Equal(["id", "state", "error"], Names(result));
             Assert.Equal("failed", result.GetProperty("state").GetString());
-            Assert.Equal("pandoc is being installed by another Filee. Try again when it has finished.", result.GetProperty("error").GetString());
+            Assert.Equal("pandoc is being installed by another HOOT. Try again when it has finished.", result.GetProperty("error").GetString());
             Assert.Empty(errors);
 
             (code, output, errors) = await Run("engines", "install", "pandoc");
             Assert.Equal(1, code);
             Assert.Empty(output);
-            Assert.Equal("filee: pandoc is being installed by another Filee. Try again when it has finished.", errors.Trim());
+            Assert.Equal("hoot: pandoc is being installed by another HOOT. Try again when it has finished.", errors.Trim());
         }
         Assert.Empty(_server.Requests);
         Assert.Equal(0, (await Run("engines", "install", "pandoc")).Code);
@@ -307,7 +307,7 @@ public sealed class EnginesCommandTests : IDisposable
         var (code, output, errors) = await Run(args);
         Assert.Equal(2, code);
         Assert.Empty(output);
-        Assert.StartsWith("filee: ", errors);
+        Assert.StartsWith("hoot: ", errors);
         Assert.Empty(_server.Requests);
     }
 

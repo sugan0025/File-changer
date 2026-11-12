@@ -1,21 +1,20 @@
 <#
 .SYNOPSIS
-  Builds the Windows installer Filee-<version>-win-Setup.exe (Filee's own, src/Filee.Setup) and, with -Portable, the
-  portable zip, into -OutputDir.
+  Builds the HOOT-<version>-win-Setup.exe installer and, with -Portable, the HOOT portable zip into -OutputDir.
 
 .DESCRIPTION
   Without -PublishDir the app is published first (Release, self-contained, -p:FileeRelease=true) into
   publish/win-x64, together with the Windows 11 Explorer menu extension (build-explorer-menu.ps1), the bundled
-  small engines rhwp and 7-Zip and the Microsoft C++ runtime DLLs next to rhwp.exe and Filee.exe
+  small engines rhwp and 7-Zip and the Microsoft C++ runtime DLLs next to rhwp.exe and Hoot.exe
   (fetch-engines.ps1); the large engines are downloaded by the app (engines.json).
 
   Setup itself (src/Filee.Setup) is published as one self-contained, trimmed program (no .NET needed on the PC);
   build/tools/make-setup.cs appends the publish folder to it as an LZMA payload with a SHA-256 manifest, and the
   engines Setup offers from EngineDownloads. The portable zip is the publish folder as it is: without Setup's
-  uninstall.exe next to Filee.exe, Filee knows it is a portable copy.
+  uninstall.exe next to Hoot.exe, HOOT knows it is a portable copy.
 
 .PARAMETER Runtime
-  win-x64 (default) or win-arm64. The ARM64 build (Filee-<version>-win-arm64-Setup.exe and -Portable.zip) has an ARM64
+  win-x64 (default) or win-arm64. The ARM64 build (HOOT-<version>-win-arm64-Setup.exe and -Portable.zip) has an ARM64
   Setup, Explorer menu DLL, rhwp, 7-Zip and Unhwp library (fetch-engines.ps1 -Runtime win-arm64, which fails while
   the ARM64 rhwp and Unhwp builds are not pinned yet). They link the C runtime statically: no Microsoft C++ runtime
   DLLs are copied.
@@ -39,7 +38,7 @@
 param(
     # Defaults to <Version> in Directory.Build.props.
     [string]$Version,
-    # A finished publish folder (Filee.exe, FileeExplorerMenu.dll/.msix, engines\); skips publishing.
+    # A finished publish folder (Hoot.exe, FileeExplorerMenu.dll/.msix, engines\); skips publishing.
     [string]$PublishDir,
     # A finished Setup program (Filee.Setup.exe from an earlier run); skips publishing src/Filee.Setup.
     [string]$SetupProgram,
@@ -68,16 +67,13 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $OutputDir = (Resolve-Path $OutputDir).Path
 
 if ($CheckOnly) {
-    # A stand-in app: Setup only needs files, Filee.exe among them.
+    # A stand-in HOOT app for the Setup sandbox check.
     $check = Join-Path $cache 'installer-check'
     Remove-Item $check -Recurse -Force -ErrorAction SilentlyContinue
     $PublishDir = Join-Path $check 'app'
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli'), (Join-Path $PublishDir 'engines\rhwp') | Out-Null
-    Set-Content (Join-Path $PublishDir 'Filee.exe') 'stub' -NoNewline
-    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
-    Set-Content (Join-Path $PublishDir 'filee-cli.exe') 'stub' -NoNewline
-    Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
-    Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
+    Set-Content (Join-Path $PublishDir 'Hoot.exe') 'stub' -NoNewline
+    Set-Content (Join-Path $PublishDir 'hoot-cli.exe') 'stub' -NoNewline
     Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
     Set-Content (Join-Path $PublishDir 'engines\rhwp\rhwp.exe') 'stub' -NoNewline
     $OutputDir = $check
@@ -85,7 +81,7 @@ if ($CheckOnly) {
 elseif (-not $PublishDir) {
     $PublishDir = Join-Path $root "publish\$Runtime"
     Remove-Item $PublishDir -Recurse -Force -ErrorAction SilentlyContinue
-    # Unhwp's package has no win-arm64 library: the pinned ARM64 build goes next to Filee.exe through the build.
+    # Unhwp's package has no win-arm64 library: the pinned ARM64 build goes next to Hoot.exe through the build.
     $native = @()
     if ($Runtime -eq 'win-arm64') {
         $natives = Join-Path $cache 'win-arm64-native'
@@ -96,49 +92,34 @@ elseif (-not $PublishDir) {
         dotnet publish (Join-Path $root 'src\Filee.App\Filee.App.csproj') -c Release -r $Runtime --self-contained `
             "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true @native -o $PublishDir
     }
-    # The command line, in the same folder so it shares the runtime and the engines (filee-cli.exe). Its name can't
-    # be filee.exe next to Filee.exe, so the "filee" command is cli\filee.cmd, which Setup can put on PATH.
+    # The HOOT command line shares the runtime and engines with Hoot.exe.
     Invoke-Checked 'dotnet publish (cli)' {
         dotnet publish (Join-Path $root 'src\Filee.Cli\Filee.Cli.csproj') -c Release -r $Runtime --self-contained `
             "-p:Version=$Version" -p:PublishReadyToRun=true -p:FileeRelease=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true @native -o $PublishDir
     }
     # Native debug symbols from NuGet packages (libSkiaSharp.pdb, libHarfBuzzSharp.pdb: ~105 MB) are useless to users.
-    # Filee.App's publish removes them, but publishing the command line into the same folder brings them back.
+    # The app publish removes them, but publishing the command line into the same folder brings them back.
     Get-ChildItem $PublishDir -Filter 'lib*.pdb' | Remove-Item
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
-    Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
-    # Primary HOOT executable and CLI
-    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
-    if (Test-Path (Join-Path $PublishDir 'filee-cli.exe')) {
-        Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
-    }
     Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
-    # Next to Filee.exe: the Explorer menu package's external location is the install folder.
+    # Next to Hoot.exe: the Explorer menu package's external location is the install folder.
     $architecture = $Runtime.Substring(4)
     & (Join-Path $PSScriptRoot 'build-explorer-menu.ps1') -Destination $PublishDir -Version $Version -Architecture $architecture
     # Only the small rhwp and 7-Zip are bundled; the app downloads the others when the user picks them. The Microsoft
-    # C++ runtime goes next to rhwp.exe and next to Filee.exe (unhwp.dll imports VCRUNTIME140.dll), so neither needs
+    # C++ runtime goes next to rhwp.exe and next to Hoot.exe (unhwp.dll imports VCRUNTIME140.dll), so neither needs
     # the Visual C++ Redistributable (#248). The ARM64 builds need none.
     $runtimeTo = @{}
     if ($Runtime -eq 'win-x64') { $runtimeTo = @{ RuntimeTo = $PublishDir } }
     & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Runtime $Runtime -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines') @runtimeTo
 }
 $PublishDir = (Resolve-Path $PublishDir).Path
-if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe')) -and (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) {
-    Copy-Item (Join-Path $PublishDir 'Hoot.exe') (Join-Path $PublishDir 'Filee.exe') -Force
-}
-if ((Test-Path (Join-Path $PublishDir 'Filee.exe')) -and -not (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) {
-    Copy-Item (Join-Path $PublishDir 'Filee.exe') (Join-Path $PublishDir 'Hoot.exe') -Force
-}
-if ((Test-Path (Join-Path $PublishDir 'filee-cli.exe')) -and -not (Test-Path (Join-Path $PublishDir 'hoot-cli.exe'))) {
-    Copy-Item (Join-Path $PublishDir 'filee-cli.exe') (Join-Path $PublishDir 'hoot-cli.exe') -Force
-}
-if (-not (Test-Path (Join-Path $PublishDir 'cli\hoot.cmd'))) {
-    New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
-    Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
-}
-if (-not (Test-Path (Join-Path $PublishDir 'Filee.exe'))) { throw "Filee.exe is missing in $PublishDir" }
 if (-not (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) { throw "Hoot.exe is missing in $PublishDir" }
+if (-not (Test-Path (Join-Path $PublishDir 'hoot-cli.exe'))) { throw "hoot-cli.exe is missing in $PublishDir" }
+Copy-Item (Join-Path $PublishDir 'Hoot.exe') (Join-Path $PublishDir 'Filee.exe') -Force
+Copy-Item (Join-Path $PublishDir 'hoot-cli.exe') (Join-Path $PublishDir 'filee-cli.exe') -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Null
+Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
+Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
 if (-not $CheckOnly) {
     # Without them rhwp and unhwp fail on PCs without the Visual C++ Redistributable (#248). They go into the payload
     # and the portable zip; Setup checks again after unpacking (RuntimeCheck) on the user's PC.
@@ -171,8 +152,8 @@ if ($sign) {
     & $sign -Path $PublishDir, $SetupProgram -CertificateThumbprint $CertificateThumbprint
 }
 
-# The x64 names are the ones Filee's updater looks for (-win-Setup.exe, -SHA256SUMS.txt).
-$prefix = if ($Runtime -eq 'win-x64') { "Filee-$Version-win" } else { "Filee-$Version-$Runtime" }
+# The x64 HOOT names are the ones the updater looks for (-win-Setup.exe, -SHA256SUMS.txt).
+$prefix = if ($Runtime -eq 'win-x64') { "HOOT-$Version-win" } else { "HOOT-$Version-$Runtime" }
 $setupExe = Join-Path $OutputDir "$prefix-Setup.exe"
 Write-Host "pack installer $Version"
 $fast = @(if ($CheckOnly) { '--fast' })
@@ -198,14 +179,14 @@ if ($CheckOnly) {
             throw "$(Split-Path $exe -Leaf) $arguments failed with exit code $($process.ExitCode)"
         }
     }
-    $installed = Join-Path $sandbox 'Program Files\Filee'
+    $installed = Join-Path $sandbox 'Program Files\Hoot'
     Invoke-Setup $setupExe @('/MERGETASKS=desktopicon')
-    foreach ($file in 'Filee.exe', 'Hoot.exe', 'cli\filee.cmd', 'cli\hoot.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
+    foreach ($file in 'Hoot.exe', 'Filee.exe', 'hoot-cli.exe', 'filee-cli.exe', 'cli\hoot.cmd', 'cli\filee.cmd', 'engines\rhwp\rhwp.exe', 'uninstall.exe', 'uninstall.json') {
         if (-not (Test-Path (Join-Path $installed $file))) { throw "Setup did not install $file" }
     }
     $registry = Get-Content (Join-Path $sandbox 'registry.json') -Raw
     if ($registry -notmatch 'C8686E06-8327-40A2-B0F7-3DEDD61D9248\}_is1' -or $registry -notmatch 'uninstall\.exe') { throw 'Setup did not write the uninstall entry' }
-    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\HOOT.lnk'))) { throw 'Setup did not create the desktop shortcut' }
+    if (-not (Test-Path (Join-Path $sandbox 'Public\Desktop\HOOT.lnk'))) { throw 'Setup did not create the HOOT desktop shortcut' }
     Invoke-Setup $setupExe @()
     Invoke-Setup (Join-Path $installed 'uninstall.exe') @()
     if (Test-Path $installed) { throw "The uninstaller left $installed" }
@@ -214,13 +195,8 @@ if ($CheckOnly) {
     return
 }
 
-# Output packaging: produce both Filee and Hoot setup executables, portable zips, and checksum manifests.
-$hootPrefix = if ($Runtime -eq 'win-x64') { "Hoot-$Version-win" } else { "Hoot-$Version-$Runtime" }
-$hootSetupExe = Join-Path $OutputDir "$hootPrefix-Setup.exe"
-Copy-Item $setupExe $hootSetupExe -Force
-
+# Output HOOT setup, portable packages, and checksum manifest only.
 $files = @($setupExe)
-$hootFiles = @($hootSetupExe)
 if ($Portable) {
     $zip = Join-Path $OutputDir "$prefix-Portable.zip"
     Remove-Item $zip -ErrorAction SilentlyContinue
@@ -229,18 +205,16 @@ if ($Portable) {
     [System.IO.Compression.ZipFile]::CreateFromDirectory($PublishDir, $zip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
     $files += $zip
 
-    $hootZip = Join-Path $OutputDir "$hootPrefix-Portable.zip"
-    Copy-Item $zip $hootZip -Force
-    $hootFiles += $hootZip
+    if ($Runtime -eq 'win-x64') {
+        $stableZip = Join-Path $OutputDir 'Hoot-win-Portable.zip'
+        Copy-Item $zip $stableZip -Force
+        $files += $stableZip
+    }
 }
 
 # Checksums for people who verify their download.
-$sums = Join-Path $OutputDir $(if ($Runtime -eq 'win-x64') { "Filee-$Version-SHA256SUMS.txt" } else { "$prefix-SHA256SUMS.txt" })
+$sums = Join-Path $OutputDir "$prefix-SHA256SUMS.txt"
 $files | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path $_ -Leaf)" } |
     Set-Content $sums -Encoding ascii
 
-$hootSums = Join-Path $OutputDir $(if ($Runtime -eq 'win-x64') { "Hoot-$Version-SHA256SUMS.txt" } else { "$hootPrefix-SHA256SUMS.txt" })
-$hootFiles | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant())  $(Split-Path $_ -Leaf)" } |
-    Set-Content $hootSums -Encoding ascii
-
-Get-Item ($files + $hootFiles + $sums + $hootSums) | Format-Table Name, Length
+Get-Item ($files + $sums) | Format-Table Name, Length

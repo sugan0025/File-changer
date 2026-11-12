@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Filee.App"
              x:Class="Filee.App.App"
-             Name="Filee"
+             Name="HOOT"
              RequestedThemeVariant="Default">
 
   <Application.DataTemplates>
@@ -13,8 +13,8 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
-        <ResourceInclude Source="avares://Filee/Styles/Icons.axaml" />
-        <ResourceInclude Source="avares://Filee/Styles/Brands.axaml" />
+        <ResourceInclude Source="avares://Hoot/Styles/Icons.axaml" />
+        <ResourceInclude Source="avares://Hoot/Styles/Brands.axaml" />
       </ResourceDictionary.MergedDictionaries>
       <!-- The Theme page's colour picker shows only the spectrum: no empty tab strip above it. Set here because its
            flyout looks resources up outside the page. -->
@@ -36,8 +36,8 @@
     <Style Selector="FlyoutPresenter.nopadding Border#ContentBackgroundBorder">
       <Setter Property="Margin" Value="0" />
     </Style>
-    <StyleInclude Source="avares://Filee/Styles/Soft.axaml" />
-    <StyleInclude Source="avares://Filee/Styles/Controls.axaml" />
-    <StyleInclude Source="avares://Filee/Styles/TagEditor.axaml" />
+    <StyleInclude Source="avares://Hoot/Styles/Soft.axaml" />
+    <StyleInclude Source="avares://Hoot/Styles/Controls.axaml" />
+    <StyleInclude Source="avares://Hoot/Styles/TagEditor.axaml" />
   </Application.Styles>
 </Application>

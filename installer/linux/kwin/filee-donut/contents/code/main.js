@@ -1,9 +1,11 @@
-// KWin script (Plasma 6) for the experimental Wayland gesture. Wayland gives Filee no cursor position and no say
-// over where its window opens, so this moves the donut window (class "Filee", title "Filee Donut") to the cursor,
-// on the Activity and desktop in use, whenever it is mapped. Install it with kpackagetool6 and enable it; see installer/linux/INSTALL.txt.
+// KWin script (Plasma 6) for the experimental Wayland gesture. Wayland gives HOOT no cursor position and no say
+// over where its window opens, so this moves the donut window to the cursor on the Activity and desktop in use.
+// Keep resourceClass "Filee" for Avalonia compatibility; accept HOOT and legacy Filee captions.
+// Install it with kpackagetool6 and enable it; see installer/linux/INSTALL.txt.
 
 function isDonut(w) {
-    return String(w.resourceClass).toLowerCase() === "filee" && (w.caption === "HOOT Donut" || w.caption === "Filee Donut");
+    return String(w.resourceClass).toLowerCase() === "filee" &&
+        (w.caption === "HOOT Donut" || w.caption === "HOOT" || w.caption === "Filee Donut");
 }
 
 function centreOnCursor(w) {

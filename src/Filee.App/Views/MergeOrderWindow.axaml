@@ -7,7 +7,7 @@
         x:Class="Filee.App.Views.MergeOrderWindow"
         x:DataType="vm:MergeOrderViewModel"
         Title="{DynamicResource merge.order_title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="560" Height="530" MinWidth="440" MinHeight="320"
         WindowStartupLocation="CenterScreen">
   <Window.KeyBindings>
