@@ -21,6 +21,7 @@ public static class SetupNames
     public const string AppName = "HOOT";
     public const string Publisher = "Suganesan S.";
     public const string AppExe = "Hoot.exe";
+    // Recognized only when migrating or removing an older Filee installation.
     public const string LegacyAppExe = "Filee.exe";
 
     /// <summary>The uninstaller next to Filee.exe (UpdateService.IsInstalled looks for it).</summary>
@@ -37,6 +38,7 @@ public static class SetupNames
 
     /// <summary>Start menu and desktop shortcut name.</summary>
     public const string ShortcutName = "HOOT.lnk";
+    // Removed during migration; new installs create only HOOT.lnk.
     public const string LegacyShortcutName = "Filee.lnk";
 
     /// <summary>Registry values Setup adds to the uninstall key (Inno Setup kept the same in "Inno Setup: …").</summary>

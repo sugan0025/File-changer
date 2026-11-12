@@ -126,7 +126,7 @@ public class SetupStartTests
     /// <summary>A Setup.exe whose header points at a 512-byte certificate table at its end, as signtool leaves it.</summary>
     private static string SignedSetup(TempFolder temp)
     {
-        temp.Write(@"app\Filee.exe", "Filee");
+        temp.Write(@"app\Hoot.exe", "HOOT");
         var program = temp.Sub("program.exe");
         File.WriteAllBytes(program, PayloadTests.MinimalPe(0, 0));
         var unsigned = temp.Sub("unsigned.exe");

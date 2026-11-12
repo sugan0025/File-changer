@@ -1,2 +1,2 @@
-/* Finder's right-click menu: the title of Filee's service (NSServices in Info.plist). */
-"Convert with Filee" = "用 Filee 转换";
+/* Finder's right-click menu: the title of HOOT's service (NSServices in Info.plist). */
+"Convert with HOOT" = "用 HOOT 转换";

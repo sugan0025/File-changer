@@ -36,6 +36,30 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         _language = Languages.FirstOrDefault(l => l.Value == store.Settings.Language) ?? Languages[0];
         _startWithSystem = store.Settings.StartWithSystem;
         _soundEffects = store.Settings.SoundEffects;
+        BlobActivityChoices =
+        [
+            new Choice<BlobCompanionActivity>(BlobCompanionActivity.Calm, loc["general.blob_activity_calm"]),
+            new Choice<BlobCompanionActivity>(BlobCompanionActivity.Adaptive, loc["general.blob_activity_adaptive"]),
+            new Choice<BlobCompanionActivity>(BlobCompanionActivity.Playful, loc["general.blob_activity_playful"]),
+            new Choice<BlobCompanionActivity>(BlobCompanionActivity.Off, loc["general.blob_activity_off"]),
+        ];
+        _blobActivity = BlobActivityChoices.First(c => c.Value == store.Settings.BlobCompanion.Activity);
+        _blobCompanionEnabled = store.Settings.BlobCompanion.IsVisible;
+        _blobAudioEnabled = store.Settings.BlobCompanion.AudioEnabled;
+        _cinemaDimEnabled = store.Settings.BlobCompanion.CinemaDimEnabled;
+        _stretchReminderEnabled = store.Settings.BlobCompanion.StretchReminderEnabled;
+        var awareness = store.Settings.BlobCompanion.AppAwareness;
+        _appAwarenessEnabled = awareness.Enabled;
+        _awarenessClaude = awareness.EnabledApps.Contains("claude");
+        _awarenessChatGpt = awareness.EnabledApps.Contains("chatgpt");
+        _awarenessAntigravity = awareness.EnabledApps.Contains("antigravity");
+        _awarenessChrome = awareness.EnabledApps.Contains("chrome");
+        _awarenessExplorer = awareness.EnabledApps.Contains("file-explorer");
+        _awarenessNetflix = awareness.EnabledApps.Contains("netflix");
+        _awarenessSpotify = awareness.EnabledApps.Contains("spotify");
+        _awarenessWhatsApp = awareness.EnabledApps.Contains("whatsapp");
+        _awarenessGemini = awareness.EnabledApps.Contains("gemini");
+        _awarenessLinkedIn = awareness.EnabledApps.Contains("linkedin");
         _clipboardAutoDetect = store.Settings.ClipboardAutoDetect;
         _showInDock = store.Settings.ShowInDock;
         _showMenuBarIcon = store.Settings.ShowMenuBarIcon;
@@ -60,6 +84,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     }
 
     public IReadOnlyList<Choice<string>> Languages { get; }
+    public IReadOnlyList<Choice<BlobCompanionActivity>> BlobActivityChoices { get; }
     public string DataFolder => _store.Directory;
     public bool IsWindows => OperatingSystem.IsWindows();
     public bool HasSystemIntegration => _platform is not NullPlatformServices;
@@ -127,6 +152,17 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     {
         if (CloseChoice.Value != _store.Settings.CloseAction)
             CloseChoice = CloseChoices.First(c => c.Value == _store.Settings.CloseAction);
+        if (BlobCompanionEnabled != _store.Settings.BlobCompanion.IsVisible)
+        {
+            _restoringBlobCompanion = true;
+            BlobCompanionEnabled = _store.Settings.BlobCompanion.IsVisible;
+            _restoringBlobCompanion = false;
+        }
+        _restoringBlobCompanion = true;
+        CinemaDimEnabled = _store.Settings.BlobCompanion.CinemaDimEnabled;
+        StretchReminderEnabled = _store.Settings.BlobCompanion.StretchReminderEnabled;
+        _restoringBlobCompanion = false;
+        RestoreAwarenessSettings();
     }
 
     public void Dispose() => _store.SettingsChanged -= OnSettingsChanged;
@@ -138,6 +174,52 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     [ObservableProperty] private Choice<string> _language;
     [ObservableProperty] private bool _startWithSystem;
     [ObservableProperty] private bool _soundEffects;
+    [ObservableProperty] private Choice<BlobCompanionActivity> _blobActivity;
+    [ObservableProperty] private bool _blobCompanionEnabled;
+    [ObservableProperty] private bool _blobAudioEnabled;
+    [ObservableProperty] private bool _cinemaDimEnabled;
+    [ObservableProperty] private bool _stretchReminderEnabled;
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(AppAwarenessAppsEnabled))] private bool _appAwarenessEnabled;
+    [ObservableProperty] private bool _awarenessClaude, _awarenessChatGpt, _awarenessAntigravity, _awarenessChrome;
+    [ObservableProperty] private bool _awarenessExplorer, _awarenessNetflix, _awarenessSpotify, _awarenessWhatsApp;
+    [ObservableProperty] private bool _awarenessGemini, _awarenessLinkedIn;
+    private bool _restoringAwareness;
+    public bool AppAwarenessAppsEnabled => AppAwarenessEnabled;
+    partial void OnAppAwarenessEnabledChanged(bool value) => Save(s => s.BlobCompanion.AppAwareness.Enabled = value);
+    partial void OnAwarenessClaudeChanged(bool value) => SaveAwarenessApp("claude", value);
+    partial void OnAwarenessChatGptChanged(bool value) => SaveAwarenessApp("chatgpt", value);
+    partial void OnAwarenessAntigravityChanged(bool value) => SaveAwarenessApp("antigravity", value);
+    partial void OnAwarenessChromeChanged(bool value) => SaveAwarenessApp("chrome", value);
+    partial void OnAwarenessExplorerChanged(bool value) => SaveAwarenessApp("file-explorer", value);
+    partial void OnAwarenessNetflixChanged(bool value) => SaveAwarenessApp("netflix", value);
+    partial void OnAwarenessSpotifyChanged(bool value) => SaveAwarenessApp("spotify", value);
+    partial void OnAwarenessWhatsAppChanged(bool value) => SaveAwarenessApp("whatsapp", value);
+    partial void OnAwarenessGeminiChanged(bool value) => SaveAwarenessApp("gemini", value);
+    partial void OnAwarenessLinkedInChanged(bool value) => SaveAwarenessApp("linkedin", value);
+
+    private void SaveAwarenessApp(string key, bool enabled)
+    {
+        if (_restoringAwareness) return;
+        var apps = _store.Settings.BlobCompanion.AppAwareness.EnabledApps;
+        apps ??= _store.Settings.BlobCompanion.AppAwareness.EnabledApps = [];
+        apps.RemoveAll(value => string.Equals(value, key, StringComparison.OrdinalIgnoreCase));
+        if (enabled) apps.Add(key);
+        _store.SaveSettings();
+    }
+
+    private void RestoreAwarenessSettings()
+    {
+        _restoringAwareness = true;
+        var settings = _store.Settings.BlobCompanion.AppAwareness;
+        AppAwarenessEnabled = settings.Enabled;
+        var apps = settings.EnabledApps ?? [];
+        AwarenessClaude = apps.Contains("claude"); AwarenessChatGpt = apps.Contains("chatgpt");
+        AwarenessAntigravity = apps.Contains("antigravity"); AwarenessChrome = apps.Contains("chrome");
+        AwarenessExplorer = apps.Contains("file-explorer"); AwarenessNetflix = apps.Contains("netflix");
+        AwarenessSpotify = apps.Contains("spotify"); AwarenessWhatsApp = apps.Contains("whatsapp");
+        AwarenessGemini = apps.Contains("gemini"); AwarenessLinkedIn = apps.Contains("linkedin");
+        _restoringAwareness = false;
+    }
     [ObservableProperty] private bool _clipboardAutoDetect;
     [ObservableProperty] private bool _showInDock;
     [ObservableProperty] private bool _showMenuBarIcon;
@@ -167,6 +249,26 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     }
     partial void OnStartWithSystemChanged(bool value) => Save(s => s.StartWithSystem = value);
     partial void OnSoundEffectsChanged(bool value) => Save(s => s.SoundEffects = value);
+    partial void OnBlobActivityChanged(Choice<BlobCompanionActivity>? oldValue, Choice<BlobCompanionActivity> newValue)
+    {
+        if (!Choices.Restore(oldValue, newValue, v => BlobActivity = v))
+            Save(s => s.BlobCompanion.Activity = newValue.Value);
+    }
+    partial void OnBlobAudioEnabledChanged(bool value) => Save(s => s.BlobCompanion.AudioEnabled = value);
+    partial void OnCinemaDimEnabledChanged(bool value)
+    {
+        if (!_restoringBlobCompanion) Save(s => s.BlobCompanion.CinemaDimEnabled = value);
+    }
+    partial void OnStretchReminderEnabledChanged(bool value)
+    {
+        if (!_restoringBlobCompanion) Save(s => s.BlobCompanion.StretchReminderEnabled = value);
+    }
+    private bool _restoringBlobCompanion;
+    partial void OnBlobCompanionEnabledChanged(bool value)
+    {
+        if (!_restoringBlobCompanion)
+            Save(s => s.BlobCompanion.IsVisible = value);
+    }
     partial void OnClipboardAutoDetectChanged(bool value) => Save(s => s.ClipboardAutoDetect = value);
 
     partial void OnShowInDockChanged(bool value)

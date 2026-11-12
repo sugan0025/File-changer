@@ -5,7 +5,7 @@
         x:Class="Filee.App.Views.PdfPageEditorWindow"
         x:DataType="vm:PdfPageEditorViewModel"
         Title="{DynamicResource pdf_editor.title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="940" Height="660" MinWidth="720" MinHeight="500"
         Opened="OnOpened"
         WindowStartupLocation="CenterScreen">

@@ -5,7 +5,7 @@
         x:Class="Filee.App.Views.SpreadsheetPrintStudioWindow"
         x:DataType="vm:SpreadsheetPrintStudioViewModel"
         Title="{DynamicResource sheet_studio.title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="1380" Height="860" MinWidth="1040" MinHeight="680"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*,Auto">

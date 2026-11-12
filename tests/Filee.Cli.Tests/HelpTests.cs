@@ -20,6 +20,7 @@ public sealed class HelpTests
 
         Assert.Equal(Cli.Success, code);
         Assert.Equal("", errors.ToString());
+        Assert.Contains("Usage: hoot watch", output.ToString());
         Assert.Contains(FormattableString.Invariant(
             $"--settle <seconds> How long a file must stay unchanged (default {FolderWatcher.DefaultSettleTime.TotalSeconds})"), output.ToString());
     }

@@ -1,5 +1,5 @@
-# Builds the Linux or macOS portable package (tar.gz + SHA256SUMS) on its own operating system. macOS also gets a
-# disk image (Filee.app next to an Applications link, to drag it there), signed and notarized as the app is.
+# Builds the Linux or macOS HOOT portable package (tar.gz + SHA256SUMS) on its own operating system. macOS also gets a
+# disk image (HOOT.app next to an Applications link, to drag it there), signed and notarized as the app is.
 #
 # Linux packages must run on Ubuntu 22.04 (glibc 2.35). rhwp's Linux release needs a newer glibc, so CI builds it from
 # source on Ubuntu 22.04 (build/build-native.py) and passes it in:
@@ -62,7 +62,7 @@ if ($Version -notmatch '^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$') {
     throw 'Version must be a three-part version with an optional prerelease suffix.'
 }
 $bundleVersion = ($Version -split '-')[0]
-$packageName = "Filee-$Version-$Runtime"
+$packageName = "HOOT-$Version-$Runtime"
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $OutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
 $archive = Join-Path $OutputDir "$packageName.tar.gz"
@@ -84,7 +84,7 @@ $magickNative = @{
 }
 $stage = Join-Path $root ('build/.cache/portable/' + [Guid]::NewGuid().ToString('N'))
 $package = Join-Path $stage $packageName
-$appBundle = Join-Path $package 'Filee.app'
+$appBundle = Join-Path $package 'HOOT.app'
 $publish = if ($Runtime.StartsWith('osx-')) { Join-Path $appBundle 'Contents/MacOS' } else { $package }
 New-Item -ItemType Directory -Force -Path $publish | Out-Null
 
@@ -110,11 +110,14 @@ if ($RhwpOverride) {
 else {
     & (Join-Path $PSScriptRoot 'fetch-portable-engines.ps1') -Runtime $Runtime -Destination $engines
 }
-foreach ($name in @('Filee', 'filee-cli')) {
+foreach ($name in @('Hoot', 'hoot-cli')) {
     $executable = Join-Path $publish $name
     if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) { throw "Publish did not produce $name" }
     Invoke-Checked 'Executable permissions' { chmod +x $executable }
 }
+Copy-Item -LiteralPath (Join-Path $publish 'Hoot') -Destination (Join-Path $publish 'Filee') -Force
+Copy-Item -LiteralPath (Join-Path $publish 'hoot-cli') -Destination (Join-Path $publish 'filee-cli') -Force
+Invoke-Checked 'Legacy executable permissions' { chmod +x (Join-Path $publish 'Filee') (Join-Path $publish 'filee-cli') }
 foreach ($notice in @('LICENSE', 'THIRD-PARTY-NOTICES.md')) {
     if (Test-Path -LiteralPath (Join-Path $root $notice)) {
         Copy-Item -LiteralPath (Join-Path $root $notice) -Destination $package
@@ -176,7 +179,7 @@ if ($Runtime.StartsWith('osx-')) {
     if ($SigningIdentity -ne '-') { $signOptions += @('--timestamp', '--options', 'runtime') }
     # Every file in Contents/MacOS is code to codesign, the .NET assemblies too (their signature goes into extended
     # attributes): signing the main executable checks all of them. Deepest paths first, the main executable last.
-    $mainExecutable = Join-Path $publish 'Filee'
+    $mainExecutable = Join-Path $publish 'Hoot'
     $files = Get-ChildItem -LiteralPath $publish -Recurse -File | Where-Object { $_.FullName -ne $mainExecutable } |
         Sort-Object { $_.FullName.Length } -Descending
     foreach ($file in $files) {
@@ -204,15 +207,15 @@ Invoke-Checked 'Create tar.gz' { tar -czf $temporaryArchive -C $stage $packageNa
 Move-Item -LiteralPath $temporaryArchive -Destination $archive
 $packages = @($archive)
 if ($Runtime.StartsWith('osx-')) {
-    # The same signed Filee.app, next to a link to /Applications to drag it onto. ditto keeps the signature's
-    # extended attributes. install.sh (in the tar.gz) is still the way to get the filee command.
+    # The same signed HOOT.app, next to a link to /Applications to drag it onto. ditto keeps the signature's
+    # extended attributes. install.sh (in the tar.gz) is still the way to get the hoot command.
     $volume = Join-Path $stage 'dmg'
     New-Item -ItemType Directory -Path $volume | Out-Null
-    Invoke-Checked 'Copy app for the disk image' { ditto $appBundle (Join-Path $volume 'Filee.app') }
+    Invoke-Checked 'Copy app for the disk image' { ditto $appBundle (Join-Path $volume 'HOOT.app') }
     Invoke-Checked 'Applications link' { ln -s /Applications (Join-Path $volume 'Applications') }
     Copy-Item -LiteralPath (Join-Path $root 'installer/macos/INSTALL.txt') -Destination $volume
     $temporaryImage = "$diskImage.$([Guid]::NewGuid().ToString('N')).partial.dmg"
-    Invoke-Checked 'Create dmg' { hdiutil create -volname Filee -srcfolder $volume -fs HFS+ -format UDZO -ov $temporaryImage | Out-Null }
+    Invoke-Checked 'Create dmg' { hdiutil create -volname HOOT -srcfolder $volume -fs HFS+ -format UDZO -ov $temporaryImage | Out-Null }
     Move-Item -LiteralPath $temporaryImage -Destination $diskImage
     $packages += $diskImage
 }

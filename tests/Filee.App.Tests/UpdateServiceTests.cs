@@ -140,6 +140,7 @@ public class UpdateServiceTests
 
         Assert.Equal(hash.ToLowerInvariant(), UpdateService.ParseChecksum(sums, "Filee-9.9.9-win-Setup.exe"));
         Assert.Equal(hash.ToLowerInvariant(), UpdateService.ParseChecksum($"{hash} *Filee-9.9.9-win-Setup.exe", "Filee-9.9.9-win-Setup.exe"));
+        Assert.Equal(hash.ToLowerInvariant(), UpdateService.ParseChecksum($"{hash}  HOOT-win-Setup.exe", "HOOT-9.9.9-win-Setup.exe"));
         Assert.Null(UpdateService.ParseChecksum(sums, "Filee-9.9.8-win-Setup.exe"));
         Assert.Null(UpdateService.ParseChecksum("tooshort  Filee-9.9.9-win-Setup.exe", "Filee-9.9.9-win-Setup.exe"));
     }
@@ -424,7 +425,7 @@ public class UpdateServiceTests
 
         Assert.True(await updates.RefreshAsync(announce: false));
 
-        Assert.Equal("Filee-9.9.10-win-Setup.exe", updates.Installer!.Name);
+        Assert.Equal("HOOT-9.9.10-win-Setup.exe", updates.Installer!.Name);
         Assert.Equal("9.9.10", updates.LatestVersion);
         Assert.Equal(0, announced); // no second notice while updating
     }
@@ -437,8 +438,8 @@ public class UpdateServiceTests
             var version = tag.TrimStart('v');
             var json = $$"""
                 {"tag_name":"{{tag}}","assets":[
-                  {"name":"Filee-{{version}}-win-Setup.exe","browser_download_url":"{{Base}}Filee-{{version}}-win-Setup.exe","size":1234},
-                  {"name":"Filee-{{version}}-SHA256SUMS.txt","browser_download_url":"{{Base}}Filee-{{version}}-SHA256SUMS.txt","size":100}]}
+                  {"name":"HOOT-{{version}}-win-Setup.exe","browser_download_url":"{{Base}}HOOT-{{version}}-win-Setup.exe","size":1234},
+                  {"name":"HOOT-{{version}}-win-SHA256SUMS.txt","browser_download_url":"{{Base}}HOOT-{{version}}-win-SHA256SUMS.txt","size":100}]}
                 """;
             return Task.FromResult(request.RequestUri!.AbsolutePath.EndsWith("/releases/latest", StringComparison.Ordinal)
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") }
@@ -451,6 +452,22 @@ public class UpdateServiceTests
     {
         Assert.EndsWith("/releases/latest", UpdateService.LatestReleaseUrl);
         Assert.StartsWith(UpdateService.RepositoryUrl.TrimEnd('/'), UpdateService.LatestReleaseUrl);
+    }
+
+    [Fact]
+    public void FindFiles_selects_the_current_hoot_windows_assets()
+    {
+        using var release = JsonDocument.Parse($$"""
+            {"assets":[
+              {"name":"HOOT-2.6.0-win-Setup.exe","size":1200,"browser_download_url":"{{Base}}HOOT-2.6.0-win-Setup.exe"},
+              {"name":"HOOT-2.6.0-win-SHA256SUMS.txt","size":100,"browser_download_url":"{{Base}}HOOT-2.6.0-win-SHA256SUMS.txt"}
+            ]}
+            """);
+
+        var (installer, checksums) = UpdateService.FindFiles(release.RootElement);
+
+        Assert.Equal("HOOT-2.6.0-win-Setup.exe", installer?.Name);
+        Assert.Equal("HOOT-2.6.0-win-SHA256SUMS.txt", checksums?.Name);
     }
 
     [Theory]
@@ -554,6 +571,38 @@ public class UpdateServiceTests
             var fileeMode = File.GetUnixFileMode(fileeExe);
             Assert.True((fileeMode & UnixFileMode.UserExecute) != 0, "Filee must be executable");
         }
+    }
+
+    [Fact]
+    public void ExtractLinuxArchive_accepts_hoot_primary_payload()
+    {
+        var folder = TempFolder();
+        var archiveFile = Path.Combine(folder, "hoot.tar.gz");
+        var tarBytes = CreateTarGz(writer =>
+        {
+            AddFileEntry(writer, "HOOT-1.0.0-linux-x64/Hoot", "hoot executable");
+            AddFileEntry(writer, "HOOT-1.0.0-linux-x64/install.sh", "#!/bin/sh\n");
+        });
+        File.WriteAllBytes(archiveFile, tarBytes);
+
+        var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, Path.Combine(folder, "extracted"));
+        Assert.True(File.Exists(Path.Combine(payloadDir, "Hoot")));
+    }
+
+    [Fact]
+    public void ExtractLinuxArchive_accepts_the_HOOT_macos_bundle_layout()
+    {
+        var folder = TempFolder();
+        var archiveFile = Path.Combine(folder, "hoot-macos.tar.gz");
+        var tarBytes = CreateTarGz(writer =>
+        {
+            AddFileEntry(writer, "HOOT-1.0.0-osx-arm64/install.sh", "#!/bin/sh\n");
+            AddFileEntry(writer, "HOOT-1.0.0-osx-arm64/HOOT.app/Contents/MacOS/Hoot", "app executable");
+        });
+        File.WriteAllBytes(archiveFile, tarBytes);
+
+        var payloadDir = UpdateService.ExtractLinuxArchive(archiveFile, Path.Combine(folder, "extracted"));
+        Assert.True(File.Exists(Path.Combine(payloadDir, "HOOT.app", "Contents", "MacOS", "Hoot")));
     }
 
     [Fact]

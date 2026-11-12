@@ -155,7 +155,7 @@ public sealed class EngineInstallerTests : IDisposable
         {
             var busy = await Assert.ThrowsAsync<EngineBusyException>(() => updating.InstallAsync(package, null, TestContext.Current.CancellationToken));
             Assert.Equal("tool", busy.PackageId);
-            Assert.Contains("another Filee", busy.Message);
+            Assert.Contains("another HOOT", busy.Message);
             Assert.Throws<EngineBusyException>(() => installer.Uninstall(package));
         }
 

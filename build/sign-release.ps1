@@ -11,9 +11,9 @@
   2. checks out the tag in a worktree and runs its build-installer.ps1 with -CertificateThumbprint, which signs the
      unsigned programs and the Setup program, packs Setup.exe, signs it, zips the portable copy and writes the
      SHA-256 sums;
-  3. installs the signed Setup into a sandbox (nothing on the PC is touched) and checks that Filee.exe and
+  3. installs the signed Setup into a sandbox (nothing on the PC is touched) and checks that Hoot.exe and
      uninstall.exe come out signed, then uninstalls it;
-  4. uploads Filee-<version>-win-Setup.exe, the portable zip and Filee-<version>-SHA256SUMS.txt to the draft;
+  4. uploads HOOT-<version>-win-Setup.exe, the portable zip and HOOT-<version>-win-SHA256SUMS.txt to the draft;
   5. copies the same three files to the download mirror, Cloudflare R2 behind https://dl.filee.sh/<version>/, and
      checks that each one is served there as is (no redirect, the same size). The Microsoft Store takes Setup.exe
      from that address, because GitHub's download links redirect;
@@ -77,8 +77,8 @@ finally {
     git -C $root worktree remove --force $source
 }
 
-$setup = Join-Path $out "Filee-$Version-win-Setup.exe"
-$files = @($setup, (Join-Path $out "Filee-$Version-win-Portable.zip"), (Join-Path $out "Filee-$Version-SHA256SUMS.txt"))
+$setup = Join-Path $out "HOOT-$Version-win-Setup.exe"
+$files = @($setup, (Join-Path $out "HOOT-$Version-win-Portable.zip"), (Join-Path $out "HOOT-$Version-win-SHA256SUMS.txt"))
 foreach ($file in $files) { if (-not (Test-Path $file)) { throw "$file was not written." } }
 
 # The signed Setup still finds its payload, and what it installs is signed, the uninstaller too.
@@ -89,8 +89,8 @@ function Invoke-Setup([string]$exe) {
 }
 Write-Host 'install the signed Setup into a sandbox'
 Invoke-Setup $setup
-$installed = Join-Path $sandbox 'Program Files\Filee'
-foreach ($file in 'Filee.exe', 'filee-cli.exe', 'uninstall.exe', 'engines\rhwp\rhwp.exe') {
+$installed = Join-Path $sandbox 'Program Files\Hoot'
+foreach ($file in 'Hoot.exe', 'hoot-cli.exe', 'uninstall.exe', 'engines\rhwp\rhwp.exe') {
     $signature = Get-AuthenticodeSignature (Join-Path $installed $file)
     if ($signature.Status -ne 'Valid') { throw "$file is not signed after installing ($($signature.Status))." }
 }

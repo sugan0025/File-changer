@@ -6,7 +6,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>filee-cli</AssemblyName>
+    <AssemblyName>hoot-cli</AssemblyName>
     <RootNamespace>Filee.Cli</RootNamespace>
     <ApplicationIcon>..\Filee.App\Assets\Icons\filee.ico</ApplicationIcon>
     <!-- The Recycle Bin is IFileOperation, a COM interface (Filee.Platform.Windows). -->

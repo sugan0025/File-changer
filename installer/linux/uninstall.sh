@@ -15,7 +15,7 @@ expected = root.resolve() / 'filee' / 'application'
 if target.is_symlink() or target.resolve() != expected:
     raise SystemExit('Refusing to remove an installation outside its expected directory.')
 if (target / '.filee-package').read_text(encoding='utf-8').strip() != 'com.filee.app':
-    raise SystemExit('The directory is not an installation created by Filee.')
+    raise SystemExit('The directory is not an installation created by HOOT.')
 PY
 "$install_dir/Filee" --uninstall-cleanup
 if [ -f "$gnome_extension_dir/.filee-package" ] && [ "$(cat "$gnome_extension_dir/.filee-package")" = 'com.filee.app' ]; then
@@ -27,8 +27,11 @@ fi
 if [ -L "$HOME/.local/bin/filee" ] && [ "$(readlink "$HOME/.local/bin/filee")" = "$install_dir/filee-cli" ]; then
     rm -- "$HOME/.local/bin/filee"
 fi
+if [ -L "$HOME/.local/bin/hoot" ] && [ "$(readlink "$HOME/.local/bin/hoot")" = "$install_dir/hoot-cli" ]; then
+    rm -- "$HOME/.local/bin/hoot"
+fi
 if [ -f "$desktop_file" ] && grep -q '^X-Filee-Managed=true$' "$desktop_file"; then
     rm -- "$desktop_file"
 fi
 rm -rf -- "$install_dir"
-printf '%s\n' 'Filee was removed. Your settings and conversion results were kept.'
+printf '%s\n' 'HOOT was removed. Your settings and conversion results were kept.'

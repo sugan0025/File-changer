@@ -26,7 +26,7 @@ public sealed class TrayServiceTests
             store.SaveSettings();
             var platform = new IconPlatform { SupportsDockVisibility = true };
             var service = new TrayService(store, AppHost.Get<ILocalizer>(), platform, AppHost.Get<WindowService>(),
-                AppHost.Get<UpdateService>());
+                AppHost.Get<UpdateService>(), AppHost.Get<BlobCompanionService>());
             try
             {
                 service.Create(app);
@@ -47,7 +47,7 @@ public sealed class TrayServiceTests
             nonMacStore.Settings.ShowMenuBarIcon = false;
             nonMacStore.SaveSettings();
             var nonMacService = new TrayService(nonMacStore, AppHost.Get<ILocalizer>(), new IconPlatform(),
-                AppHost.Get<WindowService>(), AppHost.Get<UpdateService>());
+                AppHost.Get<WindowService>(), AppHost.Get<UpdateService>(), AppHost.Get<BlobCompanionService>());
             try
             {
                 nonMacService.Create(app);

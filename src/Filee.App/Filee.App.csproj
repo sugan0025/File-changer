@@ -4,7 +4,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <AssemblyName>Filee</AssemblyName>
+    <AssemblyName>Hoot</AssemblyName>
     <RootNamespace>Filee.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\Icons\filee.ico</ApplicationIcon>

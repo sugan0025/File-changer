@@ -13,7 +13,7 @@
 
         Title="HOOT"
 
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
 
         Width="1080" Height="760" MinWidth="820" MinHeight="560"
 
@@ -23,7 +23,7 @@
 
     <!-- Background Wallpaper -->
 
-    <Image Source="avares://Filee/Assets/Backgrounds/app_bg.png"
+    <Image Source="avares://Hoot/Assets/Backgrounds/app_bg.png"
 
            Stretch="UniformToFill"
 

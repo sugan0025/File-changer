@@ -155,6 +155,33 @@ public class CloseActionTests
     }
 
     [AvaloniaFact]
+    public void General_settings_toggle_only_persists_desktop_companion_visibility()
+    {
+        TestServices.EnsureInitialized("en");
+        var store = AppHost.Get<UserDataStore>();
+        var originalVisibility = store.Settings.BlobCompanion.IsVisible;
+        var originalActivity = store.Settings.BlobCompanion.Activity;
+        using var page = new GeneralPageViewModel(store, AppHost.Get<ILocalizer>(), AppHost.Get<IPlatformServices>(),
+            NullLogger<GeneralPageViewModel>.Instance);
+        try
+        {
+            page.BlobCompanionEnabled = !originalVisibility;
+            Assert.Equal(!originalVisibility, store.Settings.BlobCompanion.IsVisible);
+            Assert.Equal(originalActivity, store.Settings.BlobCompanion.Activity);
+
+            store.Settings.BlobCompanion.IsVisible = originalVisibility;
+            store.SaveSettings();
+            Assert.Equal(originalVisibility, page.BlobCompanionEnabled);
+        }
+        finally
+        {
+            store.Settings.BlobCompanion.IsVisible = originalVisibility;
+            store.Settings.BlobCompanion.Activity = originalActivity;
+            store.SaveSettings();
+        }
+    }
+
+    [AvaloniaFact]
     public void The_general_page_saves_each_icon_preference_without_changing_close_action()
     {
         TestServices.EnsureInitialized("en");

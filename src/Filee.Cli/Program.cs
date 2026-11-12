@@ -1,4 +1,4 @@
-// Entry point of filee-cli.exe (run as "filee" through cli\filee.cmd). Ctrl+C cancels the running conversion or
+// Entry point of hoot-cli.exe (run as "hoot" through cli\hoot.cmd). Ctrl+C cancels the running conversion or
 // stops watching; a second Ctrl+C ends the process at once.
 
 using System.Text;

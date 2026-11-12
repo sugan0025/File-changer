@@ -82,6 +82,88 @@ public sealed class WindowsPlatformServices : IPlatformServices
         return new ForegroundWindowInfo(process, IsFileManager(NativeMethods.ClassNameOf(root), process));
     }
 
+    public ForegroundAppContext? GetForegroundAppContext()
+    {
+        var root = ForegroundRoot();
+        if (root == 0)
+            return null;
+
+        var process = ProcessNameOf(root);
+        NativeMethods.GetWindowThreadProcessId(root, out var processId);
+        var windowClass = NativeMethods.ClassNameOf(root);
+        // Window titles can contain private conversation or document names. Only read Chrome's title for the
+        // explicitly opted-in browser-site matcher; never retain or log the returned string.
+        var title = string.Equals(process, "chrome", StringComparison.OrdinalIgnoreCase) ? WindowTitleOf(root) : null;
+        var processIdValue = checked((int)processId);
+        return new ForegroundAppContext(process, title, processIdValue, root.ToInt64(), windowClass,
+            ProcessStartTimeUtcTicks(processIdValue));
+    }
+
+    public IDisposable? WatchForegroundChanges(Action<ForegroundAppContext?> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        var subscription = new ForegroundChangeSubscription(this, callback);
+        if (subscription.IsActive) return subscription;
+        subscription.Dispose();
+        return null;
+    }
+
+    public IDisposable? WatchFocusedInputBounds(Action<PlatformScreenBounds?> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        return new WindowsFocusedInputWatcher(GetSystemIdleTime, callback);
+    }
+
+    public TimeSpan? GetSystemIdleTime()
+    {
+        var info = new NativeMethods.LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<NativeMethods.LASTINPUTINFO>() };
+        if (!NativeMethods.GetLastInputInfo(ref info))
+            return null;
+
+        var elapsedMilliseconds = unchecked((uint)Environment.TickCount - info.dwTime);
+        return TimeSpan.FromMilliseconds(elapsedMilliseconds);
+    }
+
+    public bool IsPresentationModeActive()
+    {
+        const int RunningD3dFullScreen = 4;
+        const int PresentationMode = 5;
+        try
+        {
+            return NativeMethods.SHQueryUserNotificationState(out var state) >= 0
+                && state is RunningD3dFullScreen or PresentationMode;
+        }
+        catch (DllNotFoundException) { return false; }
+        catch (EntryPointNotFoundException) { return false; }
+    }
+
+    private sealed class ForegroundChangeSubscription : IDisposable
+    {
+        private Action<ForegroundAppContext?>? _callback;
+        private NativeMethods.WinEventProc? _nativeCallback;
+        private readonly WindowsPlatformServices _owner;
+        private readonly nint _hook;
+
+        public bool IsActive => _hook != 0;
+
+        public ForegroundChangeSubscription(WindowsPlatformServices owner, Action<ForegroundAppContext?> callback)
+        {
+            _owner = owner;
+            _callback = callback;
+            _nativeCallback = (_, _, _, _, _, _, _) => _callback?.Invoke(_owner.GetForegroundAppContext());
+            _hook = NativeMethods.SetWinEventHook(NativeMethods.EVENT_SYSTEM_FOREGROUND,
+                NativeMethods.EVENT_SYSTEM_FOREGROUND, 0, _nativeCallback, 0, 0,
+                NativeMethods.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT_SKIPOWNPROCESS);
+        }
+
+        public void Dispose()
+        {
+            if (_hook != 0) NativeMethods.UnhookWinEvent(_hook);
+            _callback = null;
+            _nativeCallback = null;
+        }
+    }
+
     /// <summary>True for the desktop's window classes: its icons are not among Shell.Application's windows.</summary>
     internal static bool IsDesktop(string? windowClass) => windowClass is "Progman" or "WorkerW";
 
@@ -255,6 +337,23 @@ public sealed class WindowsPlatformServices : IPlatformServices
             return 0;
         var root = NativeMethods.GetAncestor(foreground, NativeMethods.GA_ROOT);
         return root == 0 ? foreground : root;
+    }
+
+    private static string? WindowTitleOf(nint hwnd)
+    {
+        try
+        {
+            var length = NativeMethods.GetWindowTextLength(hwnd);
+            if (length <= 0)
+                return null;
+            var buffer = new char[Math.Min(length + 1, 2049)];
+            var copied = NativeMethods.GetWindowText(hwnd, buffer, buffer.Length);
+            return copied > 0 ? new string(buffer, 0, copied) : null;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+        {
+            return null;
+        }
     }
 
     public int SystemDragThreshold => Math.Max(2, NativeMethods.GetSystemMetrics(NativeMethods.SM_CXDRAG));
@@ -453,6 +552,20 @@ public sealed class WindowsPlatformServices : IPlatformServices
         catch (InvalidOperationException)
         {
             return null;
+        }
+    }
+
+    private static long ProcessStartTimeUtcTicks(int processId)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(processId);
+            return process.StartTime.ToUniversalTime().Ticks;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+            or System.ComponentModel.Win32Exception or UnauthorizedAccessException)
+        {
+            return 0;
         }
     }
 

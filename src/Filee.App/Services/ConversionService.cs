@@ -33,6 +33,8 @@ public sealed class ConversionService
     private readonly ILogger<ConversionService>? _log;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, JobViewModel> _byId = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource<ConversionJob>> _waiting = new();
+    private readonly object _progressEventGate = new();
+    private readonly Dictionary<string, long> _progressEventAt = new();
 
     /// <summary>Jobs that came from a watch folder: job id → rule id (for the history and for retrying).</summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _watchJobs = new();
@@ -65,6 +67,10 @@ public sealed class ConversionService
     /// ask for a GitHub star or feedback.
     /// </summary>
     public event EventHandler? FeedbackDue;
+
+    /// <summary>Conversion lifecycle notifications marshalled onto Avalonia's UI thread for optional UI companions.</summary>
+    public event EventHandler<ConversionJob>? JobProgressChanged;
+    public event EventHandler<ConversionJob>? JobFinishedOnUi;
 
     /// <summary>Starts converting files with a preset.</summary>
     /// <param name="files">Source files.</param>
@@ -247,12 +253,32 @@ public sealed class ConversionService
     private void OnJobUpdated(object? sender, ConversionJob job)
     {
         // Called from worker threads, possibly many times per second: coalesce into one UI update.
+        if (job.State == JobState.Running)
+        {
+            var now = DateTime.UtcNow.Ticks;
+            var notify = false;
+            lock (_progressEventGate)
+            {
+                if (!_progressEventAt.TryGetValue(job.Id, out var previous) || now - previous >= TimeSpan.FromMilliseconds(200).Ticks)
+                {
+                    _progressEventAt[job.Id] = now;
+                    notify = true;
+                }
+            }
+            if (notify)
+                Dispatcher.UIThread.Post(() =>
+                {
+                    try { JobProgressChanged?.Invoke(this, job); }
+                    catch (Exception ex) when (ex is not OutOfMemoryException) { _log?.LogWarning(ex, "A conversion progress listener failed"); }
+                }, DispatcherPriority.Background);
+        }
         if (_byId.TryGetValue(job.Id, out var vm) && vm.TryMarkPending())
             Dispatcher.UIThread.Post(vm.Refresh, DispatcherPriority.Background);
     }
 
     private void OnJobFinished(object? sender, ConversionJob job)
     {
+        lock (_progressEventGate) _progressEventAt.Remove(job.Id);
         var entry = HistoryEntry.From(job);
         if (string.IsNullOrWhiteSpace(job.Preset.Name) && job.Preset.NameKey is { } key && _loc[key] == job.PresetDisplayName)
             entry.PresetNameKey = key;
@@ -263,6 +289,8 @@ public sealed class ConversionService
         var toClipboard = _clipboardJobs.TryRemove(job.Id, out _);
         Dispatcher.UIThread.Post(() =>
         {
+            try { JobFinishedOnUi?.Invoke(this, job); }
+            catch (Exception ex) when (ex is not OutOfMemoryException) { _log?.LogWarning(ex, "A conversion result listener failed"); }
             if (toClipboard)
                 CopyResults(job);
             if (!_byId.TryGetValue(job.Id, out var vm))

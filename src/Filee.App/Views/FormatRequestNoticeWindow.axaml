@@ -15,7 +15,7 @@
         CanResize="False">
   <Border Classes="card" Margin="12" Padding="16,14">
     <DockPanel>
-      <Image DockPanel.Dock="Left" Source="avares://Filee/Assets/Icons/filee.png" Width="36" Height="36"
+      <Image DockPanel.Dock="Left" Source="avares://Hoot/Assets/Icons/filee.png" Width="36" Height="36"
              VerticalAlignment="Top" Margin="0,2,12,0" />
       <StackPanel Spacing="8">
         <DockPanel>

@@ -6,7 +6,7 @@
         x:Class="Filee.App.Views.RenameToolWindow"
         x:DataType="vm:RenameToolViewModel"
         Title="{DynamicResource watch.rename_title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="880" Height="640" MinWidth="640" MinHeight="420"
         WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False">

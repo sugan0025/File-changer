@@ -80,7 +80,7 @@ internal static class AnnotationFonts
         var faces = new List<SKTypeface>();
         try
         {
-            foreach (var uri in AssetLoader.GetAssets(new Uri("avares://Filee/Assets/Fonts"), null))
+            foreach (var uri in AssetLoader.GetAssets(new Uri("avares://Hoot/Assets/Fonts"), null))
             {
                 if (!uri.AbsolutePath.Contains("-Bold.", StringComparison.Ordinal))
                     continue;

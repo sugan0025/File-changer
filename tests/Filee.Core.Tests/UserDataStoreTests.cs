@@ -7,6 +7,87 @@ namespace Filee.Core.Tests;
 
 public partial class UserDataStoreTests
 {
+    [Fact]
+    public void Blob_companion_position_and_visibility_round_trip_through_settings()
+    {
+        using var dir = new TempDir();
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.True(store.Settings.BlobCompanion.IsVisible);
+        store.Settings.BlobCompanion.IsVisible = false;
+        store.SaveBlobCompanionPosition(1234, 567);
+
+        var reloaded = new UserDataStore(dir.Path);
+        reloaded.Load();
+        Assert.False(reloaded.Settings.BlobCompanion.IsVisible);
+        Assert.Equal(1234, reloaded.Settings.BlobCompanion.X);
+        Assert.Equal(567, reloaded.Settings.BlobCompanion.Y);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Schema_78_adds_enabled_companion_and_awareness_defaults_and_preserves_existing_settings(bool companionWasNull)
+    {
+        using var dir = new TempDir();
+        var settings = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 78,
+            ["language"] = "ja",
+            ["startWithSystem"] = false,
+            ["paused"] = true,
+            ["uiScale"] = 1.25,
+        };
+        if (companionWasNull)
+            settings["blobCompanion"] = null;
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), settings.ToJsonString());
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(79, AppSettings.CurrentSchemaVersion);
+        Assert.Equal(79, store.Settings.SchemaVersion);
+        Assert.Equal("ja", store.Settings.Language);
+        Assert.False(store.Settings.StartWithSystem);
+        Assert.True(store.Settings.Paused);
+        Assert.Equal(1.25, store.Settings.UiScale);
+        Assert.True(store.Settings.BlobCompanion.IsVisible);
+        Assert.Equal(BlobCompanionActivity.Adaptive, store.Settings.BlobCompanion.Activity);
+        Assert.False(store.Settings.BlobCompanion.CinemaDimEnabled);
+        Assert.False(store.Settings.BlobCompanion.StretchReminderEnabled);
+        Assert.True(store.Settings.BlobCompanion.AppAwareness.Enabled);
+
+        var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(dir.Path, "settings.json")))!;
+        Assert.Equal(79, (int)saved["schemaVersion"]!);
+        Assert.Equal("ja", (string)saved["language"]!);
+        Assert.True((bool)saved["paused"]!);
+        Assert.True((bool)saved["blobCompanion"]!["isVisible"]!);
+    }
+
+    [Fact]
+    public void Existing_awareness_opt_out_is_preserved_when_settings_are_loaded()
+    {
+        using var dir = new TempDir();
+        var settings = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 79,
+            ["blobCompanion"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["isVisible"] = true,
+                ["appAwareness"] = new System.Text.Json.Nodes.JsonObject { ["enabled"] = false },
+            },
+        };
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), settings.ToJsonString());
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.True(store.Settings.BlobCompanion.IsVisible);
+        Assert.False(store.Settings.BlobCompanion.AppAwareness.Enabled);
+        Assert.Contains("claude", store.Settings.BlobCompanion.AppAwareness.EnabledApps);
+    }
+
     [Theory]
     [InlineData(30)]
     [InlineData(31)]

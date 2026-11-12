@@ -25,6 +25,23 @@ public class MaterialYouThemeTests
     };
 
     [Fact]
+    public void BlobCompanionSettings_default_silent_and_persist_activity_choice()
+    {
+        var legacy = JsonSerializer.Deserialize<AppSettings>("{}", JsonOptions)!;
+        Assert.Equal(BlobCompanionActivity.Adaptive, legacy.BlobCompanion.Activity);
+        Assert.False(legacy.BlobCompanion.AudioEnabled);
+        Assert.False(legacy.BlobCompanion.HatchSeen);
+
+        legacy.BlobCompanion.Activity = BlobCompanionActivity.Calm;
+        legacy.BlobCompanion.AudioEnabled = true;
+        legacy.BlobCompanion.HatchSeen = true;
+        var restored = JsonSerializer.Deserialize<AppSettings>(JsonSerializer.Serialize(legacy, JsonOptions), JsonOptions)!;
+        Assert.Equal(BlobCompanionActivity.Calm, restored.BlobCompanion.Activity);
+        Assert.True(restored.BlobCompanion.AudioEnabled);
+        Assert.True(restored.BlobCompanion.HatchSeen);
+    }
+
+    [Fact]
     public void ThemeSettings_persists_ThemeStyle()
     {
         var settings = new AppSettings

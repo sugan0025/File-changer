@@ -9,7 +9,7 @@
         x:Class="Filee.App.Views.BackgroundWindow"
         x:DataType="vm:BackgroundViewModel"
         Title="{DynamicResource preset.background}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="1040" Height="720" MinWidth="760" MinHeight="520">
   <Window.Styles>
     <Style Selector="Border.float">

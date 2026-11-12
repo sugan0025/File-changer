@@ -48,6 +48,16 @@ public struct BlobatarInput
 {
     public Vector2? Pointer;     // viewBox units; null = no cursor
     public bool DragOver;
+    public bool Curious;
+    public bool Paused;
+    public bool Napping;
+    public bool CompanionMode;
+    public bool SuppressAutonomousWinks;
+    public float DragLean;     // -14..14 degrees, spring-driven by companion drag velocity
+    public float DragStretch;  // 0..0.08, vertical stretch while the companion is moved
+    public float RestLean;      // companion-only edge perch; zero for wheel and main-window Blobs
+    public float Fullness;      // companion-only transient body fullness, 0..1
+    public float CompanionEyeRoll;
     public float Hover;          // 0..1 external proximity boost (donut hover)
     public float ClockSleepy;    // 0..1, only when Circadian is on
     public float Intensity;      // CircadianLookFrame.Intensity
@@ -82,6 +92,7 @@ public sealed class BlobatarPhysics
     public BlobatarFrame Frame => _frame;
     public event Action<BlobatarEvent, float>? Raised;
     public bool ReduceMotion { get; set; }
+    public bool SuppressNonBoredHops { get; set; }
     public bool Thinking { get; set; }
     public float Load { get; set; }
 
@@ -104,6 +115,7 @@ public sealed class BlobatarPhysics
     private BlobSpring _pupil = new(120f, .9f, .57f);
     private BlobSpring _nod = new(110f, .5f);
     private BlobSpring _arousal = new(60f, 1f, .1f);
+    private BlobSpring _fullness = new(14f, .9f);
     // Gaze keeps the original constants (k = 340, d ~ 32) so tracking feels exactly as before.
     private BlobSpring _glx = new(340f, .87f), _gly = new(340f, .87f), _grx = new(340f, .87f), _gry = new(340f, .87f);
 
@@ -114,6 +126,7 @@ public sealed class BlobatarPhysics
     private double _scanPh; private int _scanK = int.MinValue;
     private float _hop, _hopV, _pendT = -1f, _pendV;
     private float _proudT, _startleT, _happyT, _puffT, _snapT = -1f;
+    private float _companionEyeRoll;
     private float _blinkT = 3.6f, _nodT = 10f, _glanceT = 2.8f, _glX, _glY;
     private bool _glActive, _pressed, _prevDrag;
     private int _celebHops, _extraBlinks;
@@ -189,6 +202,15 @@ public sealed class BlobatarPhysics
         _pendT = .10f; _pendV = 95f;
     }
 
+    /// <summary>A companion-only swallow squash; the wheel keeps its established gulp-and-hop Drop behavior.</summary>
+    public void CompanionDrop()
+    {
+        _idle = 0f;
+        _q.Tune(JellyK, JellyZ);
+        _q.Kick(2.2f);
+        _pendT = -1f; _pendV = 0f;
+    }
+
     /// <summary>stimulusDx: + = the stimulus came from the right.</summary>
     public void Startle(float stimulusDx)
     {
@@ -197,24 +219,48 @@ public sealed class BlobatarPhysics
         if (s > 0f) { _biasR = -.5f; _biasL = -4.5f; } else { _biasL = -.5f; _biasR = -4.5f; }
         _lean.Kick(-s * 40f);
         _startleT = .9f; _reflex = .1f;
-        Launch(60f);
+        if (!SuppressNonBoredHops) Launch(60f);
     }
 
     public void Celebrate()
     {
-        _idle = 0f; _happyT = 2.2f; _celebHops = 2;
+        _idle = 0f; _happyT = 2.2f; _celebHops = SuppressNonBoredHops ? 0 : 2;
         Raise(BlobatarEvent.Celebrate, 0f);
-        Launch(95f);
+        if (!SuppressNonBoredHops) Launch(95f);
     }
 
     public void Proud()
     {
         _idle = 0f; _proudT = 1.4f; _puffT = .25f;
-        Launch(55f);
+        if (!SuppressNonBoredHops) Launch(55f);
         Raise(BlobatarEvent.Proud, 0f);
     }
 
     public void Poke() => _idle = 0f;
+
+    /// <summary>A small autonomous hop used only by the desktop companion's boredom behavior.</summary>
+    public void BoredHop()
+    {
+        _idle = 0f;
+        _q.Tune(JellyK, JellyZ);
+        Launch(48f);
+    }
+
+    public void CancelBoredHop()
+    {
+        _pendT = -1f;
+        _pendV = 0f;
+        _hop = 0f;
+        _hopV = 0f;
+    }
+
+    /// <summary>A quiet stretch without the celebratory hop or sound cues.</summary>
+    public void Stretch()
+    {
+        _idle = 0f;
+        _q.Tune(JellyK, JellyZ);
+        _q.Kick(-2.4f);
+    }
 
     // ------------------------------------------------ fixed-step simulation
 
@@ -228,8 +274,10 @@ public sealed class BlobatarPhysics
         var drag = inp.DragOver;
         if (drag && !_prevDrag) { Raise(BlobatarEvent.Curious, 0f); _idle = 0f; }
         _prevDrag = drag;
+        _companionEyeRoll = inp.CompanionMode && !inp.Paused && !inp.Napping ? inp.CompanionEyeRoll : 0f;
 
-        _sleepy = MathF.Max(Math.Clamp(inp.ClockSleepy, 0f, 1f), BlobMath.Sm(30f, 90f, _idle));
+        var idleSleepy = inp.CompanionMode ? BlobMath.Sm(180f, 240f, _idle) : BlobMath.Sm(30f, 90f, _idle);
+        _sleepy = inp.Paused || inp.Napping ? 1f : MathF.Max(Math.Clamp(inp.ClockSleepy, 0f, 1f), idleSleepy);
 
         // proximity + lean
         var center = new Vector2(lay.Anchor.X, lay.Anchor.Y - lay.BodyHeight * .5f);
@@ -242,10 +290,12 @@ public sealed class BlobatarPhysics
         p = MathF.Max(p, Math.Clamp(inp.Hover, 0f, 1f));
         if (drag) p = 1f;
         _prox.Target = 0f; // Keep natural body aspect ratio; do not stretch vertically on proximity/drag
-        _lean.Target = Math.Clamp(dx / lay.ProxFar, -1f, 1f) * 4f * p;
+        _lean.Target = Math.Clamp(Math.Clamp(dx / lay.ProxFar, -1f, 1f) * 4f * p + inp.DragLean
+            + (inp.CompanionMode ? inp.RestLean : 0f), -15f, 15f);
+        _fullness.Target = inp.CompanionMode ? Math.Clamp(inp.Fullness, 0f, 1f) : 0f;
 
         // expressions
-        _blend.Set(BlobatarExpression.Curious, drag ? 1f : 0f);
+        _blend.Set(BlobatarExpression.Curious, drag || inp.Curious ? 1f : 0f);
         _blend.Set(BlobatarExpression.Sleepy, _sleepy);
         _blend.Set(BlobatarExpression.Thinking, Thinking ? 1f : 0f);
         _blend.Set(BlobatarExpression.Proud, Active(ref _proudT, dt));
@@ -255,7 +305,7 @@ public sealed class BlobatarPhysics
         _pose = _blend.Current;
 
         if (_puffT > 0f) _puffT -= dt;
-        _q.Target = _pressed ? .14f : (_puffT > 0f ? -.05f : 0f);
+        _q.Target = _pressed ? .14f : Math.Clamp((_puffT > 0f ? -.05f : 0f) - inp.DragStretch, -.12f, 0f);
 
         // arousal -> breathing / heartbeat rate
         _arousal.Target = Math.Clamp(_pose.Arousal + .3f * p, 0f, 1f);
@@ -294,7 +344,7 @@ public sealed class BlobatarPhysics
         _blinkT -= dt;
         if (_blinkT <= 0f)
         {
-            if (_rng.NextDouble() < .12) Wink(_rng.NextDouble() < .5, raise: false);     // silent autonomous wink
+            if (_rng.NextDouble() < .12 && !inp.SuppressAutonomousWinks) Wink(_rng.NextDouble() < .5, raise: false); // silent autonomous wink
             else _blink.Fire(BlobMath.Lerp(.09f, .18f, _sleepy), BlobMath.Lerp(.04f, .12f, _sleepy), BlobMath.Lerp(.14f, .34f, _sleepy));
             _blinkT = 3.2f + (float)_rng.NextDouble() * 2.4f;
         }
@@ -302,7 +352,7 @@ public sealed class BlobatarPhysics
         _blink.Step(dt); _winkL.Step(dt); _winkR.Step(dt);
 
         // sleepy nod / yawn / snap awake
-        if (_sleepy > .5f)
+        if (!inp.Paused && !inp.Napping && _sleepy > .5f)
         {
             _nodT -= dt;
             if (_nodT <= 0f)
@@ -327,7 +377,7 @@ public sealed class BlobatarPhysics
         else _scanK = int.MinValue;
 
         // idle glances (only without a cursor)
-        if (ptr is null && !Thinking && !ReduceMotion)
+        if (!inp.Paused && !inp.Napping && ptr is null && !Thinking && !ReduceMotion)
         {
             _glanceT -= dt;
             if (_glanceT <= 0f)
@@ -374,6 +424,7 @@ public sealed class BlobatarPhysics
 
         // remaining springs
         mv |= Move(ref _q, dt, .002f, .01f); mv |= Move(ref _prox, dt, .002f, .01f);
+        mv |= Move(ref _fullness, dt, .002f, .01f);
         mv |= Move(ref _lean, dt, .03f, .5f);
         mv |= Move(ref _tuftL, dt, .02f, .2f); mv |= Move(ref _tuftR, dt, .02f, .2f);
         mv |= Move(ref _nod, dt, .002f, .02f); mv |= Move(ref _pupil, dt, .002f, .02f);
@@ -398,7 +449,7 @@ public sealed class BlobatarPhysics
         var ab = ReduceMotion ? 0f : .012f * BlobMath.Lerp(1f, 1.3f, S);
         var ah = ReduceMotion ? 0f : .006f * A;
         var phase = BlobMath.Tau * _breathCyc;
-        var baseSy = MathF.Exp(-qT) * (1f + ah * Pulse(_hbCyc));
+        var baseSy = MathF.Exp(-qT) * (1f + .018f * Math.Clamp(_fullness.X, 0f, 1f)) * (1f + ah * Pulse(_hbCyc));
         var sy = baseSy * (1f + ab * MathF.Sin(phase));
         var syH = baseSy * (1f + ab * MathF.Sin(phase - .35f));        // head lags 0.35 rad
         var leanDeg = Math.Clamp(_lean.X, -15f, 15f);
@@ -432,17 +483,17 @@ public sealed class BlobatarPhysics
             Center = _cenL, Scale = _pose.ScaleL,
             Gaze = ClampUnit(new Vector2(_glx.X, _gly.X) + _sacShared.Offset * .7f + _sacL.Offset * .3f),
             Lid = MathF.Max(_pose.LidL, MathF.Max(_blink.Value, _winkL.Value)),
-            Squint = _pose.SquintL + thinkSq, Roll = _pose.RollL, PupilRho = _pupil.X * 1.01f, Brow = _pose.BrowL,
+            Squint = _pose.SquintL + thinkSq, Roll = _pose.RollL + _companionEyeRoll, PupilRho = _pupil.X * 1.01f, Brow = _pose.BrowL,
         };
         f.Right = new BlobatarEye
         {
             Center = _cenR, Scale = _pose.ScaleR,
             Gaze = ClampUnit(new Vector2(_grx.X, _gry.X) + _sacShared.Offset * .7f + _sacR.Offset * .3f),
             Lid = MathF.Max(_pose.LidR, MathF.Max(_blink.Value, _winkR.Value)),
-            Squint = _pose.SquintR + thinkSq, Roll = _pose.RollR, PupilRho = _pupil.X * .99f, Brow = _pose.BrowR,
+            Squint = _pose.SquintR + thinkSq, Roll = _pose.RollR + _companionEyeRoll, PupilRho = _pupil.X * .99f, Brow = _pose.BrowR,
         };
 
-        f.Smile = Math.Clamp(_pose.Smile, 0f, 1f);
+        f.Smile = Math.Clamp(MathF.Max(_pose.Smile, .12f * Math.Clamp(_fullness.X, 0f, 1f)), 0f, 1f);
         f.TuftL = _tuftL.X; f.TuftR = _tuftR.X;
         f.Arousal = A; f.Sleepy = S;
         f.Contour = ComputeContour(A);

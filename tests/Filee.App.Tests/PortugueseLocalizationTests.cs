@@ -30,7 +30,7 @@ public class PortugueseLocalizationTests
             Assert.False(string.IsNullOrWhiteSpace(title));
             var script = File.ReadAllText(Path.Combine(WhatsNewMedia.RepositoryRoot,
                 "installer", "linux", "kwin", "filee-donut", "contents", "code", "main.js"));
-            Assert.True(script.Contains($"w.caption === \"{title}\"") || script.Contains("w.caption === \"HOOT Donut\"") || script.Contains("w.caption === \"Filee Donut\""));
+            Assert.Contains($"w.caption === \"{title}\"", script);
             AppHost.Get<LocalizationService>().SetLanguage(language == "pt-PT" ? "pt-BR" : "pt-PT");
             Assert.Equal(title, window.Title);
         }
@@ -82,7 +82,7 @@ public class PortugueseLocalizationTests
     // Contextual glossary: "arquivo" remains valid pt-PT in PDF/A's archival description, for example.
     [AvaloniaTheory]
     [InlineData("common.save", "Guardar", "Salvar")]
-    [InlineData("general.show_in_dock", "Mostrar o Filee na Dock", "Mostrar o Filee no Dock")]
+    [InlineData("general.show_in_dock", "Mostrar o HOOT na Dock", "Mostrar o HOOT no Dock")]
     [InlineData("crop.reset", "Repor", "Redefinir")]
     [InlineData("crop.restore", "Restaurar", "Restaurar")]
     [InlineData("common.delete", "Eliminar", "Excluir")]
@@ -90,8 +90,8 @@ public class PortugueseLocalizationTests
     [InlineData("nav.home", "Página inicial", "Início")]
     [InlineData("home.title", "Página inicial", "Início")]
     [InlineData("about.sponsor", "Apoiar", "Patrocinar")]
-    [InlineData("sponsor.title", "Apoiar o Filee", "Patrocinar o Filee")]
-    [InlineData("sponsor.thanks", "Obrigado a quem apoia o Filee", "Obrigado aos nossos patrocinadores")]
+    [InlineData("sponsor.title", "Apoiar o HOOT", "Patrocinar o HOOT")]
+    [InlineData("sponsor.thanks", "Obrigado a quem apoia o HOOT", "Obrigado aos nossos patrocinadores")]
     [InlineData("nav.engines", "Motores", "Motores")]
     [InlineData("general.language_auto", "Predefinição do sistema", "Padrão do sistema")]
     [InlineData("triggers.button", "Botão do rato", "Botão do mouse")]
@@ -196,7 +196,7 @@ public class PortugueseLocalizationTests
         Assert.Matches(@"\boriginals\b", translated["watch.originals_move"]);
         Assert.Matches(@"\bconverted\b", translated["watch.output_placeholder"]);
         // Argument descriptions may be translated; the command and option are literal.
-        Assert.Matches(@"filee watch <[^>]+> --to <[^>]+>", translated["watch.cli_hint"]);
+        Assert.Matches(@"hoot watch <[^>]+> --to <[^>]+>", translated["watch.cli_hint"]);
         Assert.Contains(@"IMG_(\d+)", translated["watch.rename_find"]);
         Assert.Contains("$1", translated["watch.rename_replace"]);
     }

@@ -6,7 +6,7 @@
         x:Class="Filee.App.Views.ImageEditWindow"
         x:DataType="vm:ImageEditViewModel"
         Title="{DynamicResource preset.image_edit}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="520" SizeToContent="Height" MinWidth="440" CanResize="False"
         WindowStartupLocation="CenterScreen">
   <DockPanel>

@@ -10,7 +10,7 @@
         x:Class="Filee.App.Views.ClipWindow"
         x:DataType="vm:ClipWindowViewModel"
         Title="{DynamicResource preset.clip}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="1240" Height="880" MinWidth="960" MinHeight="680"
         WindowDecorations="None"
         Background="Transparent"
