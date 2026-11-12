@@ -71,6 +71,7 @@ public sealed record SetupOptions
     public string? LogFile { get; init; }
     public bool ForceCloseApplications { get; init; } = true;
     public bool NoLaunch { get; init; }
+    public bool AutomaticUpdate { get; init; }
     public bool Uninstall { get; init; }
     public string? Sandbox { get; init; }
     public string? LaunchFile { get; init; }
@@ -150,6 +151,9 @@ public sealed record SetupOptions
                     break;
                 case "NOLAUNCH":
                     options = options with { NoLaunch = true };
+                    break;
+                case "AUTOMATICUPDATE":
+                    options = options with { AutomaticUpdate = true };
                     break;
                 case "UNINSTALL":
                     options = options with { Uninstall = true };

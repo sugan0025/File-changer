@@ -162,6 +162,8 @@ internal static class Program
         {
             Tell(options, SetupMessages.Error(texts, failed.Error!) + Environment.NewLine + Environment.NewLine + log.File, NativeMethods.MB_ICONERROR);
         }
+        if (result is { Succeeded: true })
+            launch = AutomaticUpdateLaunch(launch, options.AutomaticUpdate);
         if (result is { Succeeded: true } && options.Ui == SetupUi.Silent)
         {
             // /SILENT shows its window anyway: say what doesn't work. (The top-level menu, like before, only in the log.)
@@ -178,6 +180,9 @@ internal static class Program
         log.Info($"Exit code {exitCode}");
         return exitCode;
     }
+
+    internal static LaunchRequest? AutomaticUpdateLaunch(LaunchRequest? launch, bool automaticUpdate) =>
+        automaticUpdate && launch is not null ? launch with { Arguments = "--background" } : launch;
 
     /// <summary>An update keeps the current state; /TASKS and /MERGETASKS may still change the PATH entry and the desktop icon.</summary>
     private static SetupTasks UpdateTasks(SetupTasks current, SetupOptions options)

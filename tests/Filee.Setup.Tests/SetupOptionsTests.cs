@@ -35,6 +35,31 @@ public class SetupOptionsTests
     }
 
     [Fact]
+    public void Automatic_update_restarts_the_app_in_the_background()
+    {
+        var options = SetupOptions.Parse(["/VERYSILENT", "/SUPPRESSMSGBOXES", "/AUTOMATICUPDATE"]);
+
+        Assert.Equal(SetupUi.VerySilent, options.Ui);
+        Assert.True(options.SuppressMessageBoxes);
+        Assert.True(options.AutomaticUpdate);
+        Assert.Empty(options.Unknown);
+    }
+
+    [Fact]
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    public void Automatic_update_launches_the_updated_app_in_the_tray_without_whats_new()
+    {
+        var launch = new LaunchRequest(@"C:\Users\Me\Programs\Hoot\Hoot.exe", "--background --whats-new=2.5.0.51");
+
+        var updated = Program.AutomaticUpdateLaunch(launch, automaticUpdate: true);
+
+        Assert.Equal("--background", updated!.Arguments);
+        Assert.Equal(launch.Executable, updated.Executable);
+        Assert.Equal(launch.Arguments, Program.AutomaticUpdateLaunch(launch, automaticUpdate: false)!.Arguments);
+        Assert.Null(Program.AutomaticUpdateLaunch(null, automaticUpdate: true));
+    }
+
+    [Fact]
     public void Every_inno_setup_switch_is_understood()
     {
         var options = SetupOptions.Parse([

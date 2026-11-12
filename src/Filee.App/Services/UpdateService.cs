@@ -52,6 +52,9 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     /// </summary>
     internal const string InstallerArguments = "/SILENT /NORESTART";
 
+    /// <summary>Automatic per-user updates have no window and restart the app in the tray.</summary>
+    internal const string SilentInstallerArguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /AUTOMATICUPDATE";
+
     private readonly ILogger<UpdateService> _log;
     private readonly HttpClient _http;
     private DispatcherTimer? _timer;
@@ -98,6 +101,38 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     public static bool IsInstalled { get; } =
         OperatingSystem.IsWindows() && IsInstalledIn(AppContext.BaseDirectory)
         || OperatingSystem.IsLinux() && IsLinuxInstalled(AppContext.BaseDirectory);
+
+    /// <summary>Whether this Windows install can update without asking for administrator rights.</summary>
+    public static bool IsUserInstalled => OperatingSystem.IsWindows()
+        && IsInstalled
+        && IsWithinDirectory(AppContext.BaseDirectory, Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+
+    internal static string BuildInstallerArguments(string appDirectory, string localAppData, bool silent)
+    {
+        var arguments = silent ? SilentInstallerArguments : InstallerArguments;
+        if (IsWithinDirectory(appDirectory, localAppData))
+            arguments += " /CURRENTUSER";
+        var folder = Path.TrimEndingDirectorySeparator(Path.GetFullPath(appDirectory));
+        return arguments + " /DIR=\"" + folder + "\"";
+    }
+
+    private static bool IsWithinDirectory(string path, string parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+            return false;
+        try
+        {
+            var fullPath = Path.GetFullPath(path);
+            var fullParent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(parent));
+            return fullPath.Equals(fullParent, StringComparison.OrdinalIgnoreCase)
+                || fullPath.StartsWith(fullParent + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                || fullPath.StartsWith(fullParent + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return false;
+        }
+    }
 
     internal static bool IsInstalledIn(string folder)
     {
@@ -430,7 +465,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     /// What every "Update" button does. An installed copy downloads, verifies and runs the new installer; anything
     /// else (portable, run from source, the release has no installer) opens a download page. Safe to call twice.
     /// </summary>
-    public async Task UpdateAsync()
+    public async Task UpdateAsync(bool silent = false)
     {
         if (IsBusy)
             return;
@@ -550,11 +585,8 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             Process? setup;
             try
             {
-                var args = InstallerArguments;
-                if (OperatingSystem.IsWindows() && AppContext.BaseDirectory.Contains(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), StringComparison.OrdinalIgnoreCase))
-                {
-                    args += " /CURRENTUSER";
-                }
+                var args = BuildInstallerArguments(AppContext.BaseDirectory,
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), silent);
                 setup = StartProcess(new ProcessStartInfo(installer, args) { UseShellExecute = true });
             }
             catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
@@ -579,7 +611,15 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
                 using (setup)
                     await setup.WaitForExitAsync();
                 _log.LogInformation("Installer ended with exit code {Code}", setup.ExitCode);
-                Step = setup.ExitCode == 0 ? UpdateStep.Idle : UpdateStep.Cancelled;
+                if (setup.ExitCode == 0)
+                    Step = UpdateStep.Idle;
+                else if (silent)
+                {
+                    LatestVersion = null; // allow the next periodic check to retry this update
+                    Fail("install", new InvalidOperationException($"Setup exited with code {setup.ExitCode}"));
+                }
+                else
+                    Step = UpdateStep.Cancelled;
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException)
             {

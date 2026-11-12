@@ -310,6 +310,12 @@ public partial class App : Application
         // Optional: no card, the sidebar button only. Frequent releases no longer ask every day.
         updates.UpdateFound += (_, version) =>
         {
+            if (UpdateService.IsUserInstalled)
+            {
+                // The one-click per-user install can be replaced without UAC. Setup handles the restart in the tray.
+                _ = updates.UpdateAsync(silent: true);
+                return;
+            }
             if (updates.Level == UpdateLevel.Optional
                 || updates.Level == UpdateLevel.Recommended && store.Settings.NotifiedUpdateVersion == version)
                 return;

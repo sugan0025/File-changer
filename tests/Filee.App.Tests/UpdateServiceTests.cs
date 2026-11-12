@@ -319,6 +319,35 @@ public class UpdateServiceTests
     {
         Assert.Contains("/SILENT", UpdateService.InstallerArguments);
         Assert.Contains("/NORESTART", UpdateService.InstallerArguments);
+        Assert.Contains("/VERYSILENT", UpdateService.SilentInstallerArguments);
+        Assert.Contains("/SUPPRESSMSGBOXES", UpdateService.SilentInstallerArguments);
+        Assert.Contains("/AUTOMATICUPDATE", UpdateService.SilentInstallerArguments);
+    }
+
+    [Fact]
+    public void Installer_update_arguments_keep_the_current_folder_and_user_scope()
+    {
+        var localAppData = Path.Combine(Path.GetTempPath(), "Update args user");
+        var installDirectory = Path.Combine(localAppData, "Programs", "Hoot");
+
+        var arguments = UpdateService.BuildInstallerArguments(installDirectory, localAppData, silent: true);
+
+        Assert.Contains("/CURRENTUSER", arguments);
+        Assert.Contains("/DIR=\"" + installDirectory + "\"", arguments);
+        Assert.Contains("/VERYSILENT", arguments);
+    }
+
+    [Fact]
+    public void Installer_update_arguments_do_not_treat_a_sibling_as_a_user_install()
+    {
+        var localAppData = Path.Combine(Path.GetTempPath(), "Local");
+        var sibling = Path.Combine(Path.GetTempPath(), "LocalPrograms", "Hoot");
+
+        var arguments = UpdateService.BuildInstallerArguments(sibling, localAppData, silent: false);
+
+        Assert.DoesNotContain("/CURRENTUSER", arguments);
+        Assert.DoesNotContain("/AUTOMATICUPDATE", arguments);
+        Assert.Contains("/SILENT", arguments);
     }
 
     private static UpdateService Updates(FakeRelease network, long installerSize)
