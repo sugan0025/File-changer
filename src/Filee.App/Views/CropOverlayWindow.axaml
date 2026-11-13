@@ -9,7 +9,7 @@
         x:Class="Filee.App.Views.CropOverlayWindow"
         x:DataType="vm:CropOverlayViewModel"
         Title="{DynamicResource preset.crop}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="1040" Height="720" MinWidth="720" MinHeight="500"
         WindowDecorations="None"
         Background="Transparent"

@@ -137,7 +137,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 78;
+    public const int CurrentSchemaVersion = 79;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -204,6 +204,9 @@ public sealed class AppSettings
     public ThemeSettings Theme { get; set; } = new();
 
     public DonutSettings Donut { get; set; } = new();
+
+    /// <summary>Windows desktop Blob companion visibility and its last screen position.</summary>
+    public BlobCompanionSettings BlobCompanion { get; set; } = new();
 
     public List<TriggerGesture> Triggers { get; set; } = TriggerGesture.Defaults();
 
@@ -321,6 +324,40 @@ public sealed class AppSettings
         return copy;
     }
 }
+
+/// <summary>Preferences for Filee's optional desktop Blob companion.</summary>
+public sealed class BlobCompanionSettings
+{
+    /// <summary>The companion is shown when Filee starts.</summary>
+    public bool IsVisible { get; set; } = true;
+
+    /// <summary>Last position in physical screen pixels; null uses a safe default position.</summary>
+    public int? X { get; set; }
+    public int? Y { get; set; }
+
+    /// <summary>Idle personality intensity. Adaptive is the default; companion audio is opt-in.</summary>
+    public BlobCompanionActivity Activity { get; set; } = BlobCompanionActivity.Adaptive;
+    public bool AudioEnabled { get; set; }
+    public bool HatchSeen { get; set; }
+    /// <summary>Dim the companion while Windows reports fullscreen or presentation mode. Off by default.</summary>
+    public bool CinemaDimEnabled { get; set; }
+    /// <summary>Offer occasional stretch animations after extended active use. Off by default.</summary>
+    public bool StretchReminderEnabled { get; set; }
+    public BlobAppAwarenessSettings AppAwareness { get; set; } = new();
+}
+
+/// <summary>Local foreground-app reactions for the desktop companion. App names are keys, never usage history.</summary>
+public sealed class BlobAppAwarenessSettings
+{
+    /// <summary>Enabled for new installs; users can turn local foreground reactions off in General settings.</summary>
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>The initial opt-in set. Turning awareness on enables these entries; each can be switched off.</summary>
+    public List<string> EnabledApps { get; set; } =
+    ["claude", "chatgpt", "antigravity", "chrome", "file-explorer", "netflix", "spotify", "whatsapp", "gemini", "linkedin"];
+}
+
+public enum BlobCompanionActivity { Calm, Adaptive, Playful, Off }
 
 /// <summary>Reads unexpected icon preference values as enabled while preserving valid booleans.</summary>
 internal sealed class IconPreferenceJsonConverter : JsonConverter<bool>

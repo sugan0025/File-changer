@@ -5,7 +5,7 @@
         xmlns:v="using:Filee.App.Views"
         x:Class="Filee.App.Views.SponsorWindow"
         Title="{DynamicResource sponsor.title}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="420"
         SizeToContent="Height"
         CanResize="False"

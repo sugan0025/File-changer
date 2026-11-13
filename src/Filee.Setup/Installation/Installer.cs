@@ -281,25 +281,23 @@ public sealed class Installer(SetupContext context, SetupPayload payload)
         // Shortcuts.
         var startMenu = Path.Combine(Paths.StartMenu(choices.Scope), SetupNames.ShortcutName);
         var desktop = Path.Combine(Paths.Desktop(choices.Scope), SetupNames.ShortcutName);
-        var exe = Path.Combine(folder, SetupNames.AppExe);
         if (!choices.NoIcons)
         {
             if (!File.Exists(startMenu))
                 undo.Push(("Start menu shortcut", () => File.Delete(startMenu)));
-            System.CreateShortcut(startMenu, exe, folder, "HOOT");
+            System.CreateShortcut(startMenu, Path.Combine(folder, SetupNames.AppExe), folder, "HOOT");
         }
         if (choices.Tasks.DesktopIcon && !choices.NoIcons)
         {
             if (!File.Exists(desktop))
                 undo.Push(("desktop shortcut", () => File.Delete(desktop)));
-            System.CreateShortcut(desktop, exe, folder, "HOOT");
+            System.CreateShortcut(desktop, Path.Combine(folder, SetupNames.AppExe), folder, "HOOT");
         }
         else if (update && File.Exists(desktop))
         {
             // Unticked on an update: the shortcut goes (ticking it again brings it back).
             File.Delete(desktop);
         }
-
         // PATH.
         var cli = Path.Combine(folder, SetupNames.CliFolder);
         if (PathVariable.Set(Registry, choices.Scope, cli, choices.Tasks.Cli))

@@ -1,4 +1,4 @@
-// The "filee" commands: convert, watch, formats, presets, engines. Writes results for people (one line per file) or, with
+// The "hoot" commands: convert, watch, formats, presets, engines. Writes results for people (one line per file) or, with
 // --json, one JSON document for other programs; while it runs, convert --json writes events to stderr and watch --json
 // to stdout, one JSON object per line. Exit codes: 0 nothing failed (skipped files included), 1 some failed or were
 // cancelled, 2 wrong arguments or a missing input, 3 nothing to convert.
@@ -28,8 +28,8 @@ internal static class Cli
         var options = CliOptions.Parse(args);
         if (options.Error is not null)
         {
-            errors.WriteLine($"filee: {options.Error}");
-            errors.WriteLine("Run 'filee help' for usage.");
+            errors.WriteLine($"hoot: {options.Error}");
+            errors.WriteLine("Run 'hoot help' for usage.");
             return UsageError;
         }
         switch (options.Command)
@@ -38,7 +38,7 @@ internal static class Cli
                 output.Write(Help.Text(options.Inputs.FirstOrDefault()));
                 return Success;
             case "version":
-                output.WriteLine($"filee {Help.Version}");
+                output.WriteLine($"hoot {Help.Version}");
                 return Success;
         }
 
@@ -63,12 +63,12 @@ internal static class Cli
         var missing = new List<string>();
         var files = ExpandInputs(options.Inputs, options.Recursive, missing);
         foreach (var path in missing)
-            errors.WriteLine($"filee: not found: {path}");
+            errors.WriteLine($"hoot: not found: {path}");
         if (missing.Count > 0)
             return UsageError;
         if (files.Count == 0)
         {
-            errors.WriteLine("filee: no files to convert.");
+            errors.WriteLine("hoot: no files to convert.");
             return NothingToDo;
         }
         // Without it files stay as given, and a folder or wildcard as the file system lists it.
@@ -113,7 +113,7 @@ internal static class Cli
             settleTime: settle);
         if (!watcher.Start())
         {
-            errors.WriteLine($"filee: {watcher.Error}");
+            errors.WriteLine($"hoot: {watcher.Error}");
             return UsageError;
         }
         if (events is not null)
@@ -267,12 +267,12 @@ internal static class Cli
         {
             if (FindFormat(options.To) is not { } format)
             {
-                errors.WriteLine($"filee: unknown format '{options.To}'. Run 'filee formats' for the list.");
+                errors.WriteLine($"hoot: unknown format '{options.To}'. Run 'hoot formats' for the list.");
                 return null;
             }
             if (!format.Writable)
             {
-                errors.WriteLine($"filee: Filee reads {format.DisplayName} but can't write it.");
+                errors.WriteLine($"hoot: HOOT reads {format.DisplayName} but can't write it.");
                 return null;
             }
             preset = new Preset { TargetFormat = format.Id };
@@ -288,7 +288,7 @@ internal static class Cli
             var found = Find(host.Store.Presets.Where(p => !p.IsGroup && !p.IsTool)) ?? Find(host.Store.Presets);
             if (found is null)
             {
-                errors.WriteLine($"filee: no preset '{wanted}'. Run 'filee presets' for the list.");
+                errors.WriteLine($"hoot: no preset '{wanted}'. Run 'hoot presets' for the list.");
                 return null;
             }
             if (found.IsGroup)
@@ -296,13 +296,13 @@ internal static class Cli
                 // A donut group converts nothing; name what it holds so the right one is easy to pick.
                 var members = found.SubPresetIds.Select(host.Store.FindConversion).OfType<Preset>().Select(p => p.Id).ToList();
                 errors.WriteLine(members.Count > 0
-                    ? $"filee: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}"
-                    : $"filee: '{wanted}' is a group on the donut, not a conversion, and has no presets left. Run 'filee presets' for the list.");
+                    ? $"hoot: '{wanted}' is a group on the donut, not a conversion. Use one of: {string.Join(", ", members)}"
+                    : $"hoot: '{wanted}' is a group on the donut, not a conversion, and has no presets left. Run 'hoot presets' for the list.");
                 return null;
             }
             if (found.IsTool)
             {
-                errors.WriteLine($"filee: '{wanted}' is an interactive tool, not a conversion.");
+                errors.WriteLine($"hoot: '{wanted}' is an interactive tool, not a conversion.");
                 return null;
             }
             preset = found.Clone();
@@ -342,7 +342,7 @@ internal static class Cli
 
     /// <summary>
     /// Files from the arguments: files as given, wildcards ("*.heic", which cmd.exe and PowerShell pass on unexpanded)
-    /// and folders (their files in formats Filee knows, programs left out as in watch folders: the installers in a folder
+    /// and folders (their files in formats HOOT knows, programs left out as in watch folders: the installers in a folder
     /// aren't pictures to convert; with --recursive also in sub folders).
     /// </summary>
     internal static List<string> ExpandInputs(IEnumerable<string> inputs, bool recursive, List<string> missing)
@@ -378,7 +378,7 @@ internal static class Cli
         {
             if (FindFormat(name) is not { } from)
             {
-                errors.WriteLine($"filee: unknown format '{name}'.");
+                errors.WriteLine($"hoot: unknown format '{name}'.");
                 return UsageError;
             }
             var installed = host.Catalog.CreatePlanner();
@@ -402,7 +402,7 @@ internal static class Cli
             output.WriteLine($"{from.DisplayName} ({string.Join(", ", from.Extensions)}) converts to:");
             output.WriteLine(now.Count > 0 ? "  " + string.Join(", ", now) : "  (nothing with the engines installed now)");
             if (later.Count > 0)
-                output.WriteLine($"With optional engines (install them with 'filee engines'):{Environment.NewLine}  {string.Join(", ", later)}");
+                output.WriteLine($"With optional engines (install them with 'hoot engines'):{Environment.NewLine}  {string.Join(", ", later)}");
             return Success;
         }
 
@@ -431,7 +431,7 @@ internal static class Cli
                 output.WriteLine($"  {format.Id,-10} {format.DisplayName}{(format.Writable ? "" : " (read only)")}  .{string.Join(" .", format.Extensions)}");
         }
         output.WriteLine();
-        output.WriteLine("Run 'filee formats <format>' to see what a format converts to.");
+        output.WriteLine("Run 'hoot formats <format>' to see what a format converts to.");
         return Success;
     }
 
@@ -486,7 +486,7 @@ internal static class Cli
         foreach (var preset in host.Store.Presets.Where(p => !p.IsGroup && !p.IsTool))
             output.WriteLine($"{preset.Id,-24} {host.Texts.DisplayName(preset),-28} {preset.TargetFormat}");
         output.WriteLine();
-        output.WriteLine("Use one with: filee convert <files> --preset <id or name>");
+        output.WriteLine("Use one with: hoot convert <files> --preset <id or name>");
         return Success;
     }
 

@@ -22,9 +22,23 @@ public class BlobatarControl : Control
     public static readonly StyledProperty<bool> IsAnimatedProperty =
         AvaloniaProperty.Register<BlobatarControl, bool>(nameof(IsAnimated), true);
 
+    public static readonly StyledProperty<bool> PointerReactionsEnabledProperty =
+        AvaloniaProperty.Register<BlobatarControl, bool>(nameof(PointerReactionsEnabled), true);
+
+    public static readonly StyledProperty<bool> AudioEnabledProperty =
+        AvaloniaProperty.Register<BlobatarControl, bool>(nameof(AudioEnabled), true);
+
+    public static readonly StyledProperty<int> MaxFramesPerSecondProperty =
+        AvaloniaProperty.Register<BlobatarControl, int>(nameof(MaxFramesPerSecond), 0);
+
     public BlobatarTone Tone { get => GetValue(ToneProperty); set => SetValue(ToneProperty, value); }
     public bool TrackWindowPointer { get => GetValue(TrackWindowPointerProperty); set => SetValue(TrackWindowPointerProperty, value); }
     public bool IsAnimated { get => GetValue(IsAnimatedProperty); set => SetValue(IsAnimatedProperty, value); }
+    public bool PointerReactionsEnabled { get => GetValue(PointerReactionsEnabledProperty); set => SetValue(PointerReactionsEnabledProperty, value); }
+    public bool AudioEnabled { get => GetValue(AudioEnabledProperty); set => SetValue(AudioEnabledProperty, value); }
+    public int MaxFramesPerSecond { get => GetValue(MaxFramesPerSecondProperty); set => SetValue(MaxFramesPerSecondProperty, value); }
+    private float _mouthOpen;
+    public float MouthOpen => _mouthOpen;
 
     public BlobatarState State { get; } = new();
 
@@ -36,6 +50,7 @@ public class BlobatarControl : Control
     private TimeSpan? _lastFrameTime;
     private bool _isHovered;
     private bool _pressed;
+    private bool _quietToneChange;
     private double _sinceDraw;
 
     static BlobatarControl()
@@ -51,19 +66,45 @@ public class BlobatarControl : Control
     // ----- Hooks for the host (not wired yet) -----
 
     public void SetThinking(bool thinking, double load = 0) { State.SetThinking(thinking, load); StartLoop(); }
+    public void SetTone(BlobatarTone tone) { Tone = tone; State.SetTone(tone); StartLoop(); }
+    public void SetToneQuiet(BlobatarTone tone)
+    {
+        _quietToneChange = true;
+        try { SetCurrentValue(ToneProperty, tone); }
+        finally { _quietToneChange = false; }
+        State.SetToneQuiet(tone);
+        StartLoop();
+    }
     public void Celebrate() { State.Celebrate(); StartLoop(); }
     public void Proud() { State.Proud(); StartLoop(); }
     public void Startle(double stimulusDx = 0) { State.Startle(stimulusDx); StartLoop(); }
     public void NotifyDragOver(bool over) { State.SetDragOver(over); StartLoop(); }
     public void NotifyDrop() { State.SetDragOver(false); State.Drop(); StartLoop(); }
+    public void NotifyCompanionDrop() { State.SetDragOver(false); State.CompanionDrop(); StartLoop(); }
+    public void SetCurious(bool curious) { State.SetCurious(curious); StartLoop(); }
+    public void SetPaused(bool paused) { State.SetPaused(paused); StartLoop(); }
+    public void SetNapping(bool napping) { State.SetNapping(napping); StartLoop(); }
+    public void SetMouthOpen(double amount) { _mouthOpen = (float)Math.Clamp(amount, 0.0, 1.0); StartLoop(); InvalidateVisual(); }
+    public void TriggerBoredHop() { State.TriggerBoredHop(); StartLoop(); }
+    public void CancelBoredHop() { State.CancelBoredHop(); StartLoop(); }
+    public void TriggerStretch() { State.TriggerStretch(); StartLoop(); }
+    public void PressForReaction() { State.Press(); StartLoop(); }
+    public void ReleaseForReaction() { State.Release(); StartLoop(); }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (change.Property == ToneProperty && !_isHovered)
         {
-            State.SetTone(change.GetNewValue<BlobatarTone>());
+            if (_quietToneChange)
+                State.SetToneQuiet(change.GetNewValue<BlobatarTone>());
+            else
+                State.SetTone(change.GetNewValue<BlobatarTone>());
             StartLoop();
+        }
+        else if (change.Property == AudioEnabledProperty)
+        {
+            State.AudioEnabled = change.GetNewValue<bool>();
         }
     }
 
@@ -81,7 +122,7 @@ public class BlobatarControl : Control
         if (_circadian is not null)
             _circadian.PhaseChanged += OnCircadianChanged;
 
-        State.AudioEnabled = true;
+        State.AudioEnabled = AudioEnabled;
         State.SetTone(Tone);
         StartLoop();
     }
@@ -135,6 +176,8 @@ public class BlobatarControl : Control
     protected override void OnPointerEntered(PointerEventArgs e)
     {
         base.OnPointerEntered(e);
+        if (!PointerReactionsEnabled)
+            return;
         _isHovered = true;
         State.TriggerBounce(0.55);
         State.TriggerTiltWobble(9.0);
@@ -146,6 +189,8 @@ public class BlobatarControl : Control
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        if (!PointerReactionsEnabled)
+            return;
         _isHovered = false;
         State.SetHoverEnergy(0.0);
         State.SetTone(Tone);
@@ -156,6 +201,8 @@ public class BlobatarControl : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        if (!PointerReactionsEnabled)
+            return;
         _pressed = true;
         State.Press();                                        // squash down (+ soft thump)
         State.TriggerWink(Random.Shared.NextDouble() > 0.5);  // playful wink
@@ -166,6 +213,8 @@ public class BlobatarControl : Control
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        if (!PointerReactionsEnabled)
+            return;
         ReleaseIfPressed();
         StartLoop();
     }
@@ -202,7 +251,8 @@ public class BlobatarControl : Control
 
         // Transient motion draws every frame; ambient-only motion draws at ~30 fps.
         _sinceDraw += dt;
-        if (active || _sinceDraw >= IdleFrameInterval)
+        var frameInterval = MaxFramesPerSecond > 0 ? Math.Max(IdleFrameInterval, 1.0 / MaxFramesPerSecond) : IdleFrameInterval;
+        if (MaxFramesPerSecond > 0 ? _sinceDraw >= frameInterval : active || _sinceDraw >= IdleFrameInterval)
         {
             InvalidateVisual();
             _sinceDraw = 0;
@@ -221,6 +271,6 @@ public class BlobatarControl : Control
 
     public override void Render(DrawingContext context)
     {
-        BlobatarRenderer.Render(context, new Rect(Bounds.Size), State);
+        BlobatarRenderer.Render(context, new Rect(Bounds.Size), State, _mouthOpen);
     }
 }

@@ -1,8 +1,8 @@
 # Builds the Windows installer and publishes it to GitHub Releases.
-# Triggers: push to main, push a tag like v2.3.0, or manual workflow_dispatch.
+# Main pushes run verification/builds only. Public releases are published only for v* tags.
 #
-# Output (build/build-installer.ps1): Filee-<version>-win-Setup.exe (Filee's own installer, src/Filee.Setup),
-# Filee-<version>-win-Portable.zip, Filee-win-Portable.zip and Filee-<version>-SHA256SUMS.txt.
+# Output (build/build-installer.ps1): HOOT-<version>-win-Setup.exe, HOOT-<version>-win-Portable.zip,
+# Hoot-win-Portable.zip and HOOT-<version>-SHA256SUMS.txt.
 name: Release
 
 on:
@@ -41,7 +41,7 @@ jobs:
           } else {
             $baseVer = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
             $version = "$baseVer.${{ github.run_number }}"
-            $tag = "v$version"
+            $tag = ''
           }
           "value=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
@@ -73,11 +73,9 @@ jobs:
         run: dotnet build Filee.slnx -c Release
 
       - name: Test UI on its own
-        continue-on-error: true
         run: dotnet test tests/Filee.App.Tests --no-build -c Release --blame-crash --blame-hang-timeout 5m --logger "console;verbosity=normal" --results-directory TestResults/app
 
       - name: Test
-        continue-on-error: true
         run: dotnet test Filee.slnx --no-build -c Release --filter "FullyQualifiedName!~Filee.App.Tests"
 
       - name: Upload test results
@@ -120,6 +118,7 @@ jobs:
           path: Releases
 
       - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -128,10 +127,10 @@ jobs:
           $tag = '${{ steps.version.outputs.tag }}'
 
           # Stable portable zip for direct download links
-          $portable = Get-ChildItem Releases -File -Filter "Filee-$version-win-Portable.zip" | Select-Object -First 1
-          if ($portable) {
-            Copy-Item $portable.FullName (Join-Path Releases "Filee-win-Portable.zip") -Force
-          }
+          $portable = Get-ChildItem Releases -File -Filter "HOOT-$version-win-Portable.zip" | Select-Object -First 1
+          if (-not $portable) { throw "The HOOT Windows portable package is missing for version $version." }
+          $stablePortable = Join-Path Releases 'Hoot-win-Portable.zip'
+          if (-not (Test-Path $stablePortable)) { Copy-Item $portable.FullName $stablePortable -Force }
 
           $files = Get-ChildItem Releases -File | ForEach-Object FullName
           Write-Host "Releasing files: $($files -join ', ')"
@@ -144,11 +143,11 @@ jobs:
               $changes = $Matches[1].Trim() -replace '\r?\n +(?!- |\* |\d+\. )(?=\S)', ' '
             }
           }
-          if (-not $changes) { $changes = "Automated release $version with latest updates." }
+          if (-not $changes) { $changes = "Automated HOOT release $version with latest updates." }
 
           $notesFile = Join-Path $env:RUNNER_TEMP 'notes.md'
-          Set-Content $notesFile "## What's Changed in Filee $version`n`n$changes" -Encoding utf8
+          Set-Content $notesFile "## What's Changed in HOOT $version`n`n$changes" -Encoding utf8
 
-          # Publish release (not draft)
-          gh release create "$tag" --title "Filee $version" --notes-file $notesFile --latest @files 2>$null || `
+          # Keep the release private until the Windows signing and sandbox validation step succeeds.
+          gh release create "$tag" --title "HOOT $version" --notes-file $notesFile --draft @files 2>$null || `
           gh release upload "$tag" --clobber @files

@@ -71,7 +71,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         _log = log;
         // Downloads use their own stall timeout (StallTimeout); this one covers the API call and the response headers.
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Filee", CurrentVersion));
+        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("HOOT", CurrentVersion));
         _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
@@ -397,13 +397,13 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
 
             if (TargetPlatform == "win")
             {
-                installer = new ReleaseFile($"Hoot-{cleanVersion}-win-Setup.exe", $"{baseDownload}/Hoot-{cleanVersion}-win-Setup.exe", 0);
-                checksums = new ReleaseFile($"Hoot-{cleanVersion}-SHA256SUMS.txt", $"{baseDownload}/Hoot-{cleanVersion}-SHA256SUMS.txt", 0);
+                installer = new ReleaseFile($"HOOT-{cleanVersion}-win-Setup.exe", $"{baseDownload}/HOOT-{cleanVersion}-win-Setup.exe", 0);
+                checksums = new ReleaseFile($"HOOT-{cleanVersion}-win-SHA256SUMS.txt", $"{baseDownload}/HOOT-{cleanVersion}-win-SHA256SUMS.txt", 0);
             }
             else if (TargetPlatform.StartsWith("linux-", StringComparison.OrdinalIgnoreCase))
             {
-                installer = new ReleaseFile($"Filee-{cleanVersion}-{TargetPlatform}.tar.gz", $"{baseDownload}/Filee-{cleanVersion}-{TargetPlatform}.tar.gz", 0);
-                checksums = new ReleaseFile($"Filee-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", $"{baseDownload}/Filee-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", 0);
+                installer = new ReleaseFile($"HOOT-{cleanVersion}-{TargetPlatform}.tar.gz", $"{baseDownload}/HOOT-{cleanVersion}-{TargetPlatform}.tar.gz", 0);
+                checksums = new ReleaseFile($"HOOT-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", $"{baseDownload}/HOOT-{cleanVersion}-{TargetPlatform}-SHA256SUMS.txt", 0);
             }
 
             return (tag, installer, checksums);
@@ -534,7 +534,8 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
                         payloadDir = candidates[0];
                 }
 
-                if (!File.Exists(Path.Combine(payloadDir, "Hoot.exe")) && !File.Exists(Path.Combine(payloadDir, "Filee.exe")))
+                var payloadExeName = File.Exists(Path.Combine(payloadDir, "Hoot.exe")) ? "Hoot.exe" : "Filee.exe";
+                if (!File.Exists(Path.Combine(payloadDir, payloadExeName)))
                 {
                     Fail("payload", new InvalidDataException("Extracted update archive does not contain Hoot.exe or Filee.exe"));
                     return;
@@ -542,10 +543,7 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
 
                 var appDir = AppContext.BaseDirectory.TrimEnd('\\', '/');
                 var currentPid = Environment.ProcessId;
-                // Prefer Hoot.exe; fall back to Filee.exe for upstream-built releases
-                var targetExe = File.Exists(Path.Combine(appDir, "Hoot.exe"))
-                    ? Path.Combine(appDir, "Hoot.exe")
-                    : Path.Combine(appDir, "Filee.exe");
+                var targetExe = Path.Combine(appDir, payloadExeName);
 
                 var script =
                     $"$pidToWait = {currentPid}; " +
@@ -931,14 +929,14 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
     internal static (ReleaseFile? Installer, ReleaseFile? Checksums) FindFiles(JsonElement release, string? target = "win")
     {
         target ??= "win";
-        ReleaseFile? installer = null, checksums = null;
+        ReleaseFile? installer = null, checksums = null, legacyChecksums = null;
         if (!release.TryGetProperty("assets", out var assets) || assets.ValueKind != JsonValueKind.Array)
             return (null, null);
 
         ReleaseFile? zipFallback = null;
         var isLinux = target.StartsWith("linux-", StringComparison.OrdinalIgnoreCase);
         var expectedInstallerSuffix = isLinux ? $"-{target}.tar.gz" : "-win-Setup.exe";
-        var expectedChecksumsSuffix = isLinux ? $"-{target}-SHA256SUMS.txt" : "-SHA256SUMS.txt";
+        var expectedChecksumsSuffix = isLinux ? $"-{target}-SHA256SUMS.txt" : "-win-SHA256SUMS.txt";
 
         foreach (var asset in assets.EnumerateArray())
         {
@@ -969,9 +967,16 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
 
                 checksums = new ReleaseFile(name, url, size);
             }
+            else if (!isLinux && name.EndsWith("-SHA256SUMS.txt", StringComparison.OrdinalIgnoreCase)
+                     && !name.Contains("-linux-", StringComparison.OrdinalIgnoreCase)
+                     && !name.Contains("-osx-", StringComparison.OrdinalIgnoreCase))
+            {
+                // Compatibility with releases made before the Windows asset names included the -win suffix.
+                legacyChecksums ??= new ReleaseFile(name, url, size);
+            }
         }
         installer ??= zipFallback;
-        return (installer, checksums);
+        return (installer, checksums ?? legacyChecksums);
     }
 
     private const UnixFileMode RwxMask =
@@ -1152,22 +1157,34 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             }
             else
             {
-                throw new InvalidDataException("Archive does not contain a single valid Filee payload with install.sh");
+                throw new InvalidDataException("Archive does not contain a single valid HOOT/Filee payload with install.sh");
             }
         }
 
         var installSh = Path.Combine(payloadDir, "install.sh");
-        var fileeExe = Path.Combine(payloadDir, "Filee");
-        if (!File.Exists(installSh) || !File.Exists(fileeExe))
+        var appExecutable = new[]
         {
-            throw new InvalidDataException("Archive is missing install.sh or Filee executable in the payload directory.");
+            Path.Combine(payloadDir, "Hoot"),
+            Path.Combine(payloadDir, "HOOT"),
+            Path.Combine(payloadDir, "Filee"),
+            Path.Combine(payloadDir, "HOOT.app", "Contents", "MacOS", "Hoot"),
+            Path.Combine(payloadDir, "HOOT.app", "Contents", "MacOS", "Filee"),
+            Path.Combine(payloadDir, "Filee.app", "Contents", "MacOS", "Hoot"),
+            Path.Combine(payloadDir, "Filee.app", "Contents", "MacOS", "Filee"),
+        }.FirstOrDefault(File.Exists);
+        if (!File.Exists(installSh) || appExecutable is null)
+        {
+            throw new InvalidDataException("Archive is missing install.sh or the HOOT/Filee executable in the payload directory.");
         }
 
         if (OperatingSystem.IsLinux())
         {
             EnsureExecutable(installSh);
-            EnsureExecutable(fileeExe);
+            EnsureExecutable(appExecutable);
             var cli = Path.Combine(payloadDir, "filee-cli");
+            if (File.Exists(cli))
+                EnsureExecutable(cli);
+            cli = Path.Combine(payloadDir, "hoot-cli");
             if (File.Exists(cli))
                 EnsureExecutable(cli);
             var uninstall = Path.Combine(payloadDir, "uninstall.sh");
@@ -1228,8 +1245,10 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
             if (parts.Length == 2 && parts[0].Length == 64)
             {
                 var entry = parts[1].Trim().TrimStart('*');
-                if ((entry.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase) && (entry.Equals("Filee-win-Portable.zip", StringComparison.OrdinalIgnoreCase) || fileName.Equals("Filee-win-Portable.zip", StringComparison.OrdinalIgnoreCase))) ||
-                    (entry.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) && (entry.Equals("Filee-win-Setup.exe", StringComparison.OrdinalIgnoreCase) || fileName.Equals("Filee-win-Setup.exe", StringComparison.OrdinalIgnoreCase))))
+                if ((entry.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Portable.zip", StringComparison.OrdinalIgnoreCase)
+                     && (IsStableWindowsAssetName(entry, "-Portable.zip") || IsStableWindowsAssetName(fileName, "-Portable.zip"))) ||
+                    (entry.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase) && fileName.EndsWith("-Setup.exe", StringComparison.OrdinalIgnoreCase)
+                     && (IsStableWindowsAssetName(entry, "-Setup.exe") || IsStableWindowsAssetName(fileName, "-Setup.exe"))))
                 {
                     return parts[0].ToLowerInvariant();
                 }
@@ -1237,6 +1256,10 @@ public sealed partial class UpdateService : ObservableObject, IDisposable
         }
         return null;
     }
+
+    private static bool IsStableWindowsAssetName(string name, string suffix) =>
+        name.Equals("Hoot-win" + suffix, StringComparison.OrdinalIgnoreCase)
+        || name.Equals("Filee-win" + suffix, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Lets tests hand in a release without calling GitHub.</summary>
     internal void UseRelease(ReleaseFile? installer, ReleaseFile? checksums) => (_installer, _checksums) = (installer, checksums);

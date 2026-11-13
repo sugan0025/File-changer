@@ -118,6 +118,14 @@ public sealed class UserDataStore
         Write(SettingsPath, Settings, FileeJsonContext.Default.AppSettings);
     }
 
+    /// <summary>Remembers the desktop companion position without reapplying unrelated settings.</summary>
+    public void SaveBlobCompanionPosition(int x, int y)
+    {
+        Settings.BlobCompanion.X = x;
+        Settings.BlobCompanion.Y = y;
+        Write(SettingsPath, Settings, FileeJsonContext.Default.AppSettings);
+    }
+
     /// <summary>
     /// Remembers whether the main window's navigation is collapsed (<see cref="AppSettings.NavCollapsed"/>), quietly as
     /// <see cref="SaveUiScale"/>: the window already shows it.
@@ -473,6 +481,13 @@ internal static class SettingsMigrations
         if (settings.SchemaVersion < 21)
             InsertBefore(settings.EnginePriority, "wic", settings.EnginePriority.Contains("ffmpeg") ? "ffmpeg" : "pandoc");
 
+        // v79: add the optional desktop companion without replacing any existing settings.
+        if (settings.SchemaVersion < 79)
+        {
+            settings.BlobCompanion ??= new BlobCompanionSettings();
+            settings.BlobCompanion.AppAwareness ??= new BlobAppAwarenessSettings();
+            settings.BlobCompanion.AppAwareness.EnabledApps ??= new BlobAppAwarenessSettings().EnabledApps;
+        }
 
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();

@@ -26,7 +26,7 @@ namespace Filee.App;
 /// </summary>
 internal sealed class FileeFontCollection : IFontCollection
 {
-    internal static readonly Uri Source = new("avares://Filee/Assets/Fonts", UriKind.Absolute);
+    internal static readonly Uri Source = new("avares://Hoot/Assets/Fonts", UriKind.Absolute);
 
     private readonly ReadFonts _fonts;
     private readonly Lock _lock = new();

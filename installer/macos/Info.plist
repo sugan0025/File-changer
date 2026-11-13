@@ -5,9 +5,9 @@
     <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string><string>zh-Hans</string><string>zh-Hant</string><string>pt-PT</string><string>pt-BR</string><string>de</string><string>it</string><string>id</string></array>
     <key>CFBundleIdentifier</key><string>com.filee.app</string>
-    <key>CFBundleName</key><string>Filee</string>
-    <key>CFBundleDisplayName</key><string>Filee</string>
-    <key>CFBundleExecutable</key><string>Filee</string>
+    <key>CFBundleName</key><string>HOOT</string>
+    <key>CFBundleDisplayName</key><string>HOOT</string>
+    <key>CFBundleExecutable</key><string>Hoot</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>__VERSION__</string>
     <key>CFBundleVersion</key><string>__BUNDLE_VERSION__</string>
@@ -20,14 +20,14 @@
     <key>NSServices</key>
     <array>
         <dict>
-            <key>NSMenuItem</key><dict><key>default</key><string>Convert with Filee</string></dict>
+            <key>NSMenuItem</key><dict><key>default</key><string>Convert with HOOT</string></dict>
             <key>NSMessage</key><string>convertFiles</string>
-            <key>NSPortName</key><string>Filee</string>
+            <key>NSPortName</key><string>Hoot</string>
             <key>NSRequiredContext</key><dict/>
             <key>NSSendFileTypes</key><array><string>public.item</string></array>
         </dict>
     </array>
-    <key>NSAppleEventsUsageDescription</key><string>Filee reads selected Finder files when you use a conversion shortcut.</string>
-    <key>NSInputMonitoringUsageDescription</key><string>Filee detects your conversion shortcut and drag gesture to show the conversion menu.</string>
+    <key>NSAppleEventsUsageDescription</key><string>HOOT reads selected Finder files when you use a conversion shortcut.</string>
+    <key>NSInputMonitoringUsageDescription</key><string>HOOT detects your conversion shortcut and drag gesture to show the conversion menu.</string>
 </dict>
 </plist>

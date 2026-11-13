@@ -8,6 +8,9 @@ using Filee.Core.Settings;
 // One application for all tests. Per test, Avalonia disposes the font manager and loads the embedded Noto fonts
 // again, and on Windows the test process then crashed with 0xC0000005 (only builds with the fonts, i.e. releases).
 [assembly: AvaloniaTestIsolation(AvaloniaTestIsolationLevel.PerAssembly)]
+// The app's headless dispatcher, AppHost, and font manager are shared state; parallel test collections can initialize
+// the per-assembly Avalonia session from different threads and fail before the actual tests run.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Filee.App.Tests;
 

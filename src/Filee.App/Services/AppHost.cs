@@ -77,6 +77,7 @@ public static class AppHost
         services.AddSingleton<WatchFolderService>();
         services.AddSingleton<TriggerService>();
         services.AddSingleton<RadialController>();
+        services.AddSingleton<BlobCompanionService>();
         services.AddSingleton<TrayService>();
         services.AddSingleton<UpdateService>();
         services.AddSingleton<MemoryTrimmer>();

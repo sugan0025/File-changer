@@ -137,14 +137,15 @@ public sealed class SetupBench : IDisposable
 
     public string InstallFolder => Paths.DefaultInstallFolder(InstallScope.Machine);
 
-    /// <summary>The published app: Filee.exe, the "filee" command, an engine and a few more files.</summary>
+    /// <summary>The published HOOT app with legacy Filee executable and CLI aliases for existing integrations.</summary>
     private void WriteApp(Action<TempFolder, string>? app)
     {
-        _temp.Write(@"app\Filee.exe", "Filee 2");
         _temp.Write(@"app\Hoot.exe", "HOOT 2");
-        _temp.Write(@"app\Filee.dll", new string('a', 20_000));
-        _temp.Write(@"app\cli\filee.cmd", "@\"%~dp0..\\filee-cli.exe\" %*");
+        _temp.Write(@"app\Filee.exe", "HOOT 2");
+        _temp.Write(@"app\hoot-cli.exe", "cli");
         _temp.Write(@"app\filee-cli.exe", "cli");
+        _temp.Write(@"app\cli\hoot.cmd", "@\"%~dp0..\\hoot-cli.exe\" %*");
+        _temp.Write(@"app\cli\filee.cmd", "@\"%~dp0..\\filee-cli.exe\" %*");
         _temp.Write(@"app\engines\rhwp\rhwp.exe", "rhwp");
         _temp.Write(@"app\FileeExplorerMenu.dll", "menu");
         _temp.Write(@"app\FileeExplorerMenu.msix", "package");
@@ -155,7 +156,7 @@ public sealed class SetupBench : IDisposable
     public string MakeSetup(string version)
     {
         var program = _temp.Write("program.exe", "MZ stand-in for the Setup program " + new string('p', 3000));
-        var output = _temp.Sub($"Filee-{version}-win-Setup.exe");
+        var output = _temp.Sub($"HOOT-{version}-win-Setup.exe");
         Filee.Setup.Payload.SetupPayload.Write(program, AppFolder, output, version,
             [new Filee.Setup.Payload.EngineOffer("pandoc", ["pandoc"], 42_000_000, 236_000_000, true)], ".filee-component", fast: true);
         return SetupExe = output;

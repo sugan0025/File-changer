@@ -12,7 +12,7 @@
         x:Class="Filee.App.Views.HideWindow"
         x:DataType="vm:HideWindowViewModel"
         Title="{DynamicResource preset.hide}"
-        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Icon="avares://Hoot/Assets/Icons/filee.ico"
         Width="1040" Height="720" MinWidth="680" MinHeight="500"
         WindowDecorations="None"
         Background="Transparent"

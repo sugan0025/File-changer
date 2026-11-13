@@ -20,8 +20,9 @@ public class InstallerTests
         Assert.True(result.Succeeded, result.Error?.ToString());
         var folder = bench.InstallFolder;
 
-        foreach (var file in new[] { "Hoot.exe", "Filee.exe", "Filee.dll", @"cli\filee.cmd", @"engines\rhwp\rhwp.exe", "uninstall.exe", "uninstall.json" })
+        foreach (var file in new[] { "Hoot.exe", "Filee.exe", "hoot-cli.exe", "filee-cli.exe", @"cli\hoot.cmd", @"cli\filee.cmd", @"engines\rhwp\rhwp.exe", "uninstall.exe", "uninstall.json" })
             Assert.True(File.Exists(Path.Combine(folder, file)), file);
+        Assert.Equal(File.ReadAllBytes(Path.Combine(folder, "Hoot.exe")), File.ReadAllBytes(Path.Combine(folder, "Filee.exe")));
         Assert.Empty(Directory.EnumerateDirectories(folder, FileSwap.WorkFolderPrefix + "*"));
         var record = InstallRecord.Read(folder)!;
         Assert.Equal("2.0.0", record.Version);
@@ -262,6 +263,7 @@ public class InstallerTests
         Assert.True(result.Succeeded);
         Assert.Null(result.Launch);
         Assert.True(File.Exists(Path.Combine(folder, "Hoot.exe")));
+        Assert.True(File.Exists(Path.Combine(folder, "Filee.exe")));
         // No uninstaller: the app counts itself as portable (UpdateService.IsInstalled).
         Assert.False(File.Exists(Path.Combine(folder, "uninstall.exe")));
         Assert.False(portable.Registry.KeyExists(Hive.LocalMachine, Key));

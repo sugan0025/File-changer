@@ -124,13 +124,13 @@ try {
                 $latestTag = $release.tag_name
                 $setupAsset = $release.assets | Where-Object { $_.name -like 'Hoot*win-Setup.exe' } | Select-Object -First 1
                 if ($setupAsset) {
-                    $setupChecksumName = $setupAsset.name -replace '-win-Setup\.exe$', '-SHA256SUMS.txt'
+                    $setupChecksumName = $setupAsset.name -replace '-win-Setup\.exe$', '-win-SHA256SUMS.txt'
                     $setupChecksumAsset = $release.assets | Where-Object { $_.name -eq $setupChecksumName } | Select-Object -First 1
                 }
                 $zipAsset = $release.assets | Where-Object { $_.name -like "Hoot*win-Portable.zip" } | Select-Object -First 1
                 if ($zipAsset) {
                     $downloadUrl = $zipAsset.browser_download_url
-                    $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-SHA256SUMS.txt'
+                    $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-win-SHA256SUMS.txt'
                     $checksumAsset = $release.assets | Where-Object { $_.name -eq $checksumName } | Select-Object -First 1
                     if ($checksumAsset) { $checksumUrl = $checksumAsset.browser_download_url }
                 }
@@ -145,13 +145,13 @@ try {
             $latestTag = $release.tag_name
             $setupAsset = $release.assets | Where-Object { $_.name -like 'Hoot*win-Setup.exe' } | Select-Object -First 1
             if ($setupAsset) {
-                $setupChecksumName = $setupAsset.name -replace '-win-Setup\.exe$', '-SHA256SUMS.txt'
+                $setupChecksumName = $setupAsset.name -replace '-win-Setup\.exe$', '-win-SHA256SUMS.txt'
                 $setupChecksumAsset = $release.assets | Where-Object { $_.name -eq $setupChecksumName } | Select-Object -First 1
             }
             $zipAsset = $release.assets | Where-Object { $_.name -like "Hoot*win-Portable.zip" } | Select-Object -First 1
             if ($zipAsset) {
                 $downloadUrl = $zipAsset.browser_download_url
-                $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-SHA256SUMS.txt'
+                $checksumName = $zipAsset.name -replace '-win-Portable\.zip$', '-win-SHA256SUMS.txt'
                 $checksumAsset = $release.assets | Where-Object { $_.name -eq $checksumName } | Select-Object -First 1
                 if ($checksumAsset) { $checksumUrl = $checksumAsset.browser_download_url }
             }
@@ -270,7 +270,7 @@ try {
     if ($latestTag) {
         $releaseVersion = $latestTag.TrimStart('v', 'V')
         $releaseUrl = "https://github.com/$repo/releases/download/$latestTag"
-        $checksumUrls.Add("$releaseUrl/Hoot-$releaseVersion-SHA256SUMS.txt")
+        $checksumUrls.Add("$releaseUrl/HOOT-$releaseVersion-win-SHA256SUMS.txt")
     }
 
     $checksumManifest = $null

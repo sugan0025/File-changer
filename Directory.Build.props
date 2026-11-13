@@ -14,10 +14,10 @@
          parameters of a member is fine (CS1573). -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
-    <Version>2.5.0</Version>
+    <Version>2.6.0</Version>
     <Product>HOOT</Product>
     <AssemblyTitle>HOOT</AssemblyTitle>
-    <Description>HOOT</Description>
+    <Description>HOOT file conversion companion</Description>
     <Authors>Suganesan S.</Authors>
     <Company>Suganesan S.</Company>
     <Copyright>Copyright (c) Filee contributors</Copyright>

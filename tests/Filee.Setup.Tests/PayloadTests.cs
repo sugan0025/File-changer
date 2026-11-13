@@ -14,7 +14,8 @@ public class PayloadTests
         using var bench = new SetupBench(app: (temp, _) => temp.Write(@"app\data\big.bin", new string('z', 3_000_000)));
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal("2.0.0", payload.Manifest.Version);
-        Assert.Contains(payload.Manifest.Files, f => f.Path == "Filee.exe");
+        Assert.Contains(payload.Manifest.Files, f => f.Path == "Hoot.exe");
+        Assert.Contains(payload.Manifest.Files, f => f.Path == "Filee.exe"); // compatibility alias
         Assert.Contains(payload.Manifest.Files, f => f.Path == @"engines\rhwp\rhwp.exe");
         Assert.Equal("pandoc", Assert.Single(payload.Manifest.Engines).Id);
         Assert.Equal(".filee-component", payload.Manifest.EngineMarker);
@@ -63,7 +64,7 @@ public class PayloadTests
         using var bench = new SetupBench(app: (temp, _) => File.Copy(Path.Combine(Environment.SystemDirectory, "kernel32.dll"), temp.Sub(@"app\native.dll")));
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         Assert.Equal(PayloadFile.X86, payload.Manifest.Files.Single(f => f.Path == "native.dll").Filter);
-        Assert.Equal("", payload.Manifest.Files.Single(f => f.Path == @"cli\filee.cmd").Filter);
+        Assert.Equal("", payload.Manifest.Files.Single(f => f.Path == @"cli\hoot.cmd").Filter);
         var target = bench.Temp.Sub("out");
         payload.ExtractTo(target, cancellation: TestContext.Current.CancellationToken);
         Assert.Equal(File.ReadAllBytes(bench.Temp.Sub(@"app\native.dll")), File.ReadAllBytes(Path.Combine(target, "native.dll")));
@@ -148,7 +149,7 @@ public class PayloadTests
         var manifestStart = bytes.Length - SetupPayload.TrailerLength - manifestLength;
         var json = System.Text.Encoding.UTF8.GetString(bytes, manifestStart, manifestLength);
         var manifest = PayloadManifest.FromJson(bytes.AsSpan(manifestStart, manifestLength));
-        var victim = manifest.Files.First(f => f.Path == "Filee.exe");
+        var victim = manifest.Files.First();
         var forged = json.Replace(victim.Sha256, new string('0', 64), StringComparison.Ordinal);
         Assert.Equal(json.Length, forged.Length);
         var forgedBytes = System.Text.Encoding.UTF8.GetBytes(forged);
@@ -159,7 +160,7 @@ public class PayloadTests
         using var payload = SetupPayload.Open(bench.SetupExe)!;
         payload.Verify(cancellation: TestContext.Current.CancellationToken);
         var error = Assert.Throws<InvalidDataException>(() => payload.ExtractTo(bench.Temp.Sub("out"), cancellation: TestContext.Current.CancellationToken));
-        Assert.Contains("Filee.exe", error.Message);
+        Assert.Contains(victim.Path, error.Message);
     }
 
     [Theory]
@@ -179,7 +180,7 @@ public class PayloadTests
         // A minimal PE32+ header whose certificate table (security directory) is the last 512 bytes of the file, as
         // signtool leaves a signed Setup: the payload sits right before it.
         var app = temp.Sub("app");
-        temp.Write(@"app\Filee.exe", "Filee");
+        temp.Write(@"app\Hoot.exe", "HOOT");
         var program = temp.Sub("program.exe");
         File.WriteAllBytes(program, MinimalPe(0, 0));
         var unsigned = temp.Sub("unsigned.exe");
@@ -196,7 +197,7 @@ public class PayloadTests
 
         using var payload = SetupPayload.Open(temp.Sub("signed.exe"))!;
         payload.Verify(cancellation: TestContext.Current.CancellationToken);
-        Assert.Equal("Filee.exe", Assert.Single(payload.Manifest.Files).Path);
+        Assert.Equal("Hoot.exe", Assert.Single(payload.Manifest.Files).Path);
     }
 
     [Fact]
@@ -205,7 +206,7 @@ public class PayloadTests
         // A release signs the Setup program, then Setup.exe: Setup.exe's header no longer points to the program's
         // signature (its own goes at the end), and the uninstaller copied out of it points to it again.
         using var temp = new TempFolder();
-        temp.Write(@"app\Filee.exe", "Filee");
+        temp.Write(@"app\Hoot.exe", "HOOT");
         var program = temp.Sub("program.exe");
         var bytes = MinimalPe(0, 0);
         var pe = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(0x3C));
