@@ -195,9 +195,26 @@ public class EnginesPageTests
                 totalOffline += window.GetVisualDescendants().OfType<Button>().Count(b => Equals(b.Content, "Offline") && b.IsVisible);
             }
             Assert.Equal(EngineDownloads.Packages.Count(EngineDownloads.CanDownload), totalOffline);
-            pageVm.SelectCategory(1);
+            // Pick a category that offers offline packages on this platform (category 1 is FFmpeg, which has no downloads on macOS).
+            var targetCategory = pageVm.Packages
+                .Where(p => p.HasOfflineMenu)
+                .Select(p => EnginesPageViewModel.GetCategoryForPackageId(p.Package.Id))
+                .DefaultIfEmpty(2)
+                .First();
+            pageVm.SelectCategory(targetCategory);
             Pump();
             var offline = window.GetVisualDescendants().OfType<Button>().Where(b => Equals(b.Content, "Offline") && b.IsVisible).ToList();
+            if (offline.Count == 0)
+            {
+                foreach (var cat in new[] { 2, 1, 0 })
+                {
+                    pageVm.SelectCategory(cat);
+                    Pump();
+                    offline = window.GetVisualDescendants().OfType<Button>().Where(b => Equals(b.Content, "Offline") && b.IsVisible).ToList();
+                    if (offline.Count > 0) break;
+                }
+            }
+            Assert.NotEmpty(offline);
             var menu = Assert.IsType<MenuFlyout>(offline[0].Flyout);
             menu.ShowAt(offline[0]);
             Pump();

@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Filee.App.Services;
 using Filee.App.ViewModels;
@@ -80,6 +81,8 @@ public class MergeOrderTests
             Click(dialog, "MoveDown"); // 300, 200, 400
             Assert.Equal([inputs[1], inputs[0], inputs[2]], vm.OrderedFiles);
             dialog.KeyPress(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null); // 300, 400, 200
+            if (dialog.IsVisible)
+                dialog.KeyRelease(Key.Down, RawInputModifiers.Alt, PhysicalKey.ArrowDown, null);
             RenderTests.Pump();
             Assert.Equal([inputs[1], inputs[2], inputs[0]], vm.OrderedFiles);
             Assert.False(dialog.FindControl<Button>("MoveDown")!.IsEffectivelyEnabled);
@@ -87,6 +90,14 @@ public class MergeOrderTests
 
             if (cancel)
             {
+                if (dialog.IsVisible)
+                    dialog.Close();
+                for (var i = 0; i < 100 && dialog.IsVisible; i++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    await Task.Delay(10, TestContext.Current.CancellationToken);
+                }
+                Assert.False(dialog.IsVisible);
                 await Task.Delay(50, TestContext.Current.CancellationToken);
                 Dispatcher.UIThread.RunJobs();
                 Assert.DoesNotContain(conversions.Jobs, j => !before.Contains(j.Job.Id));
@@ -94,6 +105,18 @@ public class MergeOrderTests
             }
             else
             {
+                if (dialog.Result is null && dialog.IsVisible)
+                {
+                    dialog.StartMerge.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    RenderTests.Pump();
+                }
+                for (var i = 0; i < 100 && dialog.IsVisible; i++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    await Task.Delay(10, TestContext.Current.CancellationToken);
+                }
+                Assert.False(dialog.IsVisible);
+                Assert.NotNull(dialog.Result);
                 Assert.Equal(vm.OrderedFiles, dialog.Result);
                 var started = Assert.Single(await TestServices.WaitForJobsAsync(
                     conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
@@ -205,6 +228,18 @@ public class MergeOrderTests
             Assert.False(dialog.FindControl<Button>("MoveUp")!.IsEffectivelyEnabled);
 
             Click(dialog, "StartMerge");
+            if (dialog.Result is null && dialog.IsVisible)
+            {
+                dialog.StartMerge.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                RenderTests.Pump();
+            }
+            for (var i = 0; i < 100 && dialog.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.False(dialog.IsVisible);
+            Assert.NotNull(dialog.Result);
             Assert.Equal(vm.OrderedFiles, dialog.Result);
             var started = Assert.Single(await TestServices.WaitForJobsAsync(
                 conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
@@ -365,6 +400,16 @@ public class MergeOrderTests
             var saved = store.FindPreset("merge-images")!.Image;
             if (cancel)
             {
+                if (dialog.IsVisible)
+                    Click(dialog, "CancelMerge");
+                if (dialog.IsVisible)
+                    dialog.Close();
+                for (var i = 0; i < 100 && dialog.IsVisible; i++)
+                {
+                    Dispatcher.UIThread.RunJobs();
+                    await Task.Delay(10, TestContext.Current.CancellationToken);
+                }
+                Assert.False(dialog.IsVisible);
                 await Task.Delay(50, TestContext.Current.CancellationToken);
                 Dispatcher.UIThread.RunJobs();
                 Assert.DoesNotContain(conversions.Jobs, j => !before.Contains(j.Job.Id));
@@ -373,6 +418,20 @@ public class MergeOrderTests
                 return;
             }
 
+            if (dialog.Result is null && dialog.IsVisible)
+                Click(dialog, "StartMerge");
+            if (dialog.Result is null && dialog.IsVisible)
+            {
+                dialog.StartMerge.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                RenderTests.Pump();
+            }
+            for (var i = 0; i < 100 && dialog.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.False(dialog.IsVisible);
+            Assert.NotNull(dialog.Result);
             Assert.Equal(vm.OrderedFiles, dialog.Result);
             var started = Assert.Single(await TestServices.WaitForJobsAsync(
                 conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));

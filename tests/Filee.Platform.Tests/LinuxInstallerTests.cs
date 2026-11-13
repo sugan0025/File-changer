@@ -150,7 +150,7 @@ exec ""$REAL_MV"" ""$@""
         var (exitCode, output, error) = RunInstaller(env.SourceDir, env.DataDir, env.HomeDir);
 
         Assert.True(exitCode == 0, $"Install failed with code {exitCode}. Output: {output}. Error: {error}");
-        Assert.Contains("Installed Filee at", output);
+        Assert.Contains("Installed HOOT at", output);
 
         var installDir = Path.Combine(env.DataDir, "filee", "application");
         Assert.True(File.Exists(Path.Combine(installDir, "Filee")));
@@ -220,7 +220,7 @@ exec ""$REAL_MV"" ""$@""
         // Run upgrade
         var (exitCode2, output2, error2) = RunInstaller(v2Source, env.DataDir, env.HomeDir, "--upgrade");
         Assert.True(exitCode2 == 0, $"Upgrade failed with code {exitCode2}. Output: {output2}. Error: {error2}");
-        Assert.Contains("Upgraded Filee at", output2);
+        Assert.Contains("Upgraded HOOT at", output2);
 
         // Verify application was updated to v2.0.0
         Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
@@ -272,7 +272,7 @@ exec ""$REAL_MV"" ""$@""
 
         var (exitCode, output, error) = RunInstaller(v2Source, env.DataDir, env.HomeDir, "--upgrade");
         Assert.NotEqual(0, exitCode);
-        Assert.Contains("not installed by Filee", output + error);
+        Assert.Contains("not installed by HOOT", output + error);
 
         // Original installation must be untouched
         Assert.Equal("v1.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
@@ -347,7 +347,7 @@ exec ""$REAL_MV"" ""$@""
             new Dictionary<string, string> { ["SHIM_FAIL_ACTIVATION"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
-        Assert.Contains("Restored the previous Filee installation", output + error);
+        Assert.Contains("Restored the previous HOOT installation", output + error);
 
         // Original installation must be safely restored
         Assert.True(File.Exists(Path.Combine(installDir, "Filee")));
@@ -375,7 +375,7 @@ exec ""$REAL_MV"" ""$@""
 
         Assert.NotEqual(0, exitCode);
         Assert.Contains("Activated installation failed post-swap validation", output + error);
-        Assert.Contains("Restored the previous Filee installation", output + error);
+        Assert.Contains("Restored the previous HOOT installation", output + error);
 
         // Original installation must be safely restored
         Assert.True(File.Exists(Path.Combine(installDir, "Filee")));
@@ -540,7 +540,7 @@ exec ""$REAL_MV"" ""$@""
             new Dictionary<string, string> { ["SHIM_FAIL_CLEANUP_FAILED_DIR"] = "1" }, "--upgrade");
 
         Assert.NotEqual(0, exitCode);
-        Assert.Contains("Update failed. Restored the previous Filee installation", output + error);
+        Assert.Contains("Update failed. Restored the previous HOOT installation", output + error);
         Assert.Contains("Quarantined failed update files preserved at:", output + error);
 
         // Verify that the old installation was successfully restored to application directory
@@ -655,7 +655,7 @@ exec ""$REAL_MV"" ""$@""
             new Dictionary<string, string> { ["_FILEE_TEST_FAIL_ACTIVATION"] = "1", ["_FILEE_TEST_HARNESS"] = "com.filee.test.harness" }, "--upgrade");
 
         Assert.True(exitCode == 0, $"Upgrade failed unexpectedly. Output: {output}. Error: {error}");
-        Assert.Contains("Upgraded Filee at", output);
+        Assert.Contains("Upgraded HOOT at", output);
 
         var installDir = Path.Combine(env.DataDir, "filee", "application");
         Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
@@ -679,7 +679,7 @@ exec ""$REAL_MV"" ""$@""
         // Fresh install with spaces
         var (exitCode1, output1, error1) = RunInstaller(sourceDir, dataDir, homeDir);
         Assert.True(exitCode1 == 0, $"Fresh install failed. Output: {output1}. Error: {error1}");
-        Assert.Contains("Installed Filee at", output1);
+        Assert.Contains("Installed HOOT at", output1);
 
         var installDir = Path.Combine(dataDir, "filee", "application");
         Assert.True(File.Exists(Path.Combine(installDir, "Filee")));
@@ -691,7 +691,7 @@ exec ""$REAL_MV"" ""$@""
 
         var (exitCode2, output2, error2) = RunInstaller(v2Source, dataDir, homeDir, "--upgrade");
         Assert.True(exitCode2 == 0, $"Upgrade failed. Output: {output2}. Error: {error2}");
-        Assert.Contains("Upgraded Filee at", output2);
+        Assert.Contains("Upgraded HOOT at", output2);
         Assert.Equal("v2.0.0", File.ReadAllText(Path.Combine(installDir, "version.txt")).Trim());
     }
 

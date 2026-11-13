@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Filee.App.Services;
@@ -65,6 +66,8 @@ public class AskPagesTests
     private static void Press(Window window, Key key)
     {
         window.KeyPress(key, RawInputModifiers.None, PhysicalKey.None, null);
+        if (window.IsVisible)
+            window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.None, null);
         RenderTests.Pump();
     }
 
@@ -133,7 +136,16 @@ public class AskPagesTests
             Assert.False(vm.SplitPages);
             dialog.FindControl<TextBox>("RangeBox")!.Focus();
             Press(dialog, cancel ? Key.Escape : Key.Enter);
+            if (!cancel && dialog.Result is null && dialog.IsVisible)
+                Click(dialog, "StartPages");
+            for (var i = 0; i < 100 && dialog.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
             Assert.False(dialog.IsVisible);
+            if (!cancel)
+                Assert.NotNull(dialog.Result);
 
             if (cancel)
             {
@@ -206,6 +218,20 @@ public class AskPagesTests
             Assert.Equal(5m, dialog.FindControl<NumericUpDown>("GroupSize")!.Value);
             dialog.FindControl<TextBox>("RangeBox")!.Focus();
             Press(dialog, Key.Enter);
+            if (dialog.Result is null && dialog.IsVisible)
+                Click(dialog, "StartPages");
+            if (dialog.Result is null && dialog.IsVisible)
+            {
+                dialog.StartPages.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                RenderTests.Pump();
+            }
+            for (var i = 0; i < 100 && dialog.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.NotNull(dialog.Result);
+            Assert.False(dialog.IsVisible);
 
             var job = Assert.Single(await TestServices.WaitForJobsAsync(
                 conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
@@ -270,12 +296,33 @@ public class AskPagesTests
             Type(first, "13-55");
             Assert.True(first.FindControl<RadioButton>("OnePdf")!.IsChecked);
             Press(first, Key.Enter);
+            if (first.Result is null && first.IsVisible)
+                Click(first, "StartPages");
+            for (var i = 0; i < 100 && first.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.NotNull(first.Result);
+            Assert.False(first.IsVisible);
 
             var second = await WaitForWindow(windows, first);
             Assert.Equal("File 2 of 2", second.FindControl<TextBlock>("FileOfText")!.Text);
             Assert.Equal("Pages in this PDF: 30", second.FindControl<TextBlock>("PageCount")!.Text);
             Type(second, "15-23");
             Click(second, "StartPages");
+            if (second.Result is null && second.IsVisible)
+            {
+                second.StartPages.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                RenderTests.Pump();
+            }
+            for (var i = 0; i < 100 && second.IsVisible; i++)
+            {
+                Dispatcher.UIThread.RunJobs();
+                await Task.Delay(10, TestContext.Current.CancellationToken);
+            }
+            Assert.NotNull(second.Result);
+            Assert.False(second.IsVisible);
 
             var jobs = await TestServices.WaitForJobsAsync(
                 conversions, before, 2, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
