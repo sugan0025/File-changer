@@ -111,6 +111,9 @@ elseif (-not $PublishDir) {
     $runtimeTo = @{}
     if ($Runtime -eq 'win-x64') { $runtimeTo = @{ RuntimeTo = $PublishDir } }
     & (Join-Path $PSScriptRoot 'fetch-engines.ps1') -Runtime $Runtime -Only rhwp, 7zip -Destination (Join-Path $PublishDir 'engines') @runtimeTo
+    if ($Runtime -eq 'win-arm64') {
+        Copy-Item (Join-Path $natives 'unhwp\unhwp.dll') (Join-Path $PublishDir 'unhwp.dll') -Force
+    }
 }
 $PublishDir = (Resolve-Path $PublishDir).Path
 if (-not (Test-Path (Join-Path $PublishDir 'Hoot.exe'))) { throw "Hoot.exe is missing in $PublishDir" }
@@ -121,6 +124,15 @@ New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli') | Out-Nu
 Set-Content (Join-Path $PublishDir 'cli\hoot.cmd') "@`"%~dp0..\hoot-cli.exe`" %*" -Encoding ascii
 Set-Content (Join-Path $PublishDir 'cli\filee.cmd') "@`"%~dp0..\filee-cli.exe`" %*" -Encoding ascii
 if (-not $CheckOnly) {
+    if ($Runtime -eq 'win-arm64' -and -not (Test-Path (Join-Path $PublishDir 'unhwp.dll'))) {
+        $stagedUnhwp = Join-Path $cache 'win-arm64-native\unhwp\unhwp.dll'
+        if (-not (Test-Path $stagedUnhwp)) {
+            $stagedUnhwp = Join-Path $root 'engines\unhwp\unhwp.dll'
+        }
+        if (Test-Path $stagedUnhwp) {
+            Copy-Item $stagedUnhwp (Join-Path $PublishDir 'unhwp.dll') -Force
+        }
+    }
     # Without them rhwp and unhwp fail on PCs without the Visual C++ Redistributable (#248). They go into the payload
     # and the portable zip; Setup checks again after unpacking (RuntimeCheck) on the user's PC.
     $required = if ($Runtime -eq 'win-x64') { 'vcruntime140.dll', 'engines\rhwp\msvcp140.dll', 'engines\rhwp\vcruntime140.dll' } else { @('unhwp.dll') }
