@@ -1,4 +1,4 @@
-// "Convert with Filee" in the top-level Windows 11 File Explorer context menu: a tiny in-process COM server
+// "Convert with HOOT" in the top-level Windows 11 File Explorer context menu: a tiny in-process COM server
 // (IClassFactory + IExplorerCommand) that Explorer loads through the Filee sparse package. Built with
 // build/build-explorer-menu.ps1; the package side lives in src/Filee.Platform.Windows/ExplorerMenu*.cs.
 //
@@ -23,7 +23,7 @@ static const IID kIidClassFactory = {0x00000001, 0x0000, 0x0000, {0xc0, 0x00, 0x
 static const IID kIidExplorerCommand = {0xa08ce4d0, 0xfa25, 0x44ab, {0xb5, 0x7c, 0xc7, 0xb1, 0xc3, 0x23, 0xe0, 0xb9}};
 static const KNOWNFOLDERID kFolderRoamingAppData = {0x3eb685db, 0x65f9, 0x4cf6, {0xa0, 0x3a, 0xe3, 0xef, 0x65, 0x72, 0x9f, 0x3d}};
 
-#define DEFAULT_TITLE L"Convert with Filee"
+#define DEFAULT_TITLE L"Convert with HOOT"
 // Written by the app into its data folder (%APPDATA%\Filee, which survives app updates) while the Explorer menu
 // setting is on; first line = the title in the UI language. No file = the entry is hidden, so the setting can switch
 // the entry off and on again without re-registering the package (which needs administrator rights).

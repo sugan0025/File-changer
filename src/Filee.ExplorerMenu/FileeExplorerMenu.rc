@@ -24,12 +24,12 @@ BEGIN
         BLOCK "040904B0"
         BEGIN
             VALUE "CompanyName", "Suganesan S."
-            VALUE "FileDescription", "Filee File Explorer context menu"
+            VALUE "FileDescription", "HOOT File Explorer context menu"
             VALUE "FileVersion", FILEE_VERSION_TEXT
             VALUE "InternalName", "FileeExplorerMenu"
             VALUE "LegalCopyright", "Copyright (c) Filee contributors. MIT License."
             VALUE "OriginalFilename", "FileeExplorerMenu.dll"
-            VALUE "ProductName", "Filee"
+            VALUE "ProductName", "HOOT"
             VALUE "ProductVersion", FILEE_VERSION_TEXT
         END
     END
