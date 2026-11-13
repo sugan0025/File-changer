@@ -489,6 +489,14 @@ internal static class SettingsMigrations
             settings.BlobCompanion.AppAwareness.EnabledApps ??= new BlobAppAwarenessSettings().EnabledApps;
         }
 
+        // v80: add HOOT's own optional foreground quip without replacing the user's selected app rules.
+        if (settings.SchemaVersion < 80)
+        {
+            var enabledApps = settings.BlobCompanion?.AppAwareness?.EnabledApps;
+            if (enabledApps is { Count: > 0 } && !enabledApps.Contains("hoot", StringComparer.OrdinalIgnoreCase))
+                enabledApps.Add("hoot");
+        }
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 

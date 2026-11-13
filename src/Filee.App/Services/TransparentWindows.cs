@@ -10,6 +10,7 @@ using System.Runtime.Versioning;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Filee.App.Views;
 using Filee.Platform.Windows;
 using Microsoft.Extensions.Logging;
 
@@ -44,6 +45,19 @@ internal static class TransparentWindows
             log.LogInformation("{Window}: transparency {Actual} (asked {Asked}), {State}, transparency effects {Effects}",
                 kind, window.ActualTransparencyLevel, string.Join(", ", window.TransparencyLevelHint), state,
                 WindowBackdrop.TransparencyEffects() switch { true => "on", false => "off", null => "unknown" });
+
+        // The desktop companion must show only the Blob. On Windows, "auto" may still select a backdrop
+        // for a borderless transparent window, which appears as a dark card behind the character.
+        if (window is BlobCompanionWindow && state.SystemBackdrop != WindowBackdropState.BackdropNone)
+        {
+            var companionBackdropCleared = WindowBackdrop.ClearForeign(hwnd);
+            if (companionBackdropCleared)
+                log.LogInformation("{Window}: disabled the automatic DWM backdrop", kind);
+            else
+                log.LogWarning("{Window}: could not disable the automatic DWM backdrop", kind);
+            return;
+        }
+
         if (!state.HasForeignMaterial)
             return;
         var cleared = WindowBackdrop.ClearForeign(hwnd);

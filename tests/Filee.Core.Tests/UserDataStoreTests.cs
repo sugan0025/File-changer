@@ -46,8 +46,8 @@ public partial class UserDataStoreTests
         var store = new UserDataStore(dir.Path);
         store.Load();
 
-        Assert.Equal(79, AppSettings.CurrentSchemaVersion);
-        Assert.Equal(79, store.Settings.SchemaVersion);
+        Assert.Equal(80, AppSettings.CurrentSchemaVersion);
+        Assert.Equal(80, store.Settings.SchemaVersion);
         Assert.Equal("ja", store.Settings.Language);
         Assert.False(store.Settings.StartWithSystem);
         Assert.True(store.Settings.Paused);
@@ -59,7 +59,7 @@ public partial class UserDataStoreTests
         Assert.True(store.Settings.BlobCompanion.AppAwareness.Enabled);
 
         var saved = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(dir.Path, "settings.json")))!;
-        Assert.Equal(79, (int)saved["schemaVersion"]!);
+        Assert.Equal(80, (int)saved["schemaVersion"]!);
         Assert.Equal("ja", (string)saved["language"]!);
         Assert.True((bool)saved["paused"]!);
         Assert.True((bool)saved["blobCompanion"]!["isVisible"]!);
@@ -86,6 +86,57 @@ public partial class UserDataStoreTests
         Assert.True(store.Settings.BlobCompanion.IsVisible);
         Assert.False(store.Settings.BlobCompanion.AppAwareness.Enabled);
         Assert.Contains("claude", store.Settings.BlobCompanion.AppAwareness.EnabledApps);
+    }
+
+    [Fact]
+    public void Schema_79_adds_hoot_quip_rule_without_replacing_existing_app_rules()
+    {
+        using var dir = new TempDir();
+        var settings = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 79,
+            ["blobCompanion"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["appAwareness"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["enabled"] = true,
+                    ["enabledApps"] = new System.Text.Json.Nodes.JsonArray("claude", "chatgpt"),
+                },
+            },
+        };
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), settings.ToJsonString());
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Equal(80, store.Settings.SchemaVersion);
+        Assert.Contains("claude", store.Settings.BlobCompanion.AppAwareness.EnabledApps);
+        Assert.Contains("chatgpt", store.Settings.BlobCompanion.AppAwareness.EnabledApps);
+        Assert.Contains("hoot", store.Settings.BlobCompanion.AppAwareness.EnabledApps);
+    }
+
+    [Fact]
+    public void Schema_79_keeps_all_app_quips_disabled_when_the_saved_rule_list_is_empty()
+    {
+        using var dir = new TempDir();
+        var settings = new System.Text.Json.Nodes.JsonObject
+        {
+            ["schemaVersion"] = 79,
+            ["blobCompanion"] = new System.Text.Json.Nodes.JsonObject
+            {
+                ["appAwareness"] = new System.Text.Json.Nodes.JsonObject
+                {
+                    ["enabled"] = true,
+                    ["enabledApps"] = new System.Text.Json.Nodes.JsonArray(),
+                },
+            },
+        };
+        File.WriteAllText(Path.Combine(dir.Path, "settings.json"), settings.ToJsonString());
+
+        var store = new UserDataStore(dir.Path);
+        store.Load();
+
+        Assert.Empty(store.Settings.BlobCompanion.AppAwareness.EnabledApps);
     }
 
     [Theory]

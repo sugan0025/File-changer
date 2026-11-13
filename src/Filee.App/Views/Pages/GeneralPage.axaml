@@ -26,6 +26,7 @@
               <ToggleSwitch Content="{DynamicResource general.blob_awareness}" IsChecked="{Binding AppAwarenessEnabled}" />
               <TextBlock Classes="caption" Text="{DynamicResource general.blob_awareness_hint}" TextWrapping="Wrap" />
               <WrapPanel IsEnabled="{Binding AppAwarenessAppsEnabled}">
+                <ToggleSwitch Content="HOOT" IsChecked="{Binding AwarenessHoot}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="Claude" IsChecked="{Binding AwarenessClaude}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="ChatGPT" IsChecked="{Binding AwarenessChatGpt}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="Antigravity" IsChecked="{Binding AwarenessAntigravity}" Margin="0,0,12,4" />

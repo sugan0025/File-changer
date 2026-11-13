@@ -11,6 +11,14 @@ internal static class BlobAppAwareness
 
     public static IReadOnlyList<Reaction> Reactions { get; } =
     [
+        new("hoot", "HOOT",
+        [
+            "HOOT is open. I was just keeping your files company.",
+            "Back at HOOT? I saved you a tiny spot at the desk.",
+            "The boss is here. I’ll look professionally adorable.",
+            "HOOT is ready. I brought my best troubleshooting face.",
+            "Welcome back. I’ve been supervising the pixels."
+        ], ["hoot"], []),
         new("claude", "Claude",
         [
             "Ooo, forgot how to code? Let Claude dust off those brain cells.",
@@ -235,6 +243,13 @@ internal sealed class ForegroundActivationTracker
     public void EstablishBaseline(ForegroundAppContext? context)
     {
         _current = ForegroundActivation.From(context);
+        // HOOT's main window is commonly foreground when the companion starts. Leave it unbased so
+        // the first awareness tick can show the requested one-time HOOT welcome quip.
+        if (_current.Value.AppKey == "hoot")
+        {
+            _current = null;
+            return;
+        }
         if (_current.Value.AppKey is not null)
             _reacted.Add(_current.Value);
     }

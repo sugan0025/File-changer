@@ -10,6 +10,7 @@ namespace Filee.App.Tests;
 public sealed class BlobAppAwarenessTests
 {
     [Theory]
+    [InlineData("hoot", "hoot")]
     [InlineData("claude", "claude")]
     [InlineData("ChatGPT", "chatgpt")]
     [InlineData("antigravity.exe", "antigravity")]
@@ -56,7 +57,7 @@ public sealed class BlobAppAwarenessTests
         Assert.True(settings.Enabled);
         Assert.Contains("claude", settings.EnabledApps);
         Assert.Contains("linkedin", settings.EnabledApps);
-        Assert.Equal(10, settings.EnabledApps.Count);
+        Assert.Equal(11, settings.EnabledApps.Count);
     }
 
     [Theory]
@@ -145,6 +146,21 @@ public sealed class BlobAppAwarenessTests
         Assert.Null(sameSiteOtherWindow);
         Assert.True(tracker.Enter(chrome with { WindowTitle = "ChatGPT - Google Chrome" }, out var otherSite));
         Assert.Equal("chatgpt", otherSite);
+    }
+
+    [Fact]
+    public void First_hoot_foreground_after_baseline_gets_one_quip_per_process()
+    {
+        var tracker = new ForegroundActivationTracker();
+        var hoot = new ForegroundAppContext("hoot", ProcessId: 90, WindowHandle: 900,
+            ProcessStartTimeUtcTicks: 9000);
+
+        tracker.EstablishBaseline(hoot);
+
+        Assert.True(tracker.Enter(hoot, out var firstEntry));
+        Assert.Equal("hoot", firstEntry);
+        Assert.False(tracker.Enter(hoot, out var duplicate));
+        Assert.Null(duplicate);
     }
 
     [Fact]

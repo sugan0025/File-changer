@@ -51,6 +51,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         var awareness = store.Settings.BlobCompanion.AppAwareness;
         _appAwarenessEnabled = awareness.Enabled;
         _awarenessClaude = awareness.EnabledApps.Contains("claude");
+        _awarenessHoot = awareness.EnabledApps.Contains("hoot");
         _awarenessChatGpt = awareness.EnabledApps.Contains("chatgpt");
         _awarenessAntigravity = awareness.EnabledApps.Contains("antigravity");
         _awarenessChrome = awareness.EnabledApps.Contains("chrome");
@@ -180,13 +181,14 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
     [ObservableProperty] private bool _cinemaDimEnabled;
     [ObservableProperty] private bool _stretchReminderEnabled;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(AppAwarenessAppsEnabled))] private bool _appAwarenessEnabled;
-    [ObservableProperty] private bool _awarenessClaude, _awarenessChatGpt, _awarenessAntigravity, _awarenessChrome;
+    [ObservableProperty] private bool _awarenessHoot, _awarenessClaude, _awarenessChatGpt, _awarenessAntigravity, _awarenessChrome;
     [ObservableProperty] private bool _awarenessExplorer, _awarenessNetflix, _awarenessSpotify, _awarenessWhatsApp;
     [ObservableProperty] private bool _awarenessGemini, _awarenessLinkedIn;
     private bool _restoringAwareness;
     public bool AppAwarenessAppsEnabled => AppAwarenessEnabled;
     partial void OnAppAwarenessEnabledChanged(bool value) => Save(s => s.BlobCompanion.AppAwareness.Enabled = value);
     partial void OnAwarenessClaudeChanged(bool value) => SaveAwarenessApp("claude", value);
+    partial void OnAwarenessHootChanged(bool value) => SaveAwarenessApp("hoot", value);
     partial void OnAwarenessChatGptChanged(bool value) => SaveAwarenessApp("chatgpt", value);
     partial void OnAwarenessAntigravityChanged(bool value) => SaveAwarenessApp("antigravity", value);
     partial void OnAwarenessChromeChanged(bool value) => SaveAwarenessApp("chrome", value);
@@ -213,7 +215,7 @@ public sealed partial class GeneralPageViewModel : ObservableObject, IDisposable
         var settings = _store.Settings.BlobCompanion.AppAwareness;
         AppAwarenessEnabled = settings.Enabled;
         var apps = settings.EnabledApps ?? [];
-        AwarenessClaude = apps.Contains("claude"); AwarenessChatGpt = apps.Contains("chatgpt");
+        AwarenessHoot = apps.Contains("hoot"); AwarenessClaude = apps.Contains("claude"); AwarenessChatGpt = apps.Contains("chatgpt");
         AwarenessAntigravity = apps.Contains("antigravity"); AwarenessChrome = apps.Contains("chrome");
         AwarenessExplorer = apps.Contains("file-explorer"); AwarenessNetflix = apps.Contains("netflix");
         AwarenessSpotify = apps.Contains("spotify"); AwarenessWhatsApp = apps.Contains("whatsapp");

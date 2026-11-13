@@ -11,6 +11,7 @@ internal sealed class WindowsFocusedInputWatcher : IDisposable
     private static readonly Guid AutomationClassId = new("FF48DBA4-60EF-4201-AA87-54103EEF594E");
     private static readonly Guid AutomationInterfaceId = new("30CBE57D-D9D0-452A-AB13-7AC5AC4825EE");
     private const uint InprocServer = 1;
+    private const uint CoInitApartmentThreaded = 0x2;
     private const int EditControlType = 50004;
     private const int ComboBoxControlType = 50003;
     private const int DocumentControlType = 50030;
@@ -41,8 +42,15 @@ internal sealed class WindowsFocusedInputWatcher : IDisposable
     {
         IntPtr automation = IntPtr.Zero;
         PlatformScreenBounds? previous = null;
+        var comInitialized = false;
         try
         {
+            // This thread is created explicitly with ApartmentState.STA, but that only selects the apartment.
+            // CoCreateInstance is a native call, so initialize COM on this thread before requesting UI Automation.
+            var initializeResult = CoInitializeEx(IntPtr.Zero, CoInitApartmentThreaded);
+            Marshal.ThrowExceptionForHR(initializeResult);
+            comInitialized = true; // Both S_OK and S_FALSE require a matching CoUninitialize.
+
             var classId = AutomationClassId;
             var interfaceId = AutomationInterfaceId;
             Marshal.ThrowExceptionForHR(CoCreateInstance(ref classId, IntPtr.Zero, InprocServer, ref interfaceId, out automation));
@@ -81,6 +89,8 @@ internal sealed class WindowsFocusedInputWatcher : IDisposable
         {
             if (automation != IntPtr.Zero)
                 Marshal.Release(automation);
+            if (comInitialized)
+                CoUninitialize();
         }
     }
 
@@ -130,6 +140,12 @@ internal sealed class WindowsFocusedInputWatcher : IDisposable
         if (Thread.CurrentThread != _thread)
             _thread.Join(TimeSpan.FromMilliseconds(300));
     }
+
+    [DllImport("ole32.dll", ExactSpelling = true, PreserveSig = true)]
+    private static extern int CoInitializeEx(IntPtr reserved, uint coInit);
+
+    [DllImport("ole32.dll", ExactSpelling = true)]
+    private static extern void CoUninitialize();
 
     [DllImport("ole32.dll", ExactSpelling = true, PreserveSig = true)]
     private static extern int CoCreateInstance(ref Guid classId, IntPtr outer, uint classContext,
