@@ -68,7 +68,7 @@ $OutputDir = (Resolve-Path $OutputDir).Path
 
 if ($CheckOnly) {
     # A stand-in HOOT app for the Setup sandbox check.
-    $check = Join-Path $cache 'installer-check'
+    $check = Join-Path ([System.IO.Path]::GetTempPath()) "Hoot-installer-check-$([System.Guid]::NewGuid().ToString('N'))"
     Remove-Item $check -Recurse -Force -ErrorAction SilentlyContinue
     $PublishDir = Join-Path $check 'app'
     New-Item -ItemType Directory -Force -Path (Join-Path $PublishDir 'cli'), (Join-Path $PublishDir 'engines\rhwp') | Out-Null
@@ -135,7 +135,7 @@ if (-not $CheckOnly) {
 
 # Setup: one self-contained, trimmed program (src/Filee.Setup).
 if (-not $SetupProgram) {
-    $setupFolder = Join-Path $cache 'setup'
+    $setupFolder = if ($CheckOnly) { Join-Path $check 'setup-build' } else { Join-Path $cache 'setup' }
     Remove-Item $setupFolder -Recurse -Force -ErrorAction SilentlyContinue
     Invoke-Checked 'dotnet publish (setup)' {
         dotnet publish (Join-Path $root 'src\Filee.Setup\Filee.Setup.csproj') -c Release -r $Runtime -p:FileeSetupPublish=true `

@@ -39,6 +39,8 @@ internal static class TransparentWindows
         if (!window.IsVisible || window.TryGetPlatformHandle() is not { Handle: var hwnd and not 0 })
             return;
         var kind = window.GetType().Name;
+        if (window is BlobCompanionWindow && !WindowTaskSwitching.ExcludeFromTaskSwitchers(hwnd))
+            log.LogWarning("{Window}: could not exclude companion from Task View and Alt+Tab", kind);
         WindowBackdrop.ResetAccent(hwnd);
         var state = WindowBackdrop.Read(hwnd);
         if (Described.Add(kind))

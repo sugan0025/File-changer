@@ -22,6 +22,9 @@ $legacyDir = Join-Path $env:LOCALAPPDATA "Programs\Filee"
 $tempZip = Join-Path $env:TEMP "Hoot-Setup-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8)).zip"
 $tempSetup = Join-Path $env:TEMP "Hoot-Setup-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8)).exe"
 $stagingDir = Join-Path $env:TEMP "Hoot-Staging-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+$installParent = Split-Path -Parent $installDir
+$installStageDir = Join-Path $installParent ".Hoot-Staging-$([System.Guid]::NewGuid().ToString('N'))"
+$installBackupDir = Join-Path $installParent ".Hoot-Backup-$([System.Guid]::NewGuid().ToString('N'))"
 $checksumUrl = $null
 $setupAsset = $null
 $setupChecksumAsset = $null
@@ -272,40 +275,52 @@ try {
         $releaseUrl = "https://github.com/$repo/releases/download/$latestTag"
         $checksumUrls.Add("$releaseUrl/HOOT-$releaseVersion-win-SHA256SUMS.txt")
     }
+    # The release publishes a stable manifest for the stable portable ZIP, including when the GitHub API is unavailable.
+    $checksumUrls.Add("https://github.com/$repo/releases/latest/download/HOOT-win-SHA256SUMS.txt")
 
     $checksumManifest = $null
     foreach ($url in $checksumUrls | Select-Object -Unique) {
         try {
-            $response = Invoke-WebRequest -Uri $url -Headers @{ "User-Agent" = "Hoot-Installer" } -UseBasicParsing -TimeoutSec 15
-            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
-                $checksumManifest = $response.Content
-                break
+            $checksumPath = "$tempZip.sha256sums.txt"
+            if ($curlExe) {
+                & $curlExe --ssl-no-revoke -sSfL -m 30 $url -o $checksumPath 2>$null
+                if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $checksumPath)) {
+                    $checksumManifest = Get-Content -LiteralPath $checksumPath -Raw
+                    break
+                }
+            }
+            if (-not $checksumManifest) {
+                $response = Invoke-WebRequest -Uri $url -Headers @{ "User-Agent" = "Hoot-Installer" } -UseBasicParsing -TimeoutSec 30
+                if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                    $checksumManifest = $response.Content
+                    break
+                }
             }
         } catch { }
     }
 
-    if ($checksumManifest) {
-        $archiveName = [System.IO.Path]::GetFileName(([System.Uri]$downloadUrl).AbsolutePath)
-        $expectedHash = $null
-        foreach ($line in ($checksumManifest -split "`r?`n")) {
-            if ($line -match '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$' -and
-                [System.IO.Path]::GetFileName($Matches[2]) -ieq $archiveName) {
-                $expectedHash = $Matches[1]
-                break
-            }
-        }
-        if (-not $expectedHash) {
-            throw "The release checksum manifest does not contain an entry for $archiveName."
-        }
-
-        $actualHash = (Get-FileHash -LiteralPath $tempZip -Algorithm SHA256).Hash
-        if ($actualHash -ine $expectedHash) {
-            throw "The downloaded archive failed SHA-256 verification. Expected $expectedHash; received $actualHash."
-        }
-        Write-Host "SHA-256 verification succeeded." -ForegroundColor Green
-    } else {
-        Write-Warning "No release SHA256SUMS.txt was available; continuing with the HTTPS download."
+    if (-not $checksumManifest) {
+        throw 'The HOOT release checksum manifest could not be downloaded. Nothing was installed.'
     }
+
+    $archiveName = [System.IO.Path]::GetFileName(([System.Uri]$downloadUrl).AbsolutePath)
+    $expectedHash = $null
+    foreach ($line in ($checksumManifest -split "`r?`n")) {
+        if ($line -match '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$' -and
+            [System.IO.Path]::GetFileName($Matches[2]) -ieq $archiveName) {
+            $expectedHash = $Matches[1]
+            break
+        }
+    }
+    if (-not $expectedHash) {
+        throw "The release checksum manifest does not contain an entry for $archiveName. Nothing was installed."
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $tempZip -Algorithm SHA256).Hash
+    if ($actualHash -ine $expectedHash) {
+        throw "The downloaded archive failed SHA-256 verification. Expected $expectedHash; received $actualHash."
+    }
+    Write-Host "SHA-256 verification succeeded." -ForegroundColor Green
 
     Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
     try {
@@ -328,30 +343,60 @@ try {
         throw "Download succeeded, but Hoot.exe was not found inside the HOOT zip archive. No files were installed."
     }
 
-    # Do not disrupt the installed copy until the archive has downloaded, verified (when a manifest is available),
-    # extracted, and its application executable has been found.
+    # Stage beside the target so the final directory rename stays on the same volume. Existing installs are not
+    # touched unless the complete payload has copied and passed its executable check.
+    New-Item -ItemType Directory -Force -Path $installParent, $installStageDir | Out-Null
+    Copy-Item -Path (Join-Path $payloadDir "*") -Destination $installStageDir -Recurse -Force
+    $stagedExe = Join-Path $installStageDir 'Hoot.exe'
+    if (-not (Test-Path -LiteralPath $stagedExe) -or (Get-Item -LiteralPath $stagedExe).Length -lt 1000000) {
+        throw 'The staged HOOT payload is incomplete; the existing installation was left untouched.'
+    }
+    Set-Content -Path (Join-Path $installStageDir ".installed") -Value "installed" -Force
+
     # Only close processes whose executable is inside one of the known install directories.
     Close-FileeProcesses @($installDir, $legacyDir)
 
-    # Clean up the legacy folder only after the replacement payload is ready.
-    if (Test-Path $legacyDir) {
+    $previousInstallMoved = $false
+    try {
+        if (Test-Path -LiteralPath $installDir) {
+            Move-Item -LiteralPath $installDir -Destination $installBackupDir
+            $previousInstallMoved = $true
+        }
+        Move-Item -LiteralPath $installStageDir -Destination $installDir
+        $installedExe = Join-Path $installDir 'Hoot.exe'
+        if (-not (Test-Path -LiteralPath $installedExe) -or (Get-Item -LiteralPath $installedExe).Length -lt 1000000) {
+            throw 'The new HOOT installation did not pass its post-swap executable check.'
+        }
+    } catch {
+        $swapError = $_
+        if (Test-Path -LiteralPath $installDir) {
+            $failedInstallDir = Join-Path $installParent ".Hoot-Failed-$([System.Guid]::NewGuid().ToString('N'))"
+            try { Move-Item -LiteralPath $installDir -Destination $failedInstallDir -ErrorAction Stop }
+            catch { throw "HOOT install swap failed, and the incomplete folder could not be moved aside. Previous install backup: $installBackupDir. Error: $($_.Exception.Message)" }
+        }
+        if ($previousInstallMoved -and (Test-Path -LiteralPath $installBackupDir)) {
+            try { Move-Item -LiteralPath $installBackupDir -Destination $installDir -ErrorAction Stop }
+            catch { throw "HOOT install swap failed and automatic rollback could not restore the previous install. Backup preserved at $installBackupDir. Error: $($_.Exception.Message)" }
+        }
+        throw "HOOT install swap failed; the previous installation was restored when present. $($swapError.Exception.Message)"
+    }
+
+    # Remove old folders only after the replacement has passed its post-swap check. Cleanup failure leaves the
+    # new HOOT usable and reports the old path for manual removal.
+    if (Test-Path -LiteralPath $legacyDir) {
         $legacyExe = Join-Path $legacyDir 'Hoot.exe'
         if (-not (Test-Path -LiteralPath $legacyExe)) { $legacyExe = Join-Path $legacyDir 'Filee.exe' }
         if (Test-Path -LiteralPath $legacyExe) {
-            Close-FileeProcesses @($legacyDir)
-            Remove-Item $legacyDir -Recurse -Force
+            try { Remove-Item -LiteralPath $legacyDir -Recurse -Force -ErrorAction Stop }
+            catch { Write-Warning "HOOT installed successfully, but the legacy folder could not be removed: $legacyDir" }
         } else {
             Write-Warning "A folder exists at $legacyDir but it contains no HOOT/Filee executable. Leaving it untouched."
         }
     }
-
-    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-
-    # Copy payload to install directory
-    Copy-Item -Path (Join-Path $payloadDir "*") -Destination $installDir -Recurse -Force
-
-    # Mark as installed copy so automatic silent in-place updating is enabled
-    Set-Content -Path (Join-Path $installDir ".installed") -Value "installed" -Force
+    if (Test-Path -LiteralPath $installBackupDir) {
+        try { Remove-Item -LiteralPath $installBackupDir -Recurse -Force -ErrorAction Stop }
+        catch { Write-Warning "HOOT installed successfully, but the previous app folder could not be cleaned up: $installBackupDir" }
+    }
 
     # Launch only the HOOT executable.
     $targetExe = Join-Path $installDir "Hoot.exe"
@@ -394,13 +439,12 @@ try {
     Write-Host "Installation Complete! Launching HOOT..." -ForegroundColor Green
     Write-Host ""
 
-    # Anonymous installation counter ping (Option B)
-    try { if (Get-Command curl.exe -ErrorAction SilentlyContinue) { & curl.exe -sL -m 3 "https://hits.sh/github.com/sugan0025/File-changer/installs.svg" 2>$null | Out-Null } else { (New-Object System.Net.WebClient).DownloadString("https://hits.sh/github.com/sugan0025/File-changer/installs.svg") | Out-Null } } catch { }
-
     Start-Process -FilePath $targetExe
 }
 finally {
     Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item $installStageDir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+    Remove-Item "$tempZip.sha256sums.txt" -Force -ErrorAction SilentlyContinue
     if (-not $keepTempSetup) { Remove-Item $tempSetup -Force -ErrorAction SilentlyContinue }
 }

@@ -132,6 +132,14 @@ jobs:
           $stablePortable = Join-Path Releases 'Hoot-win-Portable.zip'
           if (-not (Test-Path $stablePortable)) { Copy-Item $portable.FullName $stablePortable -Force }
 
+          # Stable installer URLs must still be verifiable when GitHub's release API is unavailable.
+          $windowsSums = Join-Path Releases "HOOT-$version-win-SHA256SUMS.txt"
+          if (-not (Test-Path $windowsSums)) { throw "Windows checksum manifest is missing for $version." }
+          $stableSums = Join-Path Releases 'HOOT-win-SHA256SUMS.txt'
+          Copy-Item $windowsSums $stableSums -Force
+          $stableHash = (Get-FileHash $stablePortable -Algorithm SHA256).Hash.ToLowerInvariant()
+          Add-Content -LiteralPath $stableSums -Value "$stableHash  Hoot-win-Portable.zip" -Encoding ascii
+
           $files = Get-ChildItem Releases -File | ForEach-Object FullName
           Write-Host "Releasing files: $($files -join ', ')"
 
