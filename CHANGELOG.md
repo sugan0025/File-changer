@@ -14,6 +14,19 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.6.0
+
+<!-- update
+level: optional
+en: Meet Blob on the Windows desktop, with local app reactions and keyboard-aware gaze.
+en: Drop files onto Blob to hand them to HOOT's existing conversion wheel.
+en: HOOT branding and Windows setup updates preserve existing settings and Filee install migration.
+-->
+
+- **Windows desktop companion**: The existing Blobatar can live as a small transparent desktop companion, with local app quips, focused-control gaze, idle motion, and file-drop handoff to the existing conversion wheel.
+- **HOOT branding and updates**: HOOT is the primary Windows app and installer name; legacy Filee installation paths remain supported for migration.
+- **Installer safety**: Windows releases include HOOT setup and portable packages with SHA-256 checksums.
+
 ## 2.4.2
 
 <!-- update
