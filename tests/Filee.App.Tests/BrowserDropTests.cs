@@ -80,7 +80,7 @@ public class BrowserDropTests
         data.Add(Platform(BrowserDragFormats.UniformResourceLocatorW, "https://example.com/gallery/cat.png"));
         data.Add(Platform(BrowserDragFormats.MozUrl, "https://example.com/gallery/cat.png\nA cat"));
         data.Add(DataTransferItem.Create(DataFormat.CreateBytesPlatformFormat(BrowserDragFormats.FileGroupDescriptorW),
-            BrowserDragFormats.BuildFileGroupDescriptor([new FileDescriptor(file.Item.Name, Png.Length, false)])));
+            Filee.Core.Tests.TestDragData.BuildFileGroupDescriptor([new FileDescriptor(file.Item.Name, Png.Length, false)])));
         return data;
     }
 

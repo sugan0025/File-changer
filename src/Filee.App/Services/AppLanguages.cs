@@ -27,6 +27,9 @@ internal static class AppLanguages
         ("th", "ไทย"),
         ("it", "Italiano"),
         ("id", "Bahasa Indonesia"),
+        ("bn-BD", "বাংলা"),
+        ("fa", "فارسی"),
+        ("vi", "Tiếng Việt"),
     ];
 
     /// <summary>Shared Portuguese region policy for the app and Setup, including legacy Inno language codes.</summary>

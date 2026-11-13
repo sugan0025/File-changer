@@ -68,7 +68,7 @@ public class BrowserDragFormatsTests
     [Fact]
     public void A_descriptor_cut_short_or_absurd_gives_nothing()
     {
-        var data = BrowserDragFormats.BuildFileGroupDescriptor([new FileDescriptor("a.png", 3, false), new FileDescriptor("b.png", null, false)]);
+        var data = TestDragData.BuildFileGroupDescriptor([new FileDescriptor("a.png", 3, false), new FileDescriptor("b.png", null, false)]);
         Assert.Equal(2, BrowserDragFormats.ParseFileGroupDescriptor(data).Count);
         Assert.Empty(BrowserDragFormats.ParseFileGroupDescriptor(data.AsSpan(0, data.Length - 1)));
         Assert.Empty(BrowserDragFormats.ParseFileGroupDescriptor([0xFF, 0xFF, 0xFF, 0x7F]));

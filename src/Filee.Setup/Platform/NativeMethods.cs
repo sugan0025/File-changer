@@ -22,13 +22,9 @@ internal static partial class NativeMethods
     private const uint WM_SETTINGCHANGE = 0x001A;
     private const uint SMTO_ABORTIFHUNG = 0x0002;
     public const uint MB_OK = 0x0;
-    public const uint MB_YESNO = 0x4;
     public const uint MB_ICONERROR = 0x10;
-    public const uint MB_ICONQUESTION = 0x20;
     public const uint MB_ICONWARNING = 0x30;
-    public const uint MB_ICONINFORMATION = 0x40;
     public const uint MB_SETFOREGROUND = 0x10000;
-    public const int IDYES = 6;
 
     [LibraryImport("kernel32.dll", EntryPoint = "MoveFileExW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]

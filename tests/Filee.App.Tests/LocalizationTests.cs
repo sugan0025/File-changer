@@ -38,7 +38,25 @@ public partial class LocalizationTests
         Assert.Equal("ar", LocalizationService.Resolve("AR"));
         Assert.Contains("fonts:Filee#Noto Sans Arabic", ThemeService.FontFamilies("ar"));
         Assert.True(SoftPalette.IsRightToLeft("ar"));
-        Assert.All(LocalizationService.Languages.Where(l => l.Code != "ar"), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
+        Assert.All(LocalizationService.Languages.Where(l => l.Code is not ("ar" or "fa")), l => Assert.False(SoftPalette.IsRightToLeft(l.Code)));
+    }
+
+    [Fact]
+    public void Persian_is_offered_under_its_own_name_and_reads_right_to_left()
+    {
+        Assert.Contains(("fa", "فارسی"), LocalizationService.Languages);
+        Assert.Equal("fa", LocalizationService.Resolve("FA"));
+        Assert.True(SoftPalette.IsRightToLeft("fa"));
+    }
+
+    [Fact]
+    public void Bengali_and_Vietnamese_are_offered_under_their_own_names()
+    {
+        Assert.Contains(("bn-BD", "বাংলা"), LocalizationService.Languages);
+        Assert.Equal("bn-BD", LocalizationService.Resolve("bn-BD"));
+        Assert.Equal("bn-BD", LocalizationService.Resolve("BN-bd"));
+        Assert.Contains(("vi", "Tiếng Việt"), LocalizationService.Languages);
+        Assert.Equal("vi", LocalizationService.Resolve("VI"));
     }
 
     [Theory]

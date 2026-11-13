@@ -90,7 +90,7 @@ public class SetupWindowTests
     {
         var (model, _, runner) = Model(language);
         var window = Show(model);
-        Assert.Equal(language == "ar" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
+        Assert.Equal(language is "ar" or "fa" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
         Check(window, $"setup-1-welcome-{language}.png");
 
         model.ToggleOptionsCommand.Execute(null);
@@ -287,7 +287,7 @@ public class SetupWindowTests
         Pump();
         Assert.Equal(language, texts.Language);
         // Picking Arabic mirrors the card at once.
-        Assert.Equal(language == "ar" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
+        Assert.Equal(language is "ar" or "fa" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
         Assert.Equal(texts["installer.install"], model.PrimaryText);
         Assert.Contains("2.0.0", model.WelcomeText);
         var choices = model.Choices();

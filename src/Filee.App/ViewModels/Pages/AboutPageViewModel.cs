@@ -1,6 +1,5 @@
-// About: version, license, third-party notices.
+// About: version, license, updates.
 
-using Avalonia.Platform;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Filee.App.Services;
@@ -94,16 +93,5 @@ public sealed partial class AboutPageViewModel : ObservableObject, IDisposable
             : afterCheck && _updates.LastCheckFailed ? _loc["update.failed"]
             : afterCheck ? _loc.Format("general.update_none", UpdateService.CurrentVersion)
             : "";
-    }
-
-    public string Notices { get; } = ReadNotices();
-
-    private static string ReadNotices()
-    {
-        var uri = new Uri("avares://Hoot/Assets/THIRD-PARTY-NOTICES.md");
-        if (!AssetLoader.Exists(uri))
-            return "";
-        using var reader = new StreamReader(AssetLoader.Open(uri));
-        return reader.ReadToEnd();
     }
 }

@@ -99,7 +99,7 @@ public partial class HideWindow : Window
             Classes.Set(each, each == level || (each == "tight" && level == "compact"));
     }
 
-    /// <summary>The names changed (language, "Hide & Next" → "Hide & Save", Skip shown): fitted again once they show.</summary>
+    /// <summary>The names changed (language, "Hide &amp; Next" → "Hide &amp; Save", Skip shown): fitted again once they show.</summary>
     private void RefitToolbar() => Dispatcher.UIThread.Post(FitToolbar, DispatcherPriority.Render);
 
     internal HideCanvas HideCanvas => Canvas;

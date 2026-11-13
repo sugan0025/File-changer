@@ -38,10 +38,6 @@ public static partial class CopyVersions
         return Cache.GetOrAdd($"{program}|{File.GetLastWriteTimeUtc(program).Ticks}", _ => ParseVersion(id, Read(id, program)));
     }
 
-    /// <summary>True when the copy is older (major.minor) than the version Filee is tested with.</summary>
-    public static bool IsOutdated(string id, string folder) =>
-        Installed(id, folder) is { } installed && Expected(id) is { } expected && installed < expected;
-
     /// <summary>The version in a program's version output (or LibreOffice's version.ini).</summary>
     internal static Version? ParseVersion(string id, string text)
     {

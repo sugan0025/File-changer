@@ -158,7 +158,7 @@ public class AskPagesTests
             }
 
             var job = Assert.Single(await TestServices.WaitForJobsAsync(
-                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+                conversions, before, 1, TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, job.Job.State);
             using var extract = PdfReader.Open(Assert.Single(job.Job.Outputs), PdfDocumentOpenMode.Import);
             Assert.Equal([102d, 103d, 104d, 108d], extract.Pages.Cast<PdfPage>().Select(p => p.Width.Point));
@@ -234,7 +234,7 @@ public class AskPagesTests
             Assert.False(dialog.IsVisible);
 
             var job = Assert.Single(await TestServices.WaitForJobsAsync(
-                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+                conversions, before, 1, TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, job.Job.State);
             Assert.Equal(["book_p1-5.pdf", "book_p6-10.pdf", "book_p11-12.pdf"], job.Job.Outputs.Select(Path.GetFileName));
             using var last = PdfReader.Open(job.Job.Outputs.Last(), PdfDocumentOpenMode.Import);

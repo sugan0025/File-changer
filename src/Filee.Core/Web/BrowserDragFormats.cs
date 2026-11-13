@@ -87,28 +87,6 @@ public static partial class BrowserDragFormats
         return entries;
     }
 
-    /// <summary>Builds a FileGroupDescriptorW (for tests and fakes).</summary>
-    public static byte[] BuildFileGroupDescriptor(IReadOnlyList<FileDescriptor> entries)
-    {
-        var data = new byte[4 + entries.Count * DescriptorSize];
-        BinaryPrimitives.WriteUInt32LittleEndian(data, (uint)entries.Count);
-        for (var i = 0; i < entries.Count; i++)
-        {
-            var entry = data.AsSpan(4 + i * DescriptorSize, DescriptorSize);
-            var flags = FdAttributes | (entries[i].Size is null ? 0 : FdFileSize);
-            BinaryPrimitives.WriteUInt32LittleEndian(entry, flags);
-            BinaryPrimitives.WriteUInt32LittleEndian(entry[AttributesOffset..], entries[i].IsFolder ? FileAttributeDirectory : 0x80);
-            if (entries[i].Size is { } size)
-            {
-                BinaryPrimitives.WriteUInt32LittleEndian(entry[SizeHighOffset..], (uint)(size >> 32));
-                BinaryPrimitives.WriteUInt32LittleEndian(entry[(SizeHighOffset + 4)..], (uint)size);
-            }
-            var name = entries[i].Name.Length >= NameChars ? entries[i].Name[..(NameChars - 1)] : entries[i].Name;
-            Encoding.Unicode.GetBytes(name).CopyTo(entry[NameOffset..]);
-        }
-        return data;
-    }
-
     /// <summary>
     /// Text from a drag format's bytes: UTF-16 (little endian, as Windows and Firefox write it; with or without a BOM)
     /// or UTF-8, up to the first NUL (Windows pads its memory blocks).

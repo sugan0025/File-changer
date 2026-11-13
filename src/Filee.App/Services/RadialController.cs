@@ -179,17 +179,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// How long the ring shows a running job before the toast window takes over. Long enough for a typical office
-
-
-
+    ///
+    ///
+    ///
     /// document (LibreOffice needs a few seconds), so the user sees it finish where they dropped it.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -280,17 +280,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// How long a drag that never brought files may keep the invisible window up, in case the button release is
-
-
-
+    ///
+    ///
+    ///
     /// missed (the system dropped the input hook, a UAC prompt took the desktop): the window catches clicks.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -320,23 +320,23 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// Drag gesture started at the given physical screen point. The window is placed under the cursor but stays
-
-
-
+    ///
+    ///
+    ///
     /// invisible until files are dragged into it (FilesEntered); a gesture without files (text, a rubber-band
-
-
-
+    ///
+    ///
+    ///
     /// selection, nothing at all) never shows anything and closes when the button is released.
     /// <paramref name="backFace"/>: the gesture opens the donut on its back face (the front when the back has no slice
     /// for the files).
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -443,31 +443,31 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// Opens the donut for known files (click mode). Shortcuts among them stand for the files they point to.
-
-
-
+    ///
+    ///
+    ///
     /// <paramref name="forAnotherProcess"/>: the files came from a later launch or the Services menu, so on macOS the
-
-
-
+    ///
+    ///
+    ///
     /// donut may lose focus once while Filee becomes the active app. <paramref name="web"/>: the files are placeholders
-
-
-
+    ///
+    ///
+    ///
     /// of this browser drop (the drop zone, a picture on the clipboard), which the donut now owns.
-
-
-
+    ///
+    ///
+    ///
     /// <paramref name="toClipboard"/>: the files came from the clipboard, and their results go back on it.
     /// <paramref name="backFace"/>: open on the back face (a shortcut set to it), or the front when the back has no slice
     /// for the files.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -829,17 +829,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// The donut closed on files Filee can't read at all (".ncm"): offer to request the format, once per extension
-
-
-
+    ///
+    ///
+    ///
     /// while Filee runs. Files it reads, even mixed with unknown ones, get a conversion and the toast instead.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -1354,17 +1354,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// Converts with slice <paramref name="index"/>, or with slice <paramref name="sub"/> of that group's ring.
-
-
-
+    ///
+    ///
+    ///
     /// <paramref name="web"/>: the browser drop the files stand for, handed to the conversion (or disposed).
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -1707,17 +1707,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// "Merge images": the layout chosen in the merge order window (<paramref name="chosen"/>, a copy of the preset)
-
-
-
+    ///
+    ///
+    ///
     /// goes into the preset as saved, so the window opens with it next time.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -1974,17 +1974,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// What <paramref name="preset"/> converts of <paramref name="files"/>: folders only go into "Compress into one
-
-
-
+    ///
+    ///
+    ///
     /// archive"; any other preset converts the files beside them (issue #186).
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -2396,17 +2396,17 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// Has the global hook report the flip key and the wheel only while a drag-mode donut shows files that could flip;
-
-
-
+    ///
+    ///
+    ///
     /// they are left alone otherwise (see <see cref="TriggerService.WatchFlipKey"/>).
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 
@@ -2456,21 +2456,21 @@ public sealed class RadialController(
 
 
     /// <summary>
-
-
-
+    ///
+    ///
+    ///
     /// Top-left corner of a <paramref name="sidePx"/> square window centred on <paramref name="cursor"/>, moved into
-
-
-
+    ///
+    ///
+    ///
     /// <paramref name="area"/> when that would cross its edge. With group slices the window holds the ring they fan out
-
-
-
+    ///
+    ///
+    ///
     /// (<see cref="DonutMenu.SideFor"/>), so near a screen edge the donut moves in far enough for every ring to fit.
-
-
-
+    ///
+    ///
+    ///
     /// </summary>
 
 

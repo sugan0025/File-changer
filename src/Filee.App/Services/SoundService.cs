@@ -173,8 +173,6 @@ public sealed class SoundService : IDisposable
             PlayMacSound("Basso");
     }
 
-    public void PlayNav() => PlayFanOut();
-
     public void PlayButtonClick()
     {
         if (!_store.Settings.SoundEffects)

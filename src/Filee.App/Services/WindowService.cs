@@ -169,11 +169,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Reviews the order of a merge (<paramref name="preset"/>, when given, names the button). For "Merge images" the
-
+    ///
     /// layout is chosen too and written into <paramref name="preset"/>. Closing or cancelling starts no conversion.
-
+    ///
     /// </summary>
 
     public async Task<IReadOnlyList<string>?> ChooseMergeOrderAsync(IReadOnlyList<string> files, Preset? preset = null)
@@ -234,13 +234,13 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// "Ask every time" (#521): one save dialog for the batch, starting in the first source's folder. One result is
-
+    ///
     /// saved under a name (<see cref="AskedLocation.ForFile"/>), several go into a folder. Null when cancelled.
-
+    ///
     /// </summary>
-
+    ///
     /// <param name="oneResult">The batch makes one file (a single source, or a merge of several).</param>
 
     public async Task<Preset?> AskSaveLocationAsync(IReadOnlyList<string> sources, Preset preset, bool oneResult)
@@ -344,11 +344,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Opens the window of a tool preset (crop, cut a clip, edit pictures, pixelate / blur, the spreadsheet print studio:
-
+    ///
     /// one per workbook, the PDF page editor) on the files. A tool this version doesn't know opens nothing.
-
+    ///
     /// </summary>
 
     public void ShowTool(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
@@ -410,11 +410,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Opens the "Cut a clip" window on the videos among the files. Each clip is written by an ordinary conversion,
-
+    ///
     /// shown in the toast.
-
+    ///
     /// </summary>
 
     public void ShowClipWindow(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
@@ -470,11 +470,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Opens the "Edit pictures" window on the pictures among the files. Its Convert starts ordinary conversions, shown
-
+    ///
     /// in the toast.
-
+    ///
     /// </summary>
 
     public void ShowImageEditWindow(IReadOnlyList<string> files, Preset preset)
@@ -532,11 +532,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Opens the "Pixelate / blur" window on the pictures among the files. Each picture is written by an ordinary
-
+    ///
     /// conversion, shown in the toast.
-
+    ///
     /// </summary>
 
     public void ShowHideWindow(IReadOnlyList<string> files, Preset preset, PixelPoint? near = null)
@@ -681,11 +681,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// The pixel size of a picture as it is seen, read from its headers: turned as its EXIF orientation says, and the
-
+    ///
     /// largest of an icon's sizes (the one converted). Null when ImageMagick can't read it.
-
+    ///
     /// </summary>
 
     internal static (int Width, int Height)? PictureSize(string path)
@@ -865,15 +865,15 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Shows (or brings to front) the main window, optionally on a page. Going to the tray closes it
-
+    ///
     /// (<see cref="MainWindow.HideToTray"/>): a new one opens where and on the page the last one was. There is never
-
+    ///
     /// more than one: a call made while one is being built (a tray click handled meanwhile) goes to that one, and one
-
+    ///
     /// that is being released is left to close while a new one opens.
-
+    ///
     /// </summary>
 
     public void ShowMain(string? page = null)
@@ -1037,11 +1037,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Shows a version's "What's new" slides, centred on the main window when it is open; a second call replaces the
-
+    ///
     /// open window's slides.
-
+    ///
     /// </summary>
 
     public void ShowWhatsNew(Controls.SlideDeck deck)
@@ -1095,13 +1095,13 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>Opens the optional-engine choice (first run); a second call brings the open window to front.</summary>
-
+    ///
     /// <summary>
-
+    ///
     /// Shows the engine choice. With <paramref name="install"/> (packages picked in the installer) the downloads start
-
+    ///
     /// right away, and nothing opens when all of them are installed already.
-
+    ///
     /// </summary>
 
     public void ShowEngineSetup(IReadOnlyCollection<string>? install = null)
@@ -1201,11 +1201,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Starts downloading and installing an update, and opens the progress dialog.
-
+    ///
     /// Used by the sidebar, About page, and tray menu (the update notice has its own progress bar).
-
+    ///
     /// </summary>
 
     public async Task StartUpdateAsync(UpdateService updates)
@@ -1305,11 +1305,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Says that engines the user downloaded have a newer version. "Update" queues them (one after another) and opens
-
+    ///
     /// Settings → Engines to show the progress.
-
+    ///
     /// </summary>
 
     public void ShowEngineUpdateNotice(IReadOnlyList<EnginePackageState> outdated)
@@ -1413,9 +1413,9 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Shows the "Filee can't convert .ncm files yet" card with "Request this format", replacing an earlier one.
-
+    ///
     /// </summary>
 
     private ClipboardNoticeWindow? _clipboardNotice;
@@ -1531,11 +1531,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Opens the group editor. Returns true when the user saved (the group was updated) or deleted it (it was removed
-
+    ///
     /// from the presets and every donut). <paramref name="isNew"/>: not in the store yet, so it can't be deleted.
-
+    ///
     /// </summary>
 
     public async Task<bool> EditGroupAsync(Preset group, Window? owner, bool isNew = false)
@@ -1622,11 +1622,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// The last run's in-app update (Linux) failed while installing and the installer put the old version back: say so,
-
+    ///
     /// with the log that has the details, then open the website to download the new version there.
-
+    ///
     /// </summary>
 
     public async Task ShowUpdateRolledBackAsync(string? logPath)
@@ -1760,11 +1760,11 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
     /// <summary>
-
+    ///
     /// Where the main window was and which page it showed, for the next one. The page stays within this run; the rest is
-
+    ///
     /// also kept in settings.json for the next start (<see cref="AppSettings.MainWindow"/>).
-
+    ///
     /// </summary>
 
     internal sealed record MainWindowPlacement(PixelPoint? Position, Size? Size, bool Maximized, string Page)
@@ -1900,15 +1900,15 @@ public sealed class WindowService(ILocalizer loc, IServiceProvider services, Mem
 
 
         /// <summary>
-
+        ///
         /// The main window on a screen whose working area is <paramref name="area"/> (pixels, at <paramref name="scaling"/>):
-
+        ///
         /// <paramref name="size"/> made to fit the area less <see cref="Margin"/> and <see cref="Frame"/>, the
-
+        ///
         /// <paramref name="min"/>imum lowered where the area is smaller than it, and <paramref name="position"/> moved
-
+        ///
         /// back inside the area where the window would stick out (null stays null: the window opens centred).
-
+        ///
         /// </summary>
 
         internal static (Size Size, Size Min, PixelPoint? Position) Fit(PixelRect area, double scaling, PixelPoint? position, Size size, Size min)

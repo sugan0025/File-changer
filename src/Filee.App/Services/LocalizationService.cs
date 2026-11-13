@@ -146,6 +146,12 @@ public sealed class LocalizationService : ILocalizer
         // "th" and "th-TH", but not Tharu "thl".
         if (ui.Equals("th", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("th-", StringComparison.OrdinalIgnoreCase))
             return "th";
+        if (ui.Equals("bn", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("bn-", StringComparison.OrdinalIgnoreCase))
+            return "bn-BD";
+        if (ui.Equals("fa", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("fa-", StringComparison.OrdinalIgnoreCase))
+            return "fa";
+        if (ui.Equals("vi", StringComparison.OrdinalIgnoreCase) || ui.StartsWith("vi-", StringComparison.OrdinalIgnoreCase))
+            return "vi";
         return "en";
     }
 
