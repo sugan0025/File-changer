@@ -23,6 +23,7 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
     private DispatcherTimer? _cinemaTimer;
     private PixelPoint? _pendingPosition;
     private IDisposable? _foregroundChanges;
+    private IDisposable? _topmostChanges;
     private IDisposable? _focusedInputWatcher;
     private readonly BlobQuipPicker _quipPicker = new();
     private readonly ForegroundActivationTracker _foregroundTracker = new();
@@ -189,6 +190,7 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
 
         if (!_window.IsVisible)
             _window.Show();
+        SyncTopmostMonitor();
         SyncAwarenessMonitor();
         SyncIdleMonitor();
         SyncPresentationMonitor();
@@ -196,9 +198,38 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
 
     private void OnCompanionVisibilityChanged(bool visible)
     {
+        SyncTopmostMonitor();
         SyncAwarenessMonitor();
         SyncIdleMonitor();
         SyncPresentationMonitor();
+    }
+
+    private void SyncTopmostMonitor()
+    {
+        if (_disposed || !IsSupported || _window?.IsVisible != true)
+        {
+            _topmostChanges?.Dispose();
+            _topmostChanges = null;
+            return;
+        }
+
+        // Avalonia's Topmost flag establishes the initial z-order. Reassert it when another app becomes
+        // foreground, without activating HOOT, so newly opened normal windows cannot cover the companion.
+        var handle = _window.TryGetPlatformHandle()?.Handle ?? 0;
+        if (handle != 0)
+            platform.RaiseTopmost(handle);
+
+        if (_topmostChanges is null)
+        {
+            _topmostChanges = platform.WatchForegroundChanges(_ => Dispatcher.UIThread.Post(() =>
+            {
+                if (_disposed || _window?.IsVisible != true)
+                    return;
+                var currentHandle = _window.TryGetPlatformHandle()?.Handle ?? 0;
+                if (currentHandle != 0)
+                    platform.RaiseTopmost(currentHandle);
+            }));
+        }
     }
 
     private void SyncIdleMonitor()
@@ -502,6 +533,8 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
             _conversionSubscribed = false;
         }
         StopAwarenessObservers();
+        _topmostChanges?.Dispose();
+        _topmostChanges = null;
         _awarenessTimer = null;
         _idleTimer?.Stop();
         _idleTimer = null;
