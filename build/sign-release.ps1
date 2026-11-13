@@ -78,7 +78,15 @@ finally {
 }
 
 $setup = Join-Path $out "HOOT-$Version-win-Setup.exe"
-$files = @($setup, (Join-Path $out "HOOT-$Version-win-Portable.zip"), (Join-Path $out "HOOT-$Version-win-SHA256SUMS.txt"))
+$portable = Join-Path $out "HOOT-$Version-win-Portable.zip"
+$stablePortable = Join-Path $out 'Hoot-win-Portable.zip'
+$checksums = Join-Path $out "HOOT-$Version-win-SHA256SUMS.txt"
+$stableChecksums = Join-Path $out 'HOOT-win-SHA256SUMS.txt'
+if (-not (Test-Path $portable)) { throw "$portable was not written." }
+if (-not (Test-Path $stablePortable)) { throw "$stablePortable was not written." }
+if (-not (Test-Path $checksums)) { throw "$checksums was not written." }
+Copy-Item -LiteralPath $checksums -Destination $stableChecksums -Force
+$files = @($setup, $portable, $stablePortable, $checksums, $stableChecksums)
 foreach ($file in $files) { if (-not (Test-Path $file)) { throw "$file was not written." } }
 
 # The signed Setup still finds its payload, and what it installs is signed, the uninstaller too.
