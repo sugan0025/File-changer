@@ -1,5 +1,5 @@
-using Filee.App.Services;
 using Filee.App.Controls;
+using Filee.App.Services;
 using Filee.Core.Settings;
 using Xunit;
 

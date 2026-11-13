@@ -1444,29 +1444,29 @@ public sealed partial class DonutMenu : Control
     {
         using (rotation != 0 ? context.PushTransform(Matrix.CreateTranslation(-center.X, -center.Y) * Matrix.CreateRotation(rotation) * Matrix.CreateTranslation(center.X, center.Y)) : default)
         {
-        var pen = new Pen(brush, 1.2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        // Angles in radians from 3 o'clock, growing clockwise on screen (y points down). From 1 o'clock almost round to
-        // 11 o'clock, leaving a gap at the top where the head points into.
-        const double start = -Math.PI / 3, sweep = Math.PI * 5 / 3;
-        Point At(double angle) => new(center.X + radius * Math.Cos(angle), center.Y + radius * Math.Sin(angle));
-        var end = start + sweep;
-        var arc = new StreamGeometry();
-        using (var g = arc.Open())
-        {
-            g.BeginFigure(At(start), false);
-            g.ArcTo(At(end), new Size(radius, radius), 0, sweep > Math.PI, SweepDirection.Clockwise);
-            g.EndFigure(false);
-        }
-        context.DrawGeometry(null, pen, arc);
+            var pen = new Pen(brush, 1.2, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            // Angles in radians from 3 o'clock, growing clockwise on screen (y points down). From 1 o'clock almost round to
+            // 11 o'clock, leaving a gap at the top where the head points into.
+            const double start = -Math.PI / 3, sweep = Math.PI * 5 / 3;
+            Point At(double angle) => new(center.X + radius * Math.Cos(angle), center.Y + radius * Math.Sin(angle));
+            var end = start + sweep;
+            var arc = new StreamGeometry();
+            using (var g = arc.Open())
+            {
+                g.BeginFigure(At(start), false);
+                g.ArcTo(At(end), new Size(radius, radius), 0, sweep > Math.PI, SweepDirection.Clockwise);
+                g.EndFigure(false);
+            }
+            context.DrawGeometry(null, pen, arc);
 
-        // The head: two strokes back from the end, along the circle's tangent there and either side of it.
-        var tip = At(end);
-        var along = new Vector(-Math.Sin(end), Math.Cos(end)); // clockwise
-        var outward = new Vector(Math.Cos(end), Math.Sin(end));
-        var head = radius * 0.75;
-        var back = tip - along * head;
-        context.DrawLine(pen, back + outward * head * 0.6, tip);
-        context.DrawLine(pen, back - outward * head * 0.6, tip);
+            // The head: two strokes back from the end, along the circle's tangent there and either side of it.
+            var tip = At(end);
+            var along = new Vector(-Math.Sin(end), Math.Cos(end)); // clockwise
+            var outward = new Vector(Math.Cos(end), Math.Sin(end));
+            var head = radius * 0.75;
+            var back = tip - along * head;
+            context.DrawLine(pen, back + outward * head * 0.6, tip);
+            context.DrawLine(pen, back - outward * head * 0.6, tip);
         }
     }
 

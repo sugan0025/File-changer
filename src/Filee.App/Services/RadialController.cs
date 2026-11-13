@@ -1268,11 +1268,11 @@ public sealed class RadialController(
 
 
 
-                EventHandler flipKeyHandler = (_, _) =>
-        {
-            if (FlipsFromHook)
-                donut.Flip();
-        };
+        EventHandler flipKeyHandler = (_, _) =>
+{
+    if (FlipsFromHook)
+        donut.Flip();
+};
         EventHandler flipWheelHandler = (_, _) =>
         {
             if (FlipsFromHook)
@@ -1952,7 +1952,7 @@ public sealed class RadialController(
 
 
 
-        private async Task ShowToolForBrowserFilesAsync(WebDrop web, Filee.Core.Presets.Preset preset, PixelPoint? near)
+    private async Task ShowToolForBrowserFilesAsync(WebDrop web, Filee.Core.Presets.Preset preset, PixelPoint? near)
     {
         try
         {

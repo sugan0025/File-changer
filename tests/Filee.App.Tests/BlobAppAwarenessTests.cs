@@ -1,8 +1,8 @@
+using System.Text.Json;
 using Avalonia;
 using Filee.App.Services;
 using Filee.Core.Platform;
 using Filee.Core.Settings;
-using System.Text.Json;
 using Xunit;
 
 namespace Filee.App.Tests;

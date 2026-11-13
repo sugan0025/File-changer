@@ -1748,4 +1748,4 @@ internal static class SettingsMigrations
             list.Insert(index, id);
     }
 
-    }
+}

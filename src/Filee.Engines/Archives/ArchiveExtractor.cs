@@ -1,9 +1,9 @@
-using Filee.Core.Platform;
 // Unpacks every archive format Filee reads into a folder: the bundled 7-Zip for most of them, Filee's own readers for
 // ALZ, EGG and lzip. Compressed TARs (.tar.gz, .tar.lz …) and RPM payloads are unpacked stage by stage until the
 // files appear. Every stage is checked first (encryption, paths leaving the folder, disk space) and links are removed.
 
 using Filee.Core.Formats;
+using Filee.Core.Platform;
 
 namespace Filee.Engines.Archives;
 

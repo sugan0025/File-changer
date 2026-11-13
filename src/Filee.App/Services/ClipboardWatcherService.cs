@@ -1,7 +1,7 @@
-using Filee.Core.Localization;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Threading;
+using Filee.Core.Localization;
 using Filee.Core.Platform;
 using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;

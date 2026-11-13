@@ -62,7 +62,8 @@ internal static class RecycleBin
             {
                 refusal = new TrashRefusal("trash.failed", ex.Message);
             }
-        }) { IsBackground = true, Name = "Filee Recycle Bin" };
+        })
+        { IsBackground = true, Name = "Filee Recycle Bin" };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         if (!thread.Join(15000))

@@ -1,10 +1,10 @@
-using Avalonia.Threading;
 // System tray icon: open settings, pause gestures, install a new version, quit.
 
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Filee.Core.Localization;
 using Filee.Core.Platform;
 using Filee.Core.Settings;

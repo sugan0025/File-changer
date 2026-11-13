@@ -1,4 +1,3 @@
-using Filee.Core.Platform;
 // Shared context for engines: where Filee's own engine copies live and where engines keep their state.
 // Built-in engines never use software installed on the system (Microsoft Office, Hancom Office). The optional
 // engines (FFmpeg, calibre, Pandoc, Ghostscript, LibreOffice, Tesseract) are looked up in this order: a copy the user chose in
@@ -8,6 +7,7 @@ using Filee.Core.Platform;
 using System.Collections.Concurrent;
 using System.Runtime.Versioning;
 using System.Security;
+using Filee.Core.Platform;
 using Filee.Core.Settings;
 using Microsoft.Win32;
 

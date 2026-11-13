@@ -201,12 +201,23 @@ public sealed class BlobatarState
 
         var inp = new BlobatarInput
         {
-            Pointer = _pointer, DragOver = _dragOver, Curious = _curious, Paused = _paused, Napping = _napping,
-            CompanionMode = _companionMode, SuppressAutonomousWinks = _suppressAutonomousWinks,
-            DragLean = _dragLean, DragStretch = _dragStretch, RestLean = _restLean,
-            Fullness = _fullness, CompanionEyeRoll = eyeRoll,
-            Hover = _hover, ClockSleepy = clockSleepy,
-            Intensity = look.Intensity, Deadzone = _deadzone, Sensitivity = _sensitivity,
+            Pointer = _pointer,
+            DragOver = _dragOver,
+            Curious = _curious,
+            Paused = _paused,
+            Napping = _napping,
+            CompanionMode = _companionMode,
+            SuppressAutonomousWinks = _suppressAutonomousWinks,
+            DragLean = _dragLean,
+            DragStretch = _dragStretch,
+            RestLean = _restLean,
+            Fullness = _fullness,
+            CompanionEyeRoll = eyeRoll,
+            Hover = _hover,
+            ClockSleepy = clockSleepy,
+            Intensity = look.Intensity,
+            Deadzone = _deadzone,
+            Sensitivity = _sensitivity,
         };
 
         _acc += dt;
@@ -255,7 +266,8 @@ internal sealed class BlobatarBrushCache
 
         Body = new LinearGradientBrush
         {
-            StartPoint = toLight, EndPoint = away,
+            StartPoint = toLight,
+            EndPoint = away,
             GradientStops = { new GradientStop(look.Hi, 0.0), new GradientStop(look.Mid, 0.45), new GradientStop(look.Lo, 1.0) },
         };
 
@@ -269,7 +281,8 @@ internal sealed class BlobatarBrushCache
         var ga = Math.Clamp(look.Gain, 0.5, 1.1);
         var rim = new LinearGradientBrush
         {
-            StartPoint = toLight, EndPoint = away,
+            StartPoint = toLight,
+            EndPoint = away,
             GradientStops =
             {
                 new GradientStop(A(look.Rim, 0.9 * ga), 0.0), new GradientStop(A(look.Rim, 0), 0.35),
@@ -279,7 +292,8 @@ internal sealed class BlobatarBrushCache
         RimPen = new Pen(rim, 3.0);
         GlowPen = new Pen(new LinearGradientBrush
         {
-            StartPoint = toLight, EndPoint = away,
+            StartPoint = toLight,
+            EndPoint = away,
             GradientStops = { new GradientStop(A(look.Rim, 0.08 * ga), 0.0), new GradientStop(A(look.Rim, 0), 0.5) },
         }, 6.0);
 

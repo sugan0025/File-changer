@@ -480,17 +480,25 @@ public sealed class BlobatarPhysics
 
         f.Left = new BlobatarEye
         {
-            Center = _cenL, Scale = _pose.ScaleL,
+            Center = _cenL,
+            Scale = _pose.ScaleL,
             Gaze = ClampUnit(new Vector2(_glx.X, _gly.X) + _sacShared.Offset * .7f + _sacL.Offset * .3f),
             Lid = MathF.Max(_pose.LidL, MathF.Max(_blink.Value, _winkL.Value)),
-            Squint = _pose.SquintL + thinkSq, Roll = _pose.RollL + _companionEyeRoll, PupilRho = _pupil.X * 1.01f, Brow = _pose.BrowL,
+            Squint = _pose.SquintL + thinkSq,
+            Roll = _pose.RollL + _companionEyeRoll,
+            PupilRho = _pupil.X * 1.01f,
+            Brow = _pose.BrowL,
         };
         f.Right = new BlobatarEye
         {
-            Center = _cenR, Scale = _pose.ScaleR,
+            Center = _cenR,
+            Scale = _pose.ScaleR,
             Gaze = ClampUnit(new Vector2(_grx.X, _gry.X) + _sacShared.Offset * .7f + _sacR.Offset * .3f),
             Lid = MathF.Max(_pose.LidR, MathF.Max(_blink.Value, _winkR.Value)),
-            Squint = _pose.SquintR + thinkSq, Roll = _pose.RollR + _companionEyeRoll, PupilRho = _pupil.X * .99f, Brow = _pose.BrowR,
+            Squint = _pose.SquintR + thinkSq,
+            Roll = _pose.RollR + _companionEyeRoll,
+            PupilRho = _pupil.X * .99f,
+            Brow = _pose.BrowR,
         };
 
         f.Smile = Math.Clamp(MathF.Max(_pose.Smile, .12f * Math.Clamp(_fullness.X, 0f, 1f)), 0f, 1f);

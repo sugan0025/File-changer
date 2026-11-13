@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Filee.App.Controls;
 using Filee.App.Services.Triggers;
 using Filee.App.Views;
-using Filee.App.Controls;
 using Filee.Core.Platform;
 using Filee.Core.Settings;
 using Microsoft.Extensions.Logging;
