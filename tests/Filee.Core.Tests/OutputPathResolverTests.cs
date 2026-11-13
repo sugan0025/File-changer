@@ -136,11 +136,13 @@ public class OutputPathResolverTests
     [Fact]
     public void Custom_folder_is_used_when_set()
     {
-        var rule = new OutputRule { Location = OutputLocation.CustomFolder, CustomFolder = Path.Combine("D:", "out") };
+        using var dir = new TempDir();
+        var customFolder = Path.Combine(dir.Path, "out");
+        var rule = new OutputRule { Location = OutputLocation.CustomFolder, CustomFolder = customFolder };
 
-        var path = OutputPathResolver.Resolve(rule, Tokens(Path.Combine("C:", "in", "a.jpg")), "png", _ => false);
+        var path = OutputPathResolver.Resolve(rule, Tokens(dir.File("a.jpg")), "png", _ => false);
 
-        Assert.Equal(Path.Combine("D:", "out", "a.png"), path);
+        Assert.Equal(Path.Combine(customFolder, "a.png"), path);
     }
 
     [Theory]

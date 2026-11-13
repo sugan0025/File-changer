@@ -44,18 +44,20 @@ public class DefaultOutputTests
     [Fact]
     public void Presets_on_default_save_to_the_folder_from_settings()
     {
+        using var dir = new TempDir();
+        var customFolder = Path.Combine(dir.Path, "Converted");
         var settings = new AppSettings
         {
-            DefaultOutput = { Location = OutputLocation.CustomFolder, CustomFolder = Path.Combine("D:", "Converted") },
+            DefaultOutput = { Location = OutputLocation.CustomFolder, CustomFolder = customFolder },
         };
         var preset = new Preset { TargetFormat = "png", Output = { Conflict = ConflictPolicy.Overwrite, KeepDates = true } };
 
         var used = settings.WithDefaultOutput(preset);
         var path = OutputPathResolver.Resolve(used.Output,
-            new OutputPathResolver.Tokens(Path.Combine("C:", "Users", "me", "Documents", "a.jpg"), "PNG", 1, DateTime.Now),
+            new OutputPathResolver.Tokens(dir.File("a.jpg"), "PNG", 1, DateTime.Now),
             "png", _ => false);
 
-        Assert.Equal(Path.Combine("D:", "Converted", "a.png"), path);
+        Assert.Equal(Path.Combine(customFolder, "a.png"), path);
         Assert.Equal(ConflictPolicy.Overwrite, used.Output.Conflict);
         Assert.True(used.Output.KeepDates);
         Assert.Equal(preset.Id, used.Id);

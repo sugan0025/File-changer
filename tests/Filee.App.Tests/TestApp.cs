@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Headless;
+using Avalonia.Threading;
 using Filee.App;
 using Filee.App.Services;
+using Filee.App.ViewModels;
+using Filee.Core.Conversion;
 using Filee.Core.Settings;
 
 [assembly: AvaloniaTestApplication(typeof(Filee.App.Tests.TestAppBuilder))]
@@ -56,6 +59,32 @@ internal static class TestServices
         store.Settings.Language = language;
         AppHost.Get<LocalizationService>().SetLanguage(language);
         AppHost.Get<ThemeService>().Apply(store.Settings.Theme, language);
+    }
+
+    /// <summary>Waits for UI-dispatched conversion jobs with a bounded timeout and useful state diagnostics.</summary>
+    public static async Task<List<JobViewModel>> WaitForJobsAsync(
+        ConversionService conversions,
+        IReadOnlySet<string> before,
+        int count,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        List<JobViewModel> started = [];
+        while (stopwatch.Elapsed < timeout)
+        {
+            Dispatcher.UIThread.RunJobs();
+            started = conversions.Jobs.Where(job => !before.Contains(job.Job.Id)).ToList();
+            if (started.Count >= count && started.All(job => job.Job.State is JobState.Completed or JobState.Failed))
+                return started;
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), cancellationToken);
+        }
+
+        var details = started.Count == 0
+            ? "No new conversion jobs were added."
+            : $"Observed {started.Count} new job(s): {string.Join("; ", started.Select(job => $"{job.Job.Id}: {job.Job.State}"))}.";
+        throw new TimeoutException($"Timed out waiting for {count} completed conversion job(s) after {timeout}. {details}");
     }
 
     /// <summary>Where rendered screenshots go: tests/Filee.App.Tests/bin/.../screenshots.</summary>

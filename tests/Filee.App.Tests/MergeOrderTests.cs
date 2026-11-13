@@ -94,15 +94,9 @@ public class MergeOrderTests
             }
             else
             {
-                JobViewModel? started = null;
-                for (var i = 0; i < 200; i++)
-                {
-                    Dispatcher.UIThread.RunJobs();
-                    started = conversions.Jobs.FirstOrDefault(j => !before.Contains(j.Job.Id));
-                    if (started?.Job.State is JobState.Completed or JobState.Failed) break;
-                    await Task.Delay(20, TestContext.Current.CancellationToken);
-                }
-                Assert.NotNull(started);
+                Assert.Equal(vm.OrderedFiles, dialog.Result);
+                var started = Assert.Single(await TestServices.WaitForJobsAsync(
+                    conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
                 Assert.Equal(JobState.Completed, started.Job.State);
                 Assert.Equal([inputs[1], inputs[2], inputs[0]], started.Job.Files.Select(f => f.SourcePath));
                 using var merged = PdfReader.Open(Assert.Single(started.Job.Outputs), PdfDocumentOpenMode.Import);
@@ -211,15 +205,9 @@ public class MergeOrderTests
             Assert.False(dialog.FindControl<Button>("MoveUp")!.IsEffectivelyEnabled);
 
             Click(dialog, "StartMerge");
-            JobViewModel? started = null;
-            for (var i = 0; i < 200; i++)
-            {
-                Dispatcher.UIThread.RunJobs();
-                started = conversions.Jobs.FirstOrDefault(j => !before.Contains(j.Job.Id));
-                if (started?.Job.State is JobState.Completed or JobState.Failed) break;
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
-            Assert.NotNull(started);
+            Assert.Equal(vm.OrderedFiles, dialog.Result);
+            var started = Assert.Single(await TestServices.WaitForJobsAsync(
+                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, started.Job.State);
             using var merged = PdfReader.Open(Assert.Single(started.Job.Outputs), PdfDocumentOpenMode.Import);
             Assert.Equal([400d, 200d, 300d], merged.Pages.Cast<PdfPage>().Select(p => p.Width.Point));
@@ -385,15 +373,9 @@ public class MergeOrderTests
                 return;
             }
 
-            JobViewModel? started = null;
-            for (var i = 0; i < 300; i++)
-            {
-                Dispatcher.UIThread.RunJobs();
-                started = conversions.Jobs.FirstOrDefault(j => !before.Contains(j.Job.Id));
-                if (started?.Job.State is JobState.Completed or JobState.Failed) break;
-                await Task.Delay(20, TestContext.Current.CancellationToken);
-            }
-            Assert.NotNull(started);
+            Assert.Equal(vm.OrderedFiles, dialog.Result);
+            var started = Assert.Single(await TestServices.WaitForJobsAsync(
+                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, started.Job.State);
             var output = Assert.Single(started.Job.Outputs);
             Assert.Equal("1 front_merged.png", Path.GetFileName(output));

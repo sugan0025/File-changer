@@ -53,19 +53,6 @@ public class AskPagesTests
         throw new TimeoutException("The pages window didn't open");
     }
 
-    private static async Task<List<JobViewModel>> WaitForJobs(ConversionService conversions, HashSet<string> before, int count)
-    {
-        for (var i = 0; i < 300; i++)
-        {
-            Dispatcher.UIThread.RunJobs();
-            var started = conversions.Jobs.Where(j => !before.Contains(j.Job.Id)).ToList();
-            if (started.Count >= count && started.All(j => j.Job.State is JobState.Completed or JobState.Failed))
-                return started;
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
-        throw new TimeoutException("The conversions didn't finish");
-    }
-
     private static void Type(Window window, string text)
     {
         var box = window.FindControl<TextBox>("RangeBox")!;
@@ -158,7 +145,8 @@ public class AskPagesTests
                 return;
             }
 
-            var job = Assert.Single(await WaitForJobs(conversions, before, 1));
+            var job = Assert.Single(await TestServices.WaitForJobsAsync(
+                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, job.Job.State);
             using var extract = PdfReader.Open(Assert.Single(job.Job.Outputs), PdfDocumentOpenMode.Import);
             Assert.Equal([102d, 103d, 104d, 108d], extract.Pages.Cast<PdfPage>().Select(p => p.Width.Point));
@@ -219,7 +207,8 @@ public class AskPagesTests
             dialog.FindControl<TextBox>("RangeBox")!.Focus();
             Press(dialog, Key.Enter);
 
-            var job = Assert.Single(await WaitForJobs(conversions, before, 1));
+            var job = Assert.Single(await TestServices.WaitForJobsAsync(
+                conversions, before, 1, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
             Assert.Equal(JobState.Completed, job.Job.State);
             Assert.Equal(["book_p1-5.pdf", "book_p6-10.pdf", "book_p11-12.pdf"], job.Job.Outputs.Select(Path.GetFileName));
             using var last = PdfReader.Open(job.Job.Outputs.Last(), PdfDocumentOpenMode.Import);
@@ -288,7 +277,8 @@ public class AskPagesTests
             Type(second, "15-23");
             Click(second, "StartPages");
 
-            var jobs = await WaitForJobs(conversions, before, 2);
+            var jobs = await TestServices.WaitForJobsAsync(
+                conversions, before, 2, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
             Assert.All(jobs, job => Assert.Equal(JobState.Completed, job.Job.State));
             int Pages(string name)
             {
