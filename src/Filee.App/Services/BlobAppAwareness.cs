@@ -121,20 +121,21 @@ internal static class BlobAppAwareness
 
     private static readonly Reaction ChromeReaction = Reactions.First(reaction => reaction.Key == "chrome");
 
-    /// <summary>Matches only the foreground process and, for Chrome, a transient title keyword.</summary>
+    /// <summary>Matches only the foreground process and, for recognized browsers, a transient title keyword with word boundary protection.</summary>
     public static string? Match(ForegroundAppContext? context)
     {
         if (context?.ProcessName is not { Length: > 0 } processName || context.IsDesktop)
             return null;
 
         var process = Path.GetFileNameWithoutExtension(processName).ToLowerInvariant();
-        if (process == "chrome")
+        var isBrowser = Filee.Core.Web.WebBrowsers.IsBrowser(process);
+        if (isBrowser)
         {
             var title = context.WindowTitle;
             if (!string.IsNullOrEmpty(title))
             {
                 var sites = Reactions.Where(reaction => reaction.BrowserKeywords.Any(keyword =>
-                    title.Contains(keyword, StringComparison.OrdinalIgnoreCase))).ToArray();
+                    ContainsWholeTitleToken(title, keyword))).ToArray();
                 // Ambiguous titles fail closed so one service never borrows another service's quip pool.
                 if (sites.Length > 1)
                     return null;
@@ -142,11 +143,16 @@ internal static class BlobAppAwareness
                     return sites[0].Key;
             }
 
-            return ChromeReaction.Key;
+            return process == "chrome" ? ChromeReaction.Key : null;
         }
 
         if (process == "explorer")
             return IsExplorerFolderWindow(context) ? "file-explorer" : null;
+
+        if (string.Equals(process, "hoot", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(process, "filee", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(process, "filee.app", StringComparison.OrdinalIgnoreCase))
+            return "hoot";
 
         return Reactions.FirstOrDefault(reaction => reaction.ProcessNames.Contains(process, StringComparer.OrdinalIgnoreCase))?.Key;
     }
@@ -161,6 +167,32 @@ internal static class BlobAppAwareness
     public static bool IsExplorerFolderWindow(ForegroundAppContext? context) => context is not null
         && string.Equals(Path.GetFileNameWithoutExtension(context.ProcessName), "explorer", StringComparison.OrdinalIgnoreCase)
         && context.WindowClass is "CabinetWClass" or "ExploreWClass";
+
+    public static bool IsShellTransition(ForegroundAppContext? context)
+    {
+        if (context is null) return true;
+        var process = Path.GetFileNameWithoutExtension(context.ProcessName);
+        var windowClass = context.WindowClass;
+
+        if (string.Equals(process, "explorer", StringComparison.OrdinalIgnoreCase))
+        {
+            return windowClass is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd"
+                or "NotifyIconOverflowWindow" or "TaskSwitcherWnd" or "MultitaskingViewFrame";
+        }
+
+        if (process is not null && (
+            process.Equals("StartMenuExperienceHost", StringComparison.OrdinalIgnoreCase) ||
+            process.Equals("SearchHost", StringComparison.OrdinalIgnoreCase) ||
+            process.Equals("SearchApp", StringComparison.OrdinalIgnoreCase) ||
+            process.Equals("ShellExperienceHost", StringComparison.OrdinalIgnoreCase) ||
+            process.Equals("LockApp", StringComparison.OrdinalIgnoreCase) ||
+            process.Equals("LogonUI", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        return windowClass == "#32768";
+    }
 
     public static bool IsStreamingService(ForegroundAppContext? context)
     {
@@ -234,10 +266,13 @@ internal readonly record struct ForegroundActivation(string? AppKey, int Process
     }
 }
 
-internal sealed class ForegroundActivationTracker
+internal sealed class ForegroundActivationTracker(TimeSpan? perAppCooldown = null, Func<DateTime>? clock = null)
 {
+    private static readonly TimeSpan DefaultPerAppCooldown = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _perAppCooldown = perAppCooldown ?? DefaultPerAppCooldown;
+    private readonly Func<DateTime> _clock = clock ?? (() => DateTime.UtcNow);
     private ForegroundActivation? _current;
-    private readonly HashSet<ForegroundActivation> _reacted = [];
+    private readonly Dictionary<ForegroundActivation, DateTime> _reacted = [];
     public bool HasBaseline => _current is not null;
 
     public void EstablishBaseline(ForegroundAppContext? context)
@@ -251,7 +286,7 @@ internal sealed class ForegroundActivationTracker
             return;
         }
         if (_current.Value.AppKey is not null)
-            _reacted.Add(_current.Value);
+            _reacted[_current.Value] = _clock();
     }
 
     public bool Enter(ForegroundAppContext? context, out string? appKey)
@@ -259,8 +294,29 @@ internal sealed class ForegroundActivationTracker
         var next = ForegroundActivation.From(context);
         var changed = _current is null || _current.Value != next;
         _current = next;
-        appKey = changed && next.AppKey is not null && _reacted.Add(next) ? next.AppKey : null;
-        return changed;
+
+        if (!changed || next.AppKey is null)
+        {
+            appKey = null;
+            return changed;
+        }
+
+        var now = _clock();
+        if (_reacted.TryGetValue(next, out var lastTime) && now - lastTime < _perAppCooldown)
+        {
+            appKey = null;
+            return true;
+        }
+
+        _reacted[next] = now;
+        appKey = next.AppKey;
+        return true;
+    }
+
+    public void RetryUndelivered(ForegroundAppContext? context)
+    {
+        _reacted.Remove(ForegroundActivation.From(context));
+        _current = null;
     }
 
     public void Reset() => _current = null;

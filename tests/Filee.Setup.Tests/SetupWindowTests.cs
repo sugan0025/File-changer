@@ -289,7 +289,8 @@ public class SetupWindowTests
         // Picking Arabic mirrors the card at once.
         Assert.Equal(language is "ar" or "fa" ? FlowDirection.RightToLeft : FlowDirection.LeftToRight, window.FlowDirection);
         Assert.Equal(texts["installer.install"], model.PrimaryText);
-        Assert.Contains("2.0.0", model.WelcomeText);
+        Assert.Contains("2.0.0", model.UpdateSummary);
+        Assert.Equal("Developer: Suganesan S.", model.WelcomeText);
         var choices = model.Choices();
         Assert.Equal(language, choices.Language);
         Assert.True(choices.LanguagePicked);

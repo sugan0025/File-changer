@@ -40,8 +40,9 @@ public sealed class CircadianLook
 
     public void Update(float dt, CircadianService? svc, BlobatarTone tone)
     {
-        var active = svc is { IsActive: true };
-        var phase = svc?.CurrentPhase ?? CircadianPhase.Night;
+        // Keep the character in its original daytime appearance at every hour.
+        var active = true;
+        var phase = CircadianPhase.Morning;
         float tm = active && phase == CircadianPhase.Morning ? 1f : 0f;
         float ta = active && phase == CircadianPhase.Afternoon ? 1f : 0f;
         float tn = active && phase == CircadianPhase.Night ? 1f : 0f;
@@ -49,9 +50,9 @@ public sealed class CircadianLook
 
         // The service's angle is a slice-angle (donut convention). Take the horizontal side from it and always light
         // from above, so highlights never land on the belly.
-        var th = active ? (float)svc!.CurrentKeyLightAngle : 0f;
+        var th = -MathF.PI / 2f;
         var lt = active ? Vector2.Normalize(new Vector2(MathF.Cos(th), -.6f)) : new Vector2(0f, -1f);
-        var gt = active ? (float)Math.Clamp(svc!.CurrentSpecularGain, .4, 1.4) : 1f;
+        var gt = 1f;
 
         if (!_init)
         {
@@ -127,7 +128,7 @@ public sealed class CircadianLook
     private static readonly Color[] DayShadow = { Color.Parse("#3A3C8F"), Color.Parse("#5B2C7F") };
     private static readonly Color[] NightRim =
     {
-        Color.Parse("#8C7CFF"), Color.Parse("#C0A8FF"), Color.Parse("#6EF0FF"), Color.Parse("#A9B7FF"), Color.Parse("#FF8AE6"),
+        Color.Parse("#8C7CFF"), Color.Parse("#C0A8FF"), Color.Parse("#B8B0FF"), Color.Parse("#A9B7FF"), Color.Parse("#FF8AE6"),
     };
 
     // [tone, bucket]  bucket: 0 morning (icy amethyst), 1 afternoon (radiant lilac), 2 night (neon obsidian), 3 neutral (legacy)
@@ -143,7 +144,7 @@ public sealed class CircadianLook
         }
         p[0, 0] = p[0, 0] with { Hi = Color.Parse("#D3D6FF"), Mid = Color.Parse("#9A92EE"), Lo = Color.Parse("#6C69CF") };
         p[0, 1] = p[0, 1] with { Hi = Color.Parse("#F0D6FA"), Mid = Color.Parse("#B38CEB"), Lo = Color.Parse("#8660CC") };
-        p[0, 2] = p[0, 2] with { Hi = Color.Parse("#5F52D6"), Mid = Color.Parse("#372C86"), Lo = Color.Parse("#130E38") };
+        p[0, 2] = p[0, 2] with { Hi = Color.Parse("#8275F7"), Mid = Color.Parse("#5444C2"), Lo = Color.Parse("#2E2272") };
         return p;
     }
 
@@ -174,7 +175,7 @@ public sealed class CircadianLook
         {
             0 => new Palette(hi, mid, lo, DayRim[0], DaySky[0], DayShadow[0]),
             1 => new Palette(hi, mid, lo, DayRim[1], DaySky[1], DayShadow[1]),
-            _ => new Palette(hi, mid, lo, NightRim[tone], Color.Parse("#6EF0FF"), NightRim[tone]),
+            _ => new Palette(hi, mid, lo, NightRim[tone], NightRim[tone], NightRim[tone]),
         };
     }
 

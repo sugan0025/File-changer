@@ -16,7 +16,7 @@
             <TextBlock Text="{Binding Version}" />
           </Border>
         </StackPanel>
-        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding WelcomeText}" />
+        <TextBlock Classes="muted caption" TextAlignment="Center" TextWrapping="Wrap" Text="{Binding WelcomeText}" Opacity="0.85" />
         <Button x:Name="PrimaryButton" Classes="big accent" HorizontalAlignment="Center" Margin="0,18,0,2"
                 Content="{Binding PrimaryText}" Command="{Binding InstallCommand}" IsDefault="True" />
         <Button Classes="link" HorizontalAlignment="Center" Command="{Binding ToggleOptionsCommand}">
@@ -26,8 +26,8 @@
           </StackPanel>
         </Button>
       </StackPanel>
-      <TextBlock Grid.Row="1" Classes="caption" HorizontalAlignment="Center" Margin="24,0,24,16" TextWrapping="Wrap"
-                 TextAlignment="Center" Text="{DynamicResource installer.welcome.license}" />
+      <TextBlock Grid.Row="1" Classes="caption entrance-quip" HorizontalAlignment="Center" Margin="24,0,24,16" TextWrapping="Wrap"
+                 TextAlignment="Center" Text="Ready when you are! I’ll keep your files company." />
     </Grid>
   </DataTemplate>
 

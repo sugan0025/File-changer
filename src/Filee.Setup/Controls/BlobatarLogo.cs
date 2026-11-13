@@ -90,7 +90,7 @@ public sealed class BlobatarLogo : Control
     private static readonly Geometry EyeGeometry = new EllipseGeometry(new Rect(-EyeRx, -EyeRy, EyeRx * 2, EyeRy * 2));
     private static readonly IBrush EyeBrush = new ImmutableSolidColorBrush(Color.FromRgb(0x0F, 0x0E, 0x18));
     private static readonly IBrush BlushBrush = new ImmutableSolidColorBrush(Color.FromArgb(70, 0xFF, 0x8C, 0xAA));
-    private static readonly IPen OutlinePen = new Pen(new ImmutableSolidColorBrush(Color.FromArgb(90, 0x3C, 0x34, 0x89)), 1.1);
+    private static readonly IPen OutlinePen = new Pen(new ImmutableSolidColorBrush(Color.FromArgb(90, 0x3C, 0x34, 0x89)), 1.1, lineJoin: PenLineJoin.Round);
     private static readonly IPen DarkEyeNeonPen = new Pen(new ImmutableSolidColorBrush(Color.FromArgb(140, 0x8C, 0x7C, 0xFF)), 0.6);
 
     // Spring simulation struct
@@ -399,30 +399,14 @@ public sealed class BlobatarLogo : Control
         var animated = Animate && SetupMotion.Enabled;
         var scale = size / 70.0;
 
-        // Colors based on theme variant
-        var isDark = ActualThemeVariant == ThemeVariant.Dark;
-
-        Color hiColor, midColor, loColor, rimColor, skyColor, shadowColor;
-        if (isDark)
-        {
-            // Night obsidian look
-            hiColor = Color.Parse("#5F52D6");
-            midColor = Color.Parse("#372C86");
-            loColor = Color.Parse("#130E38");
-            rimColor = Color.Parse("#8C7CFF");
-            skyColor = Color.Parse("#6EF0FF");
-            shadowColor = Color.Parse("#8C7CFF");
-        }
-        else
-        {
-            // Day lilac / soft violet look
-            hiColor = Color.Parse("#D3D6FF");
-            midColor = Color.Parse("#9A92EE");
-            loColor = Color.Parse("#6C69CF");
-            rimColor = Color.Parse("#EAF4FF");
-            skyColor = Color.Parse("#BFD9FF");
-            shadowColor = Color.Parse("#3A3C8F");
-        }
+        // The mascot keeps its daytime palette independently of the installer theme.
+        var isDark = false;
+        var hiColor = Color.Parse("#D3D6FF");
+        var midColor = Color.Parse("#9A92EE");
+        var loColor = Color.Parse("#6C69CF");
+        var rimColor = Color.Parse("#EAF4FF");
+        var skyColor = Color.Parse("#BFD9FF");
+        var shadowColor = Color.Parse("#3A3C8F");
 
         // Dynamic transforms
         var breathing = animated ? MathF.Sin((float)_elapsedSeconds * 2.4f) * 0.015f : 0f;
@@ -493,7 +477,7 @@ public sealed class BlobatarLogo : Control
                     {
                         GradientStops =
                         {
-                            new GradientStop(Color.FromArgb(90, 255, 255, 255), 0.0),
+                            new GradientStop(Color.FromArgb(isDark ? (byte)140 : (byte)90, 255, 255, 255), 0.0),
                             new GradientStop(Color.FromArgb(0, 255, 255, 255), 1.0),
                         }
                     };
@@ -504,7 +488,8 @@ public sealed class BlobatarLogo : Control
                     context.DrawEllipse(BlushBrush, null, new Point(65.2, 54.0), 4.4, 2.5);
 
                     // Soft rim stroke
-                    var rimPen = new Pen(new ImmutableSolidColorBrush(Color.FromArgb(120, rimColor.R, rimColor.G, rimColor.B)), 2.8);
+                    var rimAlpha = (byte)(isDark ? 165 : 120);
+                    var rimPen = new Pen(new ImmutableSolidColorBrush(Color.FromArgb(rimAlpha, rimColor.R, rimColor.G, rimColor.B)), 2.8, lineJoin: PenLineJoin.Round);
                     context.DrawGeometry(null, rimPen, BodyGeometry);
                 }
 

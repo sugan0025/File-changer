@@ -248,6 +248,8 @@ internal sealed class BlobatarBrushCache
     public IPen GlowPen = null!;
     public IPen OutlinePen = null!;
     public IPen MouthPen = null!;
+    public IBrush OpenMouthBrush = Brushes.Transparent;
+    public IPen OpenMouthPen = null!;
     public IPen? EyePen;
 
     private static readonly Color BlushColor = Color.FromRgb(0xFF, 0x8C, 0xAA);
@@ -289,19 +291,19 @@ internal sealed class BlobatarBrushCache
                 new GradientStop(A(look.Sky, 0.18), 0.8), new GradientStop(A(look.Sky, 0.18), 1.0),
             },
         };
-        RimPen = new Pen(rim, 3.0);
+        RimPen = new Pen(rim, 3.0, lineJoin: PenLineJoin.Round);
         GlowPen = new Pen(new LinearGradientBrush
         {
             StartPoint = toLight,
             EndPoint = away,
             GradientStops = { new GradientStop(A(look.Rim, 0.08 * ga), 0.0), new GradientStop(A(look.Rim, 0), 0.5) },
-        }, 6.0);
+        }, 6.0, lineJoin: PenLineJoin.Round);
 
         GlintPrimary = new SolidColorBrush(A(look.Rim, 0.55 + 0.45 * look.Intensity));
         GlintAmbient = new SolidColorBrush(A(look.Sky, 0.32));
 
         // Silhouette: a soft dark edge keeps pale bodies readable on a white hub; it fades out at night (the neon rim takes over).
-        OutlinePen = new Pen(new SolidColorBrush(A(look.Lo, 0.45 * (1.0 - look.Wn))), 1.1);
+        OutlinePen = new Pen(new SolidColorBrush(A(look.Lo, 0.45 * (1.0 - look.Wn))), 1.1, lineJoin: PenLineJoin.Round);
 
         // Night only: a thin neon edge so the dark eyes stay visible on the dark body.
         EyePen = look.Wn > 0.02 ? new Pen(new SolidColorBrush(A(look.Rim, 0.55 * look.Wn)), 0.6) : null;
@@ -313,6 +315,8 @@ internal sealed class BlobatarBrushCache
         var ec = BlobatarRenderer.EyeColor;
         var mouth = Color.FromRgb(Mix(ec.R, look.Rim.R, look.Wn), Mix(ec.G, look.Rim.G, look.Wn), Mix(ec.B, look.Rim.B, look.Wn));
         MouthPen = new Pen(new SolidColorBrush(mouth), 1.2, lineCap: PenLineCap.Round);
+        OpenMouthBrush = new SolidColorBrush(Color.Parse("#392B5A"));
+        OpenMouthPen = new Pen(new SolidColorBrush(Color.Parse("#6E58A8")), 1.2);
 
         // Pre-cached shadow gradient brushes:
         var shadowColor = look.Wn > 0.1 ? look.Rim : Color.FromRgb(0x18, 0x14, 0x24);
@@ -471,17 +475,18 @@ public static class BlobatarRenderer
         }
     }
 
-    private static readonly IBrush OpenMouthBrush = new SolidColorBrush(Color.Parse("#392B5A"));
-    private static readonly Pen OpenMouthPen = new(new SolidColorBrush(Color.Parse("#6E58A8")), 1.2);
-
     private static void DrawMouth(DrawingContext context, BlobatarBrushCache cache, double smile, double mouthOpen)
     {
         if (mouthOpen > .015)
         {
-            context.DrawEllipse(OpenMouthBrush, OpenMouthPen, new Point(FaceX, 57.0), 3.9, 1.0 + 4.0 * mouthOpen);
+            var opening = Math.Clamp((mouthOpen - .015) / .15, 0, 1);
+            opening = opening * opening * (3 - 2 * opening);
+            using (context.PushOpacity(opening))
+                context.DrawEllipse(cache.OpenMouthBrush, null, new Point(FaceX, 57.0), 3.9 * opening, (1.0 + 4.0 * mouthOpen) * opening);
             return;
         }
-        using (context.PushTransform(Matrix.CreateScale(1.0, smile) * Matrix.CreateTranslation(FaceX, 56.8)))
+        var smileCurve = Math.Max(0.25, smile);
+        using (context.PushTransform(Matrix.CreateScale(1.0, smileCurve) * Matrix.CreateTranslation(FaceX, 56.8)))
         using (context.PushOpacity(Math.Min(1.0, smile * 1.5)))
             context.DrawGeometry(null, cache.MouthPen, UnitSmileGeometry);
     }
@@ -516,10 +521,12 @@ public static class BlobatarRenderer
             p[i] = new Point(BodyRest[i].X + o.X, BodyRest[i].Y + o.Y);
         }
         // Tufts: raise the shoulder handles on each side of the head (negative = up).
-        p[8] = new Point(p[8].X, p[8].Y + f.TuftL);
         p[7] = new Point(p[7].X, p[7].Y + f.TuftL * 0.4);
-        p[10] = new Point(p[10].X, p[10].Y + f.TuftR);
         p[11] = new Point(p[11].X, p[11].Y + f.TuftR * 0.4);
+        // Ensure crown handles p[8] and p[10] stay horizontally level with apex p[9]
+        // to preserve a horizontal tangent direction and eliminate top-edge peaks.
+        p[8] = new Point(p[8].X, p[9].Y);
+        p[10] = new Point(p[10].X, p[9].Y);
 
         return BuildPath(p);
     }

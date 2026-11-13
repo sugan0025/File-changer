@@ -9,6 +9,30 @@ namespace Filee.App.Tests;
 
 public sealed class BlobAppAwarenessTests
 {
+    [Fact]
+    public void Rejected_reaction_can_retry_without_waiting_for_cooldown()
+    {
+        var tracker = new ForegroundActivationTracker();
+        var app = new ForegroundAppContext("chatgpt", ProcessId: 30);
+        Assert.True(tracker.Enter(app, out var first));
+        Assert.Equal("chatgpt", first);
+        tracker.RetryUndelivered(app);
+        Assert.True(tracker.Enter(app, out var retry));
+        Assert.Equal("chatgpt", retry);
+        Assert.False(tracker.Enter(app, out _));
+    }
+
+    [Fact]
+    public void Windows_foreground_context_implements_parameterless_interface_contract()
+    {
+        var type = typeof(Filee.Platform.Windows.WindowsPlatformServices);
+        var map = type.GetInterfaceMap(typeof(IPlatformServices));
+        var index = Array.FindIndex(map.InterfaceMethods,
+            method => method.Name == nameof(IPlatformServices.GetForegroundAppContext));
+        Assert.True(index >= 0);
+        Assert.Equal(type, map.TargetMethods[index].DeclaringType);
+    }
+
     [Theory]
     [InlineData("hoot", "hoot")]
     [InlineData("claude", "claude")]

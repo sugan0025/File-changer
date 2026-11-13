@@ -173,7 +173,8 @@ public sealed partial class SetupViewModel : ObservableObject
     [ObservableProperty] private bool _desktopIcon;
     [ObservableProperty] private bool _deleteSettings;
 
-    [ObservableProperty] private string _welcomeText = "";
+    [ObservableProperty] private string _welcomeText = "Developer: Suganesan S.";
+    [ObservableProperty] private string _updateSummary = "";
     [ObservableProperty] private string _spaceText = "";
     [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private double _percent;
@@ -242,7 +243,8 @@ public sealed partial class SetupViewModel : ObservableObject
     /// <summary>Recomputes the texts with arguments (after a language change).</summary>
     private void RefreshTexts()
     {
-        WelcomeText = IsUpdate
+        WelcomeText = "Developer: Suganesan S.";
+        UpdateSummary = IsUpdate
             ? _texts.Format("installer.welcome.update", _previous?.Version ?? "?", Version)
             : _texts.Format("installer.welcome.fresh", Version);
         SpaceText = _texts.Format("installer.options.space", Installer.FormatSize(_neededSpace));

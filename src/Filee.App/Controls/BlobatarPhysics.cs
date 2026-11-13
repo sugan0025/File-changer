@@ -277,7 +277,7 @@ public sealed class BlobatarPhysics
         _companionEyeRoll = inp.CompanionMode && !inp.Paused && !inp.Napping ? inp.CompanionEyeRoll : 0f;
 
         var idleSleepy = inp.CompanionMode ? BlobMath.Sm(180f, 240f, _idle) : BlobMath.Sm(30f, 90f, _idle);
-        _sleepy = inp.Paused || inp.Napping ? 1f : MathF.Max(Math.Clamp(inp.ClockSleepy, 0f, 1f), idleSleepy);
+        _sleepy = inp.Paused || inp.Napping ? 1f : 0f;
 
         // proximity + lean
         var center = new Vector2(lay.Anchor.X, lay.Anchor.Y - lay.BodyHeight * .5f);
@@ -577,6 +577,13 @@ public sealed class BlobatarPhysics
 
             _contour[i] = dir * (aw * (h1 + h2 + h3) * w);
         }
+
+        if (_contour.Length > 10)
+        {
+            _contour[8] = new Vector2(_contour[8].X, _contour[9].Y);
+            _contour[10] = new Vector2(_contour[10].X, _contour[9].Y);
+        }
+
         return _contour;
     }
 

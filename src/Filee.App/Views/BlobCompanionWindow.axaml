@@ -13,10 +13,10 @@
         ShowInTaskbar="False"
         ShowActivated="False"
         CanResize="False">
-  <Grid x:Name="Root" Background="Transparent">
+  <Grid x:Name="Root" Background="Transparent" DragDrop.AllowDrop="True">
     <c:BlobatarControl x:Name="Blob" Width="80" Height="80" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       IsAnimated="True" MaxFramesPerSecond="30" DragDrop.AllowDrop="True"
-                       PointerReactionsEnabled="False" AudioEnabled="False"
+                       IsAnimated="True" MaxFramesPerSecond="30"
+                       PointerReactionsEnabled="False" AudioEnabled="False" IsHitTestVisible="False"
                        RenderTransformOrigin="50%,50%" />
     <Canvas x:Name="SwallowLayer" IsHitTestVisible="False" ClipToBounds="False">
       <TextBlock x:Name="CompanionGlyph" Text="z" FontSize="14" FontWeight="Bold"

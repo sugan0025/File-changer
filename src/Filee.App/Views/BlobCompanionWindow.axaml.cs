@@ -87,6 +87,7 @@ public partial class BlobCompanionWindow : Window
     private int _rubbingReversals;
     private int _rapidClicks;
     private DateTime _lastClickAt;
+    private DateTime _lastAppReactionAt = DateTime.MinValue;
     private BlobCompanionActivity _activity = BlobCompanionActivity.Adaptive;
     private bool _playHatchOnNextShow;
     private int _lastBehavior = -1;
@@ -137,10 +138,10 @@ public partial class BlobCompanionWindow : Window
             _fileTypeIcon = null;
         };
 
-        DragDrop.AddDragEnterHandler(Blob, OnDragEnter);
-        DragDrop.AddDragOverHandler(Blob, OnDragOver);
-        DragDrop.AddDragLeaveHandler(Blob, OnDragLeave);
-        DragDrop.AddDropHandler(Blob, OnDrop);
+        DragDrop.AddDragEnterHandler(Root, OnDragEnter);
+        DragDrop.AddDragOverHandler(Root, OnDragOver);
+        DragDrop.AddDragLeaveHandler(Root, OnDragLeave);
+        DragDrop.AddDropHandler(Root, OnDrop);
         _nextBehavior = DateTime.UtcNow + NextBoredomDelay();
     }
 
@@ -445,8 +446,11 @@ public partial class BlobCompanionWindow : Window
         if (IsQuipsQuiet || !CanObserveAppContext || string.IsNullOrWhiteSpace(text)
             || !BlobCompanionBehavior.CanInterrupt(currentMoment, BlobCompanionMoment.AppReaction))
             return false;
+        if (_appReactionActive && DateTime.UtcNow - _lastAppReactionAt < TimeSpan.FromSeconds(3.5))
+            return false;
         if (_appReactionActive)
             CancelThoughtForPriority();
+        _lastAppReactionAt = DateTime.UtcNow;
         _appReactionActive = true;
         _ = ShowAppReactionAsync(text, BlobCompanionBehavior.MotionForApp(appKey));
         return true;
@@ -848,6 +852,12 @@ public partial class BlobCompanionWindow : Window
 
     private void OnDragEnter(object? sender, DragEventArgs e)
     {
+        if (_dragOver)
+        {
+            e.DragEffects = _dragOffersFiles && CanAcceptFiles ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
         if (_paused)
         {
             Blob.State.TriggerWink();
@@ -880,7 +890,7 @@ public partial class BlobCompanionWindow : Window
         CancelWakeRitual();
         _cursorTimer.Stop();
         Blob.State.TriggerBlink(2);
-        Blob.State.TriggerStretch();
+        // Anticipation does not kick the body while a file is hovering.
 
         Blob.State.SuppressAutonomousWinks = true;
         _dragOver = true;
@@ -1398,17 +1408,25 @@ public partial class BlobCompanionWindow : Window
     private async Task HiccupAsync()
     {
         _autonomousActive = true;
+        var sequence = _dragSequence;
+        bool Interrupted() => sequence != _dragSequence || _paused || _napping || !IsVisible
+            || _dragOver || _dropPending || _moving || _pressed || _gestureActive;
         try
         {
             for (var i = 0; i < 3; i++)
             {
-                if (_paused || _napping || !IsVisible) return;
+                if (Interrupted()) return;
                 Blob.State.TriggerTiltWobble(i % 2 == 0 ? 5 : -5);
-                Blob.SetMouthOpen(.3);
-                await ShowCompanionGlyphAsync("hic!");
-                if (_paused || _napping || !IsVisible || _dragOver || _dropPending || _moving || _pressed) return;
-                Blob.SetMouthOpen(0);
-                await Task.Delay(180, _lifetime.Token);
+                var timer = System.Diagnostics.Stopwatch.StartNew();
+                while (true)
+                {
+                    if (Interrupted()) return;
+                    var t = Math.Clamp(timer.Elapsed.TotalMilliseconds / 200.0, 0, 1);
+                    Blob.SetMouthOpen(.3 * Math.Pow(Math.Sin(Math.PI * t), 2));
+                    if (t >= 1) break;
+                    await Task.Delay(34, _lifetime.Token);
+                }
+                await Task.Delay(260, _lifetime.Token);
             }
         }
         catch (OperationCanceledException) { }

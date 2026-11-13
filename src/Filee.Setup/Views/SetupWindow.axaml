@@ -54,6 +54,10 @@
           </DockPanel>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
             <StackPanel Spacing="14">
+              <Border Classes="pill" Background="{DynamicResource SurfaceAltBrush}" Padding="10,6" Margin="0,0,0,4"
+                      IsVisible="{Binding IsUpdate}" HorizontalAlignment="Left">
+                <TextBlock Classes="caption" Text="{Binding UpdateSummary}" />
+              </Border>
               <DockPanel>
                 <ComboBox x:Name="LanguageBox" DockPanel.Dock="Right" MinWidth="170" ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}">
                   <ComboBox.ItemTemplate>

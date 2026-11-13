@@ -82,18 +82,24 @@ public sealed class WindowsPlatformServices : IPlatformServices
         return new ForegroundWindowInfo(process, IsFileManager(NativeMethods.ClassNameOf(root), process));
     }
 
-    public ForegroundAppContext? GetForegroundAppContext()
+    public ForegroundAppContext? GetForegroundAppContext() => GetForegroundAppContext(0);
+
+    private ForegroundAppContext? GetForegroundAppContext(nint hwnd)
     {
-        var root = ForegroundRoot();
+        var root = ForegroundRoot(hwnd);
         if (root == 0)
             return null;
 
-        var process = ProcessNameOf(root);
-        NativeMethods.GetWindowThreadProcessId(root, out var processId);
+        var identityWindow = root;
+        var child = NativeMethods.FindWindowEx(root, 0, "Windows.UI.Core.CoreWindow", null);
+        if (child != 0) identityWindow = child;
+        var process = ProcessNameOf(identityWindow);
+        NativeMethods.GetWindowThreadProcessId(identityWindow, out var processId);
         var windowClass = NativeMethods.ClassNameOf(root);
-        // Window titles can contain private conversation or document names. Only read Chrome's title for the
+        // Window titles can contain private conversation or document names. Only read browser titles for the
         // explicitly opted-in browser-site matcher; never retain or log the returned string.
-        var title = string.Equals(process, "chrome", StringComparison.OrdinalIgnoreCase) ? WindowTitleOf(root) : null;
+        var isBrowser = process is not null && Filee.Core.Web.WebBrowsers.IsBrowser(process);
+        var title = isBrowser ? WindowTitleOf(root) : null;
         var processIdValue = checked((int)processId);
         return new ForegroundAppContext(process, title, processIdValue, root.ToInt64(), windowClass,
             ProcessStartTimeUtcTicks(processIdValue));
@@ -150,10 +156,20 @@ public sealed class WindowsPlatformServices : IPlatformServices
         {
             _owner = owner;
             _callback = callback;
-            _nativeCallback = (_, _, _, _, _, _, _) => _callback?.Invoke(_owner.GetForegroundAppContext());
+            _nativeCallback = (_, _, hwnd, _, _, _, _) =>
+            {
+                try
+                {
+                    _callback?.Invoke(_owner.GetForegroundAppContext(hwnd));
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException)
+                {
+                    // Ignore transient Win32 errors during window transitions
+                }
+            };
             _hook = NativeMethods.SetWinEventHook(NativeMethods.EVENT_SYSTEM_FOREGROUND,
                 NativeMethods.EVENT_SYSTEM_FOREGROUND, 0, _nativeCallback, 0, 0,
-                NativeMethods.WINEVENT_OUTOFCONTEXT | NativeMethods.WINEVENT_SKIPOWNPROCESS);
+                NativeMethods.WINEVENT_OUTOFCONTEXT);
         }
 
         public void Dispose()
@@ -330,9 +346,9 @@ public sealed class WindowsPlatformServices : IPlatformServices
     }
 
     /// <summary>The top-level window of the foreground window, or 0 when there is none.</summary>
-    private static nint ForegroundRoot()
+    private static nint ForegroundRoot(nint hwnd = 0)
     {
-        var foreground = NativeMethods.GetForegroundWindow();
+        var foreground = hwnd != 0 ? hwnd : NativeMethods.GetForegroundWindow();
         if (foreground == 0)
             return 0;
         var root = NativeMethods.GetAncestor(foreground, NativeMethods.GA_ROOT);
@@ -543,13 +559,24 @@ public sealed class WindowsPlatformServices : IPlatformServices
         try
         {
             using var process = Process.GetProcessById((int)pid);
-            return process.ProcessName;
+            var name = process.ProcessName;
+            if (string.Equals(name, "ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
+            {
+                var childHwnd = NativeMethods.FindWindowEx(hwnd, 0, "Windows.UI.Core.CoreWindow", null);
+                if (childHwnd != 0)
+                {
+                    NativeMethods.GetWindowThreadProcessId(childHwnd, out var childPid);
+                    if (childPid != 0 && childPid != pid)
+                    {
+                        using var childProcess = Process.GetProcessById((int)childPid);
+                        return childProcess.ProcessName;
+                    }
+                }
+            }
+            return name;
         }
-        catch (ArgumentException)
-        {
-            return null;
-        }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+            or System.ComponentModel.Win32Exception or UnauthorizedAccessException)
         {
             return null;
         }

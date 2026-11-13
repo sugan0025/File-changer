@@ -318,6 +318,9 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
         }
         try { _window.SetSystemIdleTime(platform.GetSystemIdleTime()); }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or UnauthorizedAccessException) { }
+        // Temporary wake/drag/nap states stop observers. Reconcile after those
+        // states settle even when no visibility or settings event is raised.
+        SyncAwarenessMonitor();
     }
 
     private void SyncAwarenessMonitor()
@@ -393,6 +396,13 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
             || !store.Settings.BlobCompanion.IsVisible || !store.Settings.BlobCompanion.AppAwareness.Enabled)
             return;
 
+        if (BlobAppAwareness.IsShellTransition(context))
+            return;
+
+        var companionHandle = _window.TryGetPlatformHandle()?.Handle ?? 0;
+        if (companionHandle != 0 && context?.WindowHandle == companionHandle)
+            return;
+
         var changed = _foregroundTracker.Enter(context, out var appKey);
         var isExplorerOrDesktop = BlobAppAwareness.IsExplorerOrDesktop(context);
         if (changed)
@@ -409,7 +419,10 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
             if (BlobAppAwareness.ForKey(appKey) is { } reaction
                 && store.Settings.BlobCompanion.AppAwareness.EnabledApps?.Contains(reaction.Key, StringComparer.OrdinalIgnoreCase) == true
                 && _quipPicker.Next(reaction.Key, reaction.Quips) is { } quip)
-                _window.ShowAppReaction(quip, reaction.Key);
+            {
+                if (!_window.ShowAppReaction(quip, reaction.Key))
+                    _foregroundTracker.RetryUndelivered(context);
+            }
         }
         else
         {

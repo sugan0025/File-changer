@@ -12,6 +12,7 @@ internal static class BlobCompanionBehavior
 {
     public static BlobAppBodyMotion MotionForApp(string? key) => key switch
     {
+        "hoot" => BlobAppBodyMotion.Proud,
         "claude" or "chatgpt" or "gemini" => BlobAppBodyMotion.Think,
         "antigravity" => BlobAppBodyMotion.Orbit,
         "chrome" or "file-explorer" => BlobAppBodyMotion.Scan,
