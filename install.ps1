@@ -1,6 +1,6 @@
 ﻿# HOOT - One-click Installer & Desktop Setup for Windows
 # Windows PowerShell 5.1: download the complete script before running it; do not pipe curl output directly to iex.
-# $p = Join-Path $env:TEMP 'hoot-install.ps1'; curl.exe --ssl-no-revoke -fSL 'https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1' -o $p; if ($LASTEXITCODE -ne 0 -or !(Test-Path $p) -or (Get-Item $p).Length -lt 1000) { throw 'HOOT installer download failed or was incomplete.' }; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p
+# $p = Join-Path $env:TEMP 'hoot-install.ps1'; curl.exe --ssl-no-revoke -fSL 'https://raw.githubusercontent.com/sugan0025/HOOT/main/install.ps1' -o $p; if ($LASTEXITCODE -ne 0 -or !(Test-Path $p) -or (Get-Item $p).Length -lt 1000) { throw 'HOOT installer download failed or was incomplete.' }; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p
 
 $ErrorActionPreference = 'Stop'
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -117,7 +117,7 @@ try {
     $registeredInstall = Get-RegisteredFileeInstall
     Write-Host "Finding latest HOOT release from GitHub..." -ForegroundColor Cyan
 
-    $repo = "sugan0025/File-changer"
+    $repo = "sugan0025/HOOT"
     $downloadUrl = $null
     $latestTag = $null
 

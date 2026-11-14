@@ -23,11 +23,11 @@
   <img src="https://img.shields.io/badge/.NET_10-Avalonia_UI-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10 Avalonia UI" />
 </a>
 &nbsp;
-<a href="https://github.com/sugan0025/File-changer/releases">
+<a href="https://github.com/sugan0025/HOOT/releases">
   <img src="https://img.shields.io/badge/Platform-Windows_%7C_macOS_%7C_Linux-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows & macOS" />
 </a>
 &nbsp;
-<a href="https://github.com/sugan0025/File-changer/tree/release-binaries">
+<a href="https://github.com/sugan0025/HOOT/tree/release-binaries">
   <img src="https://img.shields.io/badge/Theme-Liquid_Glass_Design-38BDF8?style=for-the-badge&logo=css3&logoColor=white" alt="Liquid Glass Design" />
 </a>
 &nbsp;
@@ -70,11 +70,11 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 
 | Platform | Download Link | Target Systems | Package Size |
 | :--- | :--- | :--- | :--- |
-| **Windows** | [**Download for Windows (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-win-x64.zip) | Windows 10 & 11 (64-bit) | ~80 MB |
-| **macOS (Apple Silicon)** | [**Download for macOS (Apple Silicon)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-osx-arm64.zip) | M1, M2, M3, M4 Macs | ~78 MB |
-| **Linux** | [**Download for Linux (x64)**](https://github.com/sugan0025/File-changer/raw/release-binaries/binaries/File-changer-linux-x64.tar.gz) | Ubuntu, Debian, Fedora, Arch (64-bit) | ~82 MB |
+| **Windows** | [**Download for Windows (x64)**](https://github.com/sugan0025/HOOT/raw/release-binaries/binaries/File-changer-win-x64.zip) | Windows 10 & 11 (64-bit) | ~80 MB |
+| **macOS (Apple Silicon)** | [**Download for macOS (Apple Silicon)**](https://github.com/sugan0025/HOOT/raw/release-binaries/binaries/File-changer-osx-arm64.zip) | M1, M2, M3, M4 Macs | ~78 MB |
+| **Linux** | [**Download for Linux (x64)**](https://github.com/sugan0025/HOOT/raw/release-binaries/binaries/File-changer-linux-x64.tar.gz) | Ubuntu, Debian, Fedora, Arch (64-bit) | ~82 MB |
 
-> You can also browse all packages on the dedicated [**`release-binaries`**](https://github.com/sugan0025/File-changer/tree/release-binaries/binaries) branch or explore release tags under [**Releases**](https://github.com/sugan0025/File-changer/releases).
+> You can also browse all packages on the dedicated [**`release-binaries`**](https://github.com/sugan0025/HOOT/tree/release-binaries/binaries) branch or explore release tags under [**Releases**](https://github.com/sugan0025/HOOT/releases).
 
 ---
 
@@ -117,18 +117,13 @@ Download standalone portable archives for your platform (no .NET SDK or installa
 Share this single PowerShell command line with your friends to install **HOOT** or instantly upgrade an older installation to the latest version. It sets modern TLS security so it works on all versions of Windows PowerShell:
 
 ```powershell
-[Net.ServicePointManager]::SecurityProtocol = 3072; irm https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
+$p = Join-Path $env:TEMP 'hoot-install.ps1'; curl.exe --ssl-no-revoke -fSL 'https://raw.githubusercontent.com/sugan0025/HOOT/main/install.ps1' -o $p; if ($LASTEXITCODE -ne 0 -or !(Test-Path $p) -or (Get-Item $p).Length -lt 1000) { throw 'HOOT installer download failed or was incomplete.' }; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p
 ```
 
-> **Alternative (using built-in `curl.exe` in CMD / PowerShell):**
-> ```powershell
-> curl.exe --ssl-no-revoke -fsSL https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1 | iex
-> ```
-
 #### What this command line does:
-- 🔄 **Replaces Old Versions**: If you or your friends have an older installation where the update button says *"You're up to date"*, this command gracefully terminates the old process and upgrades everything to the latest release (`v2.5.0`).
+- 🔄 **Replaces Old Versions**: The installer gracefully closes an existing installation and installs or upgrades to the latest HOOT release.
 - 🦉 **Applies HOOT Branding**: Installs the custom HOOT icon, frosted Liquid Glass themes, and Blobatar Owl mascot assets.
-- 🚀 **Enables In-App Updates**: Automatically writes the local `.installed` marker so future automatic background updates check and pull directly from `sugan0025/File-changer`.
+- 🚀 **Enables In-App Updates**: The per-user installation supports future automatic background updates from `sugan0025/HOOT`.
 
 ---
 
@@ -138,8 +133,8 @@ If you prefer building from source, you only need the [.NET 10 SDK](https://dotn
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/sugan0025/File-changer.git
-cd File-changer
+git clone https://github.com/sugan0025/HOOT.git
+cd HOOT
 
 # 2. Run the application
 dotnet run --project src/Filee.App

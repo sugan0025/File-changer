@@ -14,6 +14,15 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.6.4
+
+<!-- update
+level: optional
+en: HOOT's About page, updater and installer now use the renamed HOOT repository.
+-->
+
+- **Repository links**: Updated the app's About page, update service, setup metadata, installer and documentation to use `github.com/sugan0025/HOOT`.
+
 ## 2.6.3
 
 <!-- update
