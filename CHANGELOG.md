@@ -14,6 +14,17 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.6.2
+
+<!-- update
+level: optional
+en: The desktop Blob now gets out of the way while supported streaming services or media players are in front.
+en: New local quips recognize YouTube, Prime Video, Crunchyroll, Disney+, Hulu, Max, Hotstar, VLC, and Windows Media Player.
+-->
+
+- **Streaming and media player awareness**: The desktop Blob shows a service-specific quip, then hides while a supported streaming site or media player is foreground. It returns when you switch away. This works in normal and fullscreen windows.
+- **Quip controls**: General Settings now includes individual switches for the newly supported services and media players.
+
 ## 2.6.0
 
 <!-- update

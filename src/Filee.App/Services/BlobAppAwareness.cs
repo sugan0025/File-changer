@@ -7,7 +7,9 @@ namespace Filee.App.Services;
 internal static class BlobAppAwareness
 {
     public static readonly TimeSpan AppReactionDuration = TimeSpan.FromSeconds(6);
-    internal sealed record Reaction(string Key, string Label, string[] Quips, string[] ProcessNames, string[] BrowserKeywords);
+    public static readonly TimeSpan StreamingQuipDuration = TimeSpan.FromSeconds(5);
+    internal sealed record Reaction(string Key, string Label, string[] Quips, string[] ProcessNames,
+        string[] BrowserKeywords, bool HideCompanion = false);
 
     public static IReadOnlyList<Reaction> Reactions { get; } =
     [
@@ -66,7 +68,79 @@ internal static class BlobAppAwareness
             "Plot twist: the Blob wants popcorn.",
             "Just one episode? Sure, I’ve heard that one.",
             "I’m reviewing the snacks, not the show."
-        ], ["netflix"], ["netflix"]),
+        ], ["netflix"], ["netflix"], HideCompanion: true),
+        new("youtube", "YouTube",
+        [
+            "YouTube again? I’ll try not to spoil the ending.",
+            "A video break. I’m calling it important research.",
+            "That recommendation rabbit hole has snacks, right?",
+            "Press play; I’ll supervise the pixels.",
+            "One video? I’ll believe that when the tab closes."
+        ], [], ["youtube"], HideCompanion: true),
+        new("prime-video", "Amazon Prime Video",
+        [
+            "Prime time! I brought imaginary popcorn.",
+            "Streaming research is very serious work.",
+            "I’ll guard the pause button. Probably.",
+            "A movie night? I’m dressed for a tiny premiere.",
+            "The Blob requests one popcorn crumb."
+        ], [], ["prime video", "amazon prime"], HideCompanion: true),
+        new("crunchyroll", "Crunchyroll",
+        [
+            "Anime time! I’ll practice my dramatic stare.",
+            "That opening theme is my new walking music.",
+            "I’m ready for a very tiny plot twist.",
+            "The Blob has entered its snack arc.",
+            "One episode? This story has seasons."
+        ], [], ["crunchyroll"], HideCompanion: true),
+        new("disney-plus", "Disney+",
+        [
+            "A little movie magic? I brought my sparkle-free face.",
+            "I’ll be your tiny cinema companion. Briefly.",
+            "Cue the adventure; I’ll guard the snacks.",
+            "That looks like a happily-ever-after situation.",
+            "I promise not to sing along. Much."
+        ], [], ["disney+", "disney plus"], HideCompanion: true),
+        new("hulu", "Hulu",
+        [
+            "Hulu time. I’m reviewing the imaginary popcorn.",
+            "A quick episode? I’ll keep the clock quiet.",
+            "I have a tiny feeling this is not the last episode.",
+            "Streaming break approved by the Blob committee.",
+            "I’ll leave the subtitles to you."
+        ], [], ["hulu"], HideCompanion: true),
+        new("max", "Max",
+        [
+            "Max time. My dramatic reaction is ready.",
+            "This calls for a very small bowl of popcorn.",
+            "I’m here for the plot and the snack credits.",
+            "A bold choice. I’ll watch over the pause button.",
+            "The Blob is seated. Let the story begin."
+        ], [], ["max"], HideCompanion: true),
+        new("hotstar", "Hotstar",
+        [
+            "Hotstar time! I’m saving you a tiny seat.",
+            "I’ll keep watch while the story unfolds.",
+            "Popcorn would make this even more official.",
+            "The Blob is ready for the next big moment.",
+            "A streaming break? I support this plot."
+        ], [], ["hotstar"], HideCompanion: true),
+        new("vlc", "VLC",
+        [
+            "VLC is open. I’ll guard the media snacks.",
+            "A local movie night? Excellent planning.",
+            "I’m ready for playback and imaginary popcorn.",
+            "The Blob has taken its tiny cinema seat.",
+            "Press play; I’ll keep the pixels company."
+        ], ["vlc"], [], HideCompanion: true),
+        new("windows-media-player", "Windows Media Player",
+        [
+            "Media Player is open. I brought tiny popcorn.",
+            "A local video? I’ll supervise the screen.",
+            "The Blob is ready for its private screening.",
+            "I’ll guard the pause button while you watch.",
+            "Now playing: one very polite Blob."
+        ], ["wmplayer", "Microsoft.Media.Player"], [], HideCompanion: true),
         new("spotify", "Spotify",
         [
             "Soundtrack acquired. Main-character mode: on.",
@@ -127,13 +201,16 @@ internal static class BlobAppAwareness
         if (context?.ProcessName is not { Length: > 0 } processName || context.IsDesktop)
             return null;
 
-        var process = Path.GetFileNameWithoutExtension(processName).ToLowerInvariant();
+        var process = ProcessKey(processName).ToLowerInvariant();
         var isBrowser = Filee.Core.Web.WebBrowsers.IsBrowser(process);
         if (isBrowser)
         {
             var title = context.WindowTitle;
             if (!string.IsNullOrEmpty(title))
             {
+                // Hotstar's current browser branding commonly includes both names; keep it on its own quip key.
+                if (ContainsWholeTitleToken(title, "disney+ hotstar"))
+                    return "hotstar";
                 var sites = Reactions.Where(reaction => reaction.BrowserKeywords.Any(keyword =>
                     ContainsWholeTitleToken(title, keyword))).ToArray();
                 // Ambiguous titles fail closed so one service never borrows another service's quip pool.
@@ -165,13 +242,14 @@ internal static class BlobAppAwareness
         (context.IsDesktop || IsExplorerFolderWindow(context));
 
     public static bool IsExplorerFolderWindow(ForegroundAppContext? context) => context is not null
-        && string.Equals(Path.GetFileNameWithoutExtension(context.ProcessName), "explorer", StringComparison.OrdinalIgnoreCase)
+        && context.ProcessName is { Length: > 0 } processName
+        && string.Equals(ProcessKey(processName), "explorer", StringComparison.OrdinalIgnoreCase)
         && context.WindowClass is "CabinetWClass" or "ExploreWClass";
 
     public static bool IsShellTransition(ForegroundAppContext? context)
     {
         if (context is null) return true;
-        var process = Path.GetFileNameWithoutExtension(context.ProcessName);
+        var process = ProcessKey(context.ProcessName ?? string.Empty);
         var windowClass = context.WindowClass;
 
         if (string.Equals(process, "explorer", StringComparison.OrdinalIgnoreCase))
@@ -196,17 +274,10 @@ internal static class BlobAppAwareness
 
     public static bool IsStreamingService(ForegroundAppContext? context)
     {
-        if (context?.ProcessName is not { Length: > 0 } processName)
+        if (context?.ProcessName is not { Length: > 0 })
             return false;
-        var process = Path.GetFileNameWithoutExtension(processName);
-        if (process.Equals("netflix", StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (!process.Equals("chrome", StringComparison.OrdinalIgnoreCase) || string.IsNullOrEmpty(context.WindowTitle))
-            return false;
-        string[] streamingKeywords = ["netflix", "youtube", "prime video", "disney+", "hulu", "max", "hotstar"];
-        return streamingKeywords.Any(keyword => keyword == "max"
-            ? ContainsWholeTitleToken(context.WindowTitle, keyword)
-            : context.WindowTitle.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+        var key = Match(context);
+        return ForKey(key)?.HideCompanion == true;
     }
 
     private static bool ContainsWholeTitleToken(string title, string token)
@@ -225,8 +296,13 @@ internal static class BlobAppAwareness
         return false;
     }
 
-    public static bool ShouldHideForStreaming(bool fullscreenOrPresentation, ForegroundAppContext? context) =>
-        fullscreenOrPresentation && IsStreamingService(context);
+    private static string ProcessKey(string processName)
+    {
+        var name = Path.GetFileName(processName);
+        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+    }
+
+    public static bool ShouldHideForStreaming(ForegroundAppContext? context) => IsStreamingService(context);
 
     public static Point ClampDragGaze(Point target) => new(
         Math.Clamp(target.X, 14, 86), Math.Clamp(target.Y, 16, 88));

@@ -33,6 +33,15 @@
                 <ToggleSwitch Content="Chrome" IsChecked="{Binding AwarenessChrome}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="{DynamicResource general.blob_awareness_explorer}" IsChecked="{Binding AwarenessExplorer}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="Netflix" IsChecked="{Binding AwarenessNetflix}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="YouTube" IsChecked="{Binding AwarenessYouTube}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Amazon Prime Video" IsChecked="{Binding AwarenessPrimeVideo}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Crunchyroll" IsChecked="{Binding AwarenessCrunchyroll}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Disney+" IsChecked="{Binding AwarenessDisneyPlus}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Hulu" IsChecked="{Binding AwarenessHulu}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Max" IsChecked="{Binding AwarenessMax}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Hotstar" IsChecked="{Binding AwarenessHotstar}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="VLC" IsChecked="{Binding AwarenessVlc}" Margin="0,0,12,4" />
+                <ToggleSwitch Content="Windows Media Player" IsChecked="{Binding AwarenessWindowsMediaPlayer}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="Spotify" IsChecked="{Binding AwarenessSpotify}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="WhatsApp" IsChecked="{Binding AwarenessWhatsApp}" Margin="0,0,12,4" />
                 <ToggleSwitch Content="Gemini" IsChecked="{Binding AwarenessGemini}" Margin="0,0,12,4" />

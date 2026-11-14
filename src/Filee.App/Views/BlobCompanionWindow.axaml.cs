@@ -87,7 +87,6 @@ public partial class BlobCompanionWindow : Window
     private int _rubbingReversals;
     private int _rapidClicks;
     private DateTime _lastClickAt;
-    private DateTime _lastAppReactionAt = DateTime.MinValue;
     private BlobCompanionActivity _activity = BlobCompanionActivity.Adaptive;
     private bool _playHatchOnNextShow;
     private int _lastBehavior = -1;
@@ -446,11 +445,8 @@ public partial class BlobCompanionWindow : Window
         if (IsQuipsQuiet || !CanObserveAppContext || string.IsNullOrWhiteSpace(text)
             || !BlobCompanionBehavior.CanInterrupt(currentMoment, BlobCompanionMoment.AppReaction))
             return false;
-        if (_appReactionActive && DateTime.UtcNow - _lastAppReactionAt < TimeSpan.FromSeconds(3.5))
-            return false;
         if (_appReactionActive)
             CancelThoughtForPriority();
-        _lastAppReactionAt = DateTime.UtcNow;
         _appReactionActive = true;
         _ = ShowAppReactionAsync(text, BlobCompanionBehavior.MotionForApp(appKey));
         return true;

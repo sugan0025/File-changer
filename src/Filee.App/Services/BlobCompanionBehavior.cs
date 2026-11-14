@@ -17,7 +17,8 @@ internal static class BlobCompanionBehavior
         "antigravity" => BlobAppBodyMotion.Orbit,
         "chrome" or "file-explorer" => BlobAppBodyMotion.Scan,
         "linkedin" => BlobAppBodyMotion.Proud,
-        "netflix" => BlobAppBodyMotion.Settle,
+        "netflix" or "youtube" or "prime-video" or "crunchyroll" or "disney-plus" or "hulu" or "max" or "hotstar"
+            or "vlc" or "windows-media-player" => BlobAppBodyMotion.Settle,
         "spotify" => BlobAppBodyMotion.Sway,
         "whatsapp" => BlobAppBodyMotion.DoubleBlink,
         _ => BlobAppBodyMotion.None,

@@ -31,6 +31,11 @@ public sealed class BlobCompanionBehaviorTests
     [InlineData("antigravity", "Orbit")]
     [InlineData("linkedin", "Proud")]
     [InlineData("netflix", "Settle")]
+    [InlineData("youtube", "Settle")]
+    [InlineData("prime-video", "Settle")]
+    [InlineData("crunchyroll", "Settle")]
+    [InlineData("vlc", "Settle")]
+    [InlineData("windows-media-player", "Settle")]
     [InlineData("whatsapp", "DoubleBlink")]
     [InlineData("unknown", "None")]
     public void Each_supported_app_quip_maps_to_a_real_blob_body_motion(string app, string expected) =>

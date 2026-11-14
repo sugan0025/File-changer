@@ -137,7 +137,7 @@ public sealed class DonutSettings
 public sealed class AppSettings
 {
     /// <summary>Current schema version. Increase when the format changes and add a migration.</summary>
-    public const int CurrentSchemaVersion = 80;
+    public const int CurrentSchemaVersion = 81;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -354,7 +354,7 @@ public sealed class BlobAppAwarenessSettings
 
     /// <summary>The initial opt-in set. Turning awareness on enables these entries; each can be switched off.</summary>
     public List<string> EnabledApps { get; set; } =
-    ["claude", "chatgpt", "antigravity", "chrome", "file-explorer", "netflix", "spotify", "whatsapp", "gemini", "linkedin", "hoot"];
+    ["claude", "chatgpt", "antigravity", "chrome", "file-explorer", "netflix", "youtube", "prime-video", "crunchyroll", "disney-plus", "hulu", "max", "hotstar", "vlc", "windows-media-player", "spotify", "whatsapp", "gemini", "linkedin", "hoot"];
 }
 
 public enum BlobCompanionActivity { Calm, Adaptive, Playful, Off }

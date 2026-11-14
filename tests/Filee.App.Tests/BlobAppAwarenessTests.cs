@@ -81,14 +81,28 @@ public sealed class BlobAppAwarenessTests
         Assert.True(settings.Enabled);
         Assert.Contains("claude", settings.EnabledApps);
         Assert.Contains("linkedin", settings.EnabledApps);
-        Assert.Equal(11, settings.EnabledApps.Count);
+        Assert.Contains("youtube", settings.EnabledApps);
+        Assert.Contains("vlc", settings.EnabledApps);
+        Assert.Contains("windows-media-player", settings.EnabledApps);
+        Assert.Equal(20, settings.EnabledApps.Count);
     }
 
     [Theory]
     [InlineData("netflix", null, true)]
     [InlineData("chrome", "Netflix Watch - Google Chrome", true)]
     [InlineData("chrome", "YouTube - Google Chrome", true)]
+    [InlineData("chrome", "Prime Video - Google Chrome", true)]
+    [InlineData("chrome", "Crunchyroll - Google Chrome", true)]
+    [InlineData("chrome", "Disney+ - Google Chrome", true)]
+    [InlineData("chrome", "Hulu - Google Chrome", true)]
     [InlineData("chrome", "HBO Max - Google Chrome", true)]
+    [InlineData("chrome", "Hotstar - Google Chrome", true)]
+    [InlineData("chrome", "Disney+ Hotstar - Google Chrome", true)]
+    [InlineData("msedge", "Crunchyroll - Microsoft Edge", true)]
+    [InlineData("vlc", null, true)]
+    [InlineData("wmplayer", null, true)]
+    [InlineData("Microsoft.Media.Player", null, true)]
+    [InlineData("Microsoft.Media.Player.exe", null, true)]
     [InlineData("chrome", "Maximum tabs - Google Chrome", false)]
     [InlineData("chrome", "ChatGPT - Google Chrome", false)]
     [InlineData("spotify", null, false)]
@@ -96,12 +110,10 @@ public sealed class BlobAppAwarenessTests
         Assert.Equal(expected, BlobAppAwareness.IsStreamingService(new ForegroundAppContext(process, title)));
 
     [Theory]
-    [InlineData(false, "netflix", false)]
-    [InlineData(true, "netflix", true)]
-    [InlineData(true, "powerpnt", false)]
-    public void Automatic_hide_requires_both_fullscreen_and_a_streaming_service(bool fullscreen,
-        string process, bool expected) =>
-        Assert.Equal(expected, BlobAppAwareness.ShouldHideForStreaming(fullscreen,
+    [InlineData("netflix", true)]
+    [InlineData("powerpnt", false)]
+    public void Automatic_hide_uses_supported_foreground_service_in_any_window_mode(string process, bool expected) =>
+        Assert.Equal(expected, BlobAppAwareness.ShouldHideForStreaming(
             new ForegroundAppContext(process)));
 
     [Fact]
@@ -111,6 +123,7 @@ public sealed class BlobAppAwarenessTests
         Assert.Equal(5, BlobAppAwareness.SingleFileQuips.Count);
         Assert.Equal(5, BlobAppAwareness.MultipleFileQuips.Count);
         Assert.Equal(TimeSpan.FromSeconds(6), BlobAppAwareness.AppReactionDuration);
+        Assert.Equal(TimeSpan.FromSeconds(5), BlobAppAwareness.StreamingQuipDuration);
 
         var picker = new BlobQuipPicker(new Random(42));
         var first = picker.Next("claude", BlobAppAwareness.ForKey("claude")!.Quips);
@@ -171,6 +184,15 @@ public sealed class BlobAppAwarenessTests
         Assert.True(tracker.Enter(chrome with { WindowTitle = "ChatGPT - Google Chrome" }, out var otherSite));
         Assert.Equal("chatgpt", otherSite);
     }
+
+    [Theory]
+    [InlineData("YouTube - Google Chrome", "youtube")]
+    [InlineData("Prime Video - Google Chrome", "prime-video")]
+    [InlineData("Crunchyroll - Google Chrome", "crunchyroll")]
+    [InlineData("Netflix - Google Chrome", "netflix")]
+    [InlineData("Random video - Google Chrome", "chrome")]
+    public void Browser_stream_quip_matching_never_falls_through_to_another_service(string title, string expected) =>
+        Assert.Equal(expected, BlobAppAwareness.Match(new ForegroundAppContext("chrome", title)));
 
     [Fact]
     public void First_hoot_foreground_after_baseline_gets_one_quip_per_process()

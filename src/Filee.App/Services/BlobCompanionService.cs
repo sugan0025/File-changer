@@ -21,6 +21,7 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
     private DispatcherTimer? _awarenessTimer;
     private DispatcherTimer? _idleTimer;
     private DispatcherTimer? _cinemaTimer;
+    private DispatcherTimer? _streamingHideTimer;
     private PixelPoint? _pendingPosition;
     private IDisposable? _foregroundChanges;
     private IDisposable? _topmostChanges;
@@ -35,6 +36,7 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
     private bool _settingsSubscribed;
     private bool _conversionSubscribed;
     private bool _streamingHidden;
+    private string? _streamingForegroundKey;
 
     public bool IsSupported => OperatingSystem.IsWindows();
     public bool IsVisible => _window?.IsVisible == true;
@@ -256,12 +258,14 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
         if (!shouldCheck)
         {
             _cinemaTimer?.Stop();
+            _streamingHideTimer?.Stop();
             _window?.SetCinemaDimState(false);
             _streamingHidden = false;
+            _streamingForegroundKey = null;
             return;
         }
 
-        _cinemaTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _cinemaTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _cinemaTimer.Tick -= OnPresentationTick;
         _cinemaTimer.Tick += OnPresentationTick;
         if (!_cinemaTimer.IsEnabled)
@@ -278,35 +282,105 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
         }
 
         bool fullscreen;
-        bool streaming = false;
+        ForegroundAppContext? context;
         try
         {
             fullscreen = platform.IsPresentationModeActive();
-            if (fullscreen)
-                streaming = BlobAppAwareness.ShouldHideForStreaming(true, platform.GetForegroundAppContext());
+            context = platform.GetForegroundAppContext();
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or UnauthorizedAccessException)
         {
             fullscreen = false;
+            context = null;
         }
 
-        if (streaming && !radial.IsVisible && !_streamingHidden)
-        {
-            _streamingHidden = true;
-            SavePendingPosition(this, EventArgs.Empty);
-            _window.Hide();
+        var streaming = BlobAppAwareness.IsStreamingService(context);
+        var dim = fullscreen && !streaming && store.Settings.BlobCompanion.CinemaDimEnabled;
+        if (_window.IsVisible && _window.SetCinemaDimState(dim))
             SyncAwarenessMonitor();
-            SyncIdleMonitor();
+        UpdateStreamingVisibility(context);
+    }
+
+    private void UpdateStreamingVisibility(ForegroundAppContext? context)
+    {
+        if (_window is null || !store.Settings.BlobCompanion.IsVisible)
+            return;
+
+        var reaction = BlobAppAwareness.ForKey(BlobAppAwareness.Match(context));
+        var targetKey = reaction?.HideCompanion == true ? reaction.Key : null;
+        if (targetKey is null)
+        {
+            _streamingForegroundKey = null;
+            _streamingHideTimer?.Stop();
+            if (_streamingHidden && !radial.IsVisible)
+            {
+                _streamingHidden = false;
+                Show();
+            }
+            return;
         }
-        else if (!streaming && _streamingHidden && !radial.IsVisible)
+
+        if (radial.IsVisible)
+            return;
+
+        if (string.Equals(_streamingForegroundKey, targetKey, StringComparison.OrdinalIgnoreCase)
+            && (_streamingHidden || _streamingHideTimer?.IsEnabled == true))
+            return;
+
+        _streamingForegroundKey = targetKey;
+        _streamingHideTimer?.Stop();
+        if (_streamingHidden)
         {
             _streamingHidden = false;
             Show();
         }
 
-        var dim = fullscreen && !streaming && store.Settings.BlobCompanion.CinemaDimEnabled;
-        if (_window.IsVisible && _window.SetCinemaDimState(dim))
-            SyncAwarenessMonitor();
+        var awareness = store.Settings.BlobCompanion.AppAwareness;
+        var quipsEnabled = awareness.Enabled && !(_window?.IsQuipsQuiet ?? true)
+            && awareness.EnabledApps?.Contains(targetKey, StringComparer.OrdinalIgnoreCase) == true;
+        var quip = quipsEnabled && reaction is not null
+            ? _quipPicker.Next(targetKey, reaction.Quips)
+            : null;
+        if (quip is not null && _window is { } window && window.ShowAppReaction(quip, targetKey))
+        {
+            _streamingHideTimer ??= new DispatcherTimer();
+            _streamingHideTimer.Interval = BlobAppAwareness.StreamingQuipDuration;
+            _streamingHideTimer.Tick -= OnStreamingHideTimer;
+            _streamingHideTimer.Tick += OnStreamingHideTimer;
+            _streamingHideTimer.Start();
+            return;
+        }
+
+        HideForStreaming();
+    }
+
+    private void OnStreamingHideTimer(object? sender, EventArgs e)
+    {
+        _streamingHideTimer?.Stop();
+        var context = SafeForegroundContext();
+        var reaction = BlobAppAwareness.ForKey(BlobAppAwareness.Match(context));
+        var currentKey = reaction?.HideCompanion == true ? reaction.Key : null;
+        if (radial.IsVisible)
+            return;
+        if (currentKey is not null && string.Equals(currentKey, _streamingForegroundKey, StringComparison.OrdinalIgnoreCase))
+            HideForStreaming();
+        else
+        {
+            _streamingForegroundKey = null;
+            UpdateStreamingVisibility(context);
+        }
+    }
+
+    private void HideForStreaming()
+    {
+        if (_window is null || radial.IsVisible || !store.Settings.BlobCompanion.IsVisible)
+            return;
+        _streamingHideTimer?.Stop();
+        _streamingHidden = true;
+        SavePendingPosition(this, EventArgs.Empty);
+        _window.Hide();
+        SyncAwarenessMonitor();
+        SyncIdleMonitor();
     }
 
     private void OnIdleTick(object? sender, EventArgs e)
@@ -397,6 +471,11 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
             return;
 
         if (BlobAppAwareness.IsShellTransition(context))
+            return;
+
+        // Streaming/media quips are coordinated with the visibility timer above, so they cannot
+        // race the generic app-reaction path or borrow another app's copy.
+        if (BlobAppAwareness.ForKey(BlobAppAwareness.Match(context))?.HideCompanion == true)
             return;
 
         var companionHandle = _window.TryGetPlatformHandle()?.Handle ?? 0;
@@ -553,6 +632,8 @@ public sealed class BlobCompanionService(UserDataStore store, RadialController r
         _idleTimer = null;
         _cinemaTimer?.Stop();
         _cinemaTimer = null;
+        _streamingHideTimer?.Stop();
+        _streamingHideTimer = null;
         _quipPicker.Clear();
         SavePendingPosition(this, EventArgs.Empty);
         _saveTimer?.Stop();

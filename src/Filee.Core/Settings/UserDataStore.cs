@@ -497,6 +497,18 @@ internal static class SettingsMigrations
                 enabledApps.Add("hoot");
         }
 
+        // v81: append the new streaming/media rules to existing non-empty awareness opt-in lists.
+        if (settings.SchemaVersion < 81)
+        {
+            var enabledApps = settings.BlobCompanion?.AppAwareness?.EnabledApps;
+            if (enabledApps is { Count: > 0 })
+            {
+                foreach (var key in new[] { "youtube", "prime-video", "crunchyroll", "disney-plus", "hulu", "max", "hotstar", "vlc", "windows-media-player" })
+                    if (!enabledApps.Contains(key, StringComparer.OrdinalIgnoreCase))
+                        enabledApps.Add(key);
+            }
+        }
+
         if (settings.Triggers.Count == 0)
             settings.Triggers = TriggerGesture.Defaults();
 
