@@ -356,7 +356,7 @@ public partial class BlobCompanionWindow : Window
             _cursorTimer.Start();
     }
 
-    private async Task PlayWakeRitualAsync()
+    private async Task PlayWakeRitualAsync(bool preserveGaze = false)
     {
         if (!Motion.Enabled) return;
         CancelWakeRitual();
@@ -372,7 +372,8 @@ public partial class BlobCompanionWindow : Window
             Blob.State.TriggerBlink(2);
             await Task.Delay(500, cancellation.Token);
             if (!IsVisible || _paused) return;
-            Blob.State.LookAt(null);
+            if (!preserveGaze)
+                Blob.State.LookAt(null);
         }
         catch (OperationCanceledException) { }
         finally
@@ -885,7 +886,10 @@ public partial class BlobCompanionWindow : Window
             WakeAndResetIdle(playRitual: false);
         CancelWakeRitual();
         _cursorTimer.Stop();
-        Blob.State.TriggerBlink(2);
+        if (Motion.Enabled)
+            _ = PlayWakeRitualAsync(preserveGaze: true);
+        else
+            Blob.State.TriggerBlink(2);
         // Anticipation does not kick the body while a file is hovering.
 
         Blob.State.SuppressAutonomousWinks = true;

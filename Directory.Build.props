@@ -14,7 +14,7 @@
          parameters of a member is fine (CS1573). -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
 
-    <Version>2.6.2</Version>
+    <Version>2.6.3</Version>
     <Product>HOOT</Product>
     <AssemblyTitle>HOOT</AssemblyTitle>
     <Description>HOOT file conversion companion</Description>

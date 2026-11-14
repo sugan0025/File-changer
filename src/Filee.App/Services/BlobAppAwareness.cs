@@ -342,13 +342,10 @@ internal readonly record struct ForegroundActivation(string? AppKey, int Process
     }
 }
 
-internal sealed class ForegroundActivationTracker(TimeSpan? perAppCooldown = null, Func<DateTime>? clock = null)
+internal sealed class ForegroundActivationTracker
 {
-    private static readonly TimeSpan DefaultPerAppCooldown = TimeSpan.FromSeconds(30);
-    private readonly TimeSpan _perAppCooldown = perAppCooldown ?? DefaultPerAppCooldown;
-    private readonly Func<DateTime> _clock = clock ?? (() => DateTime.UtcNow);
     private ForegroundActivation? _current;
-    private readonly Dictionary<ForegroundActivation, DateTime> _reacted = [];
+    private readonly HashSet<ForegroundActivation> _reacted = [];
     public bool HasBaseline => _current is not null;
 
     public void EstablishBaseline(ForegroundAppContext? context)
@@ -362,7 +359,7 @@ internal sealed class ForegroundActivationTracker(TimeSpan? perAppCooldown = nul
             return;
         }
         if (_current.Value.AppKey is not null)
-            _reacted[_current.Value] = _clock();
+            _reacted.Add(_current.Value);
     }
 
     public bool Enter(ForegroundAppContext? context, out string? appKey)
@@ -377,14 +374,12 @@ internal sealed class ForegroundActivationTracker(TimeSpan? perAppCooldown = nul
             return changed;
         }
 
-        var now = _clock();
-        if (_reacted.TryGetValue(next, out var lastTime) && now - lastTime < _perAppCooldown)
+        if (!_reacted.Add(next))
         {
             appKey = null;
             return true;
         }
 
-        _reacted[next] = now;
         appKey = next.AppKey;
         return true;
     }

@@ -14,6 +14,17 @@ change, a language may repeat; a language without lines shows the English ones):
 - `recommended`: bug fixes. The card shows once per version.
 - `optional`: new features only. No card, the sidebar button only.
 
+## 2.6.3
+
+<!-- update
+level: recommended
+en: The desktop Blob now plays its wake-up animation when a file drag arrives without losing sight of the file.
+en: App quips now appear only once per app process, browser site, or Explorer window.
+-->
+
+- **Blob drag reaction**: The wake-up sequence now plays when a valid file drag reaches the companion, while its eyes keep tracking the file.
+- **Quip timing**: Returning to the same running app or browser site no longer repeats its quip; a fresh app process, browser site, or Explorer window can still receive one.
+
 ## 2.6.2
 
 <!-- update
