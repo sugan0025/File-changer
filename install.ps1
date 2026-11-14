@@ -1,8 +1,14 @@
-# HOOT - One-click Installer & Desktop Setup for Windows
+﻿# HOOT - One-click Installer & Desktop Setup for Windows
 # Windows PowerShell 5.1: download the complete script before running it; do not pipe curl output directly to iex.
 # $p = Join-Path $env:TEMP 'hoot-install.ps1'; curl.exe --ssl-no-revoke -fSL 'https://raw.githubusercontent.com/sugan0025/File-changer/main/install.ps1' -o $p; if ($LASTEXITCODE -ne 0 -or !(Test-Path $p) -or (Get-Item $p).Length -lt 1000) { throw 'HOOT installer download failed or was incomplete.' }; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p
 
 $ErrorActionPreference = 'Stop'
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object Security.Principal.WindowsPrincipal($identity)
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Run this command in a normal PowerShell window for the intended user. Only old machine-install removal requests administrator approval.'
+}
+
 
 # Ensure modern TLS 1.2 and 1.3 are enabled on Windows PowerShell 5.1
 try {
@@ -163,8 +169,8 @@ try {
         }
     }
 
-    if ($registeredInstall) {
-        if ($registeredInstall.Ambiguous) {
+    & {
+        if ($registeredInstall -and $registeredInstall.Ambiguous) {
             $paths = ($registeredInstall.Installs | ForEach-Object { "[$($_.Scope)] $($_.Folder)" }) -join [Environment]::NewLine
             throw "More than one registered Filee/HOOT install was found, so no files were changed:`n$paths`nRemove the duplicate entry or update each install deliberately."
         }
@@ -172,7 +178,7 @@ try {
             throw "A registered $($registeredInstall.Scope) Filee/HOOT installation was found at $($registeredInstall.Folder), but the latest release does not provide a HOOT Setup and matching checksum. Nothing was changed."
         }
 
-        Write-Host "Found registered $($registeredInstall.Scope) install at $($registeredInstall.Folder). Using HOOT Setup to preserve its install path and scope..." -ForegroundColor Cyan
+        Write-Host "Installing HOOT for the current user in $installDir..." -ForegroundColor Cyan
         $setupDownloaded = $false
         if ($curlExe) {
             try {
@@ -212,239 +218,116 @@ try {
         if ($actualHash -ine $expectedHash) { throw "HOOT Setup failed SHA-256 verification. Nothing was changed." }
         Write-Host 'HOOT Setup SHA-256 verification succeeded.' -ForegroundColor Green
 
-        $setupArgs = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /AUTOMATICUPDATE'
-        if ($registeredInstall.Scope -eq 'user') { $setupArgs += ' /CURRENTUSER' } else { $setupArgs += ' /ALLUSERS' }
-        Write-Host 'Starting the supported in-place upgrade. Machine-wide installs will request administrator approval through Windows UAC.' -ForegroundColor Yellow
-        $setupProcess = Start-Process -FilePath $tempSetup -ArgumentList $setupArgs -PassThru
-        if (-not $setupProcess.WaitForExit(900000)) {
-            $keepTempSetup = $true
-            Write-Warning "HOOT Setup is still running. Its verified installer is retained at $tempSetup; do not delete it until Setup exits."
-            return
+        # Always use registered per-user Setup, including first installs.
+        $target = [IO.Path]::GetFullPath($installDir)
+        if ($registeredInstall -and $registeredInstall.Scope -eq 'user' -and
+            -not $registeredInstall.Folder.Equals($target, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Existing per-user installation is at $($registeredInstall.Folder). Setup preserves custom paths; migrate it explicitly before using this command. Nothing was removed."
         }
-        if ($setupProcess.ExitCode -ne 0) {
-            throw "HOOT Setup exited with code $($setupProcess.ExitCode). Setup's in-place upgrade and rollback handling has been allowed to finish."
+        $targetRecord = Join-Path $target 'uninstall.json'
+        if (Test-Path -LiteralPath $targetRecord) {
+            $existingTarget = Get-Content -LiteralPath $targetRecord -Raw | ConvertFrom-Json
+            if ([version]$existingTarget.version -gt [version]$latestTag.TrimStart('v','V')) {
+                throw "Published release $latestTag is older than the per-user installation. Nothing was changed."
+            }
         }
-        Write-Host "HOOT Setup completed for $($registeredInstall.Scope) install at $($registeredInstall.Folder)." -ForegroundColor Green
-        return
-    }
-
-    # Candidate download URLs (API discovery -> releases/latest -> direct releases)
-    $candidateUrls = [System.Collections.Generic.List[string]]::new()
-    if ($downloadUrl) { $candidateUrls.Add($downloadUrl) }
-    $candidateUrls.Add("https://github.com/$repo/releases/latest/download/Hoot-win-Portable.zip")
-
-    $downloaded = $false
-    foreach ($url in $candidateUrls) {
-        Write-Host "Attempting download from $url..." -ForegroundColor Cyan
-        if ($curlExe) {
-            try {
-                & $curlExe --ssl-no-revoke -sSfL -m 180 "$url" -o "$tempZip" 2>$null
-                if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 1000000) {
-                    $downloaded = $true
-                    $downloadUrl = $url
-                    break
-                }
-            } catch { }
+        $migration = $registeredInstall -and $registeredInstall.Scope -eq 'machine'
+        $oldUninstaller = $null
+        if ($migration) {
+            $knownMachineFolders = @(
+                (Join-Path $env:ProgramFiles 'Filee'),
+                (Join-Path $env:ProgramFiles 'Hoot')
+            )
+            if ($knownMachineFolders -notcontains $registeredInstall.Folder) {
+                throw "Custom machine installation at $($registeredInstall.Folder) requires explicit migration. Nothing was removed."
+            }
+            $oldUninstaller = Join-Path $registeredInstall.Folder 'uninstall.exe'
+            $record = Join-Path $registeredInstall.Folder 'uninstall.json'
+            if (!(Test-Path -LiteralPath $oldUninstaller) -or !(Test-Path -LiteralPath $record)) {
+                throw 'The old installation has no supported uninstall record. Nothing was removed.'
+            }
+            $oldRecord = Get-Content -LiteralPath $record -Raw | ConvertFrom-Json
+            if ($oldRecord.scope -ne 'machine') { throw 'Installation scope mismatch. Nothing was removed.' }
+            if ([version]$oldRecord.version -gt [version]$latestTag.TrimStart('v','V')) {
+                throw "Published release $latestTag is older than installed $($oldRecord.version). Wait for the newer release; nothing was changed."
+            }
         }
 
-        if (-not $downloaded) {
-            try {
-                $webClient = New-Object System.Net.WebClient
-                $webClient.Headers.Add("User-Agent", "Hoot-Installer")
-                $webClient.DownloadFile($url, $tempZip)
-                if ((Test-Path $tempZip) -and (Get-Item $tempZip).Length -gt 1000000) {
-                    $downloaded = $true
-                    $downloadUrl = $url
-                    break
-                }
-            } catch { }
+        function Invoke-HootSetup([string]$exe, [string]$arguments) {
+            $process = Start-Process -FilePath $exe -ArgumentList $arguments -PassThru -WindowStyle Hidden
+            if (-not $process.WaitForExit(900000)) {
+                throw "Setup is still running. Retain the installer and migration backup; do not start another installer."
+            }
+            if ($process.ExitCode -ne 0) { throw "Setup failed with exit code $($process.ExitCode)." }
         }
-    }
+        $setupArgs = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /NOLAUNCH /DIR="' + $target + '"'
+        # Keep downloaded installer available for repair if migration is interrupted.
+        Invoke-HootSetup $tempSetup $setupArgs
+        $installed = Join-Path $target 'Hoot.exe'
+        if (!(Test-Path -LiteralPath $installed) -or !(Test-Path -LiteralPath (Join-Path $target 'uninstall.json'))) {
+            throw 'Per-user Setup did not produce a complete installation. The old installation was not removed.'
+        }
+        $newRecord = Get-Content -LiteralPath (Join-Path $target 'uninstall.json') -Raw | ConvertFrom-Json
+        if ($newRecord.scope -ne 'user') { throw 'Per-user installation validation failed.' }
+        $expectedVersion = $latestTag.TrimStart('v','V')
+        if ($newRecord.version -ne $expectedVersion) {
+            throw "Installed version $($newRecord.version) differs from release $expectedVersion. Old install retained."
+        }
 
-    if (-not $downloaded -or -not (Test-Path $tempZip) -or (Get-Item $tempZip).Length -lt 1000000) {
-        throw "Failed to download the HOOT portable package. No Filee package was used as a fallback. Check your connection and confirm the latest release contains a Hoot*-win-Portable.zip asset."
-    }
-
-    Write-Host "Download successful ($downloadUrl)!" -ForegroundColor Green
-
-    # Verify the archive against the matching release manifest when the release provides one.
-    $checksumUrls = [System.Collections.Generic.List[string]]::new()
-    if ($checksumUrl) { $checksumUrls.Add($checksumUrl) }
-    if ($latestTag) {
-        $releaseVersion = $latestTag.TrimStart('v', 'V')
-        $releaseUrl = "https://github.com/$repo/releases/download/$latestTag"
-        $checksumUrls.Add("$releaseUrl/HOOT-$releaseVersion-win-SHA256SUMS.txt")
-    }
-    # The release publishes a stable manifest for the stable portable ZIP, including when the GitHub API is unavailable.
-    $checksumUrls.Add("https://github.com/$repo/releases/latest/download/HOOT-win-SHA256SUMS.txt")
-
-    $checksumManifest = $null
-    foreach ($url in $checksumUrls | Select-Object -Unique) {
-        try {
-            $checksumPath = "$tempZip.sha256sums.txt"
-            if ($curlExe) {
-                & $curlExe --ssl-no-revoke -sSfL -m 30 $url -o $checksumPath 2>$null
-                if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $checksumPath)) {
-                    $checksumManifest = Get-Content -LiteralPath $checksumPath -Raw
-                    break
+        if ($migration) {
+            Close-FileeProcesses @($registeredInstall.Folder, $target)
+            $backup = Join-Path $env:LOCALAPPDATA ('Hoot-Migration-Backup-' + [Guid]::NewGuid().ToString('N'))
+            New-Item -ItemType Directory -Path $backup | Out-Null
+            $protected = @(
+                (Join-Path $env:APPDATA 'Filee'),
+                (Join-Path $env:LOCALAPPDATA 'Filee\engines')
+            )
+            $saved = @()
+            foreach ($source in $protected) {
+                if (Test-Path -LiteralPath $source) {
+                    $destination = Join-Path $backup ([string]$saved.Count)
+                    Copy-Item -LiteralPath $source -Destination $destination -Recurse -ErrorAction Stop
+                    Get-ChildItem -LiteralPath $source -Recurse -File -Force | ForEach-Object {
+                        $relative = $_.FullName.Substring($source.Length).TrimStart('\')
+                        $copy = Join-Path $destination $relative
+                        if (!(Test-Path -LiteralPath $copy) -or
+                            (Get-FileHash -LiteralPath $_.FullName).Hash -ne (Get-FileHash -LiteralPath $copy).Hash) {
+                            throw "Backup verification failed for $relative. Old installation retained."
+                        }
+                    }
+                    $saved += [pscustomobject]@{ Source=$source; Backup=$destination }
                 }
             }
-            if (-not $checksumManifest) {
-                $response = Invoke-WebRequest -Uri $url -Headers @{ "User-Agent" = "Hoot-Installer" } -UseBasicParsing -TimeoutSec 30
-                if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
-                    $checksumManifest = $response.Content
-                    break
+            Write-Host "Migration recovery data retained at $backup"
+            try {
+                # No delete-settings flag: preserve user data. Windows requests elevation for this step.
+                Invoke-HootSetup $oldUninstaller '/UNINSTALL /VERYSILENT /SUPPRESSMSGBOXES /NORESTART'
+            } finally {
+                foreach ($entry in $saved) {
+                    New-Item -ItemType Directory -Path $entry.Source -Force | Out-Null
+                    Get-ChildItem -LiteralPath $entry.Backup -Force | ForEach-Object {
+                        Copy-Item -LiteralPath $_.FullName -Destination $entry.Source -Recurse -Force -ErrorAction Stop
+                    }
                 }
+                # Old cleanup removes shared integration; restore it without launching a second instance.
+                Invoke-HootSetup $tempSetup $setupArgs
             }
-        } catch { }
-    }
-
-    if (-not $checksumManifest) {
-        throw 'The HOOT release checksum manifest could not be downloaded. Nothing was installed.'
-    }
-
-    $archiveName = [System.IO.Path]::GetFileName(([System.Uri]$downloadUrl).AbsolutePath)
-    $expectedHash = $null
-    foreach ($line in ($checksumManifest -split "`r?`n")) {
-        if ($line -match '^\s*([0-9a-fA-F]{64})\s+\*?(.+?)\s*$' -and
-            [System.IO.Path]::GetFileName($Matches[2]) -ieq $archiveName) {
-            $expectedHash = $Matches[1]
-            break
+            if ((Test-Path -LiteralPath (Join-Path $registeredInstall.Folder 'Hoot.exe')) -or
+                (Test-Path -LiteralPath (Join-Path $registeredInstall.Folder 'Filee.exe'))) {
+                throw 'Old executable remains. New per-user HOOT is installed; cleanup needs review.'
+            }
         }
+        Start-Process -FilePath $installed -ArgumentList '--background' -WindowStyle Hidden
+        Write-Host "HOOT installed for this user at $target. Automatic update checks are available." -ForegroundColor Green
     }
-    if (-not $expectedHash) {
-        throw "The release checksum manifest does not contain an entry for $archiveName. Nothing was installed."
-    }
+    return
 
-    $actualHash = (Get-FileHash -LiteralPath $tempZip -Algorithm SHA256).Hash
-    if ($actualHash -ine $expectedHash) {
-        throw "The downloaded archive failed SHA-256 verification. Expected $expectedHash; received $actualHash."
-    }
-    Write-Host "SHA-256 verification succeeded." -ForegroundColor Green
 
-    Write-Host "Extracting files to $installDir..." -ForegroundColor Cyan
-    try {
-        Expand-Archive -Path $tempZip -DestinationPath $stagingDir -Force
-    } catch {
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($tempZip, $stagingDir)
-    }
-
-    # Locate Hoot.exe inside the HOOT payload
-    $payloadDir = $stagingDir
-    if (-not (Test-Path (Join-Path $payloadDir "Hoot.exe"))) {
-        $nested = Get-ChildItem -Path $stagingDir -Recurse -Filter "Hoot.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($nested) {
-            $payloadDir = $nested.DirectoryName
-        }
-    }
-
-    if (-not (Test-Path (Join-Path $payloadDir "Hoot.exe"))) {
-        throw "Download succeeded, but Hoot.exe was not found inside the HOOT zip archive. No files were installed."
-    }
-
-    # Stage beside the target so the final directory rename stays on the same volume. Existing installs are not
-    # touched unless the complete payload has copied and passed its executable check.
-    New-Item -ItemType Directory -Force -Path $installParent, $installStageDir | Out-Null
-    Copy-Item -Path (Join-Path $payloadDir "*") -Destination $installStageDir -Recurse -Force
-    $stagedExe = Join-Path $installStageDir 'Hoot.exe'
-    if (-not (Test-Path -LiteralPath $stagedExe) -or (Get-Item -LiteralPath $stagedExe).Length -lt 1000000) {
-        throw 'The staged HOOT payload is incomplete; the existing installation was left untouched.'
-    }
-    Set-Content -Path (Join-Path $installStageDir ".installed") -Value "installed" -Force
-
-    # Only close processes whose executable is inside one of the known install directories.
-    Close-FileeProcesses @($installDir, $legacyDir)
-
-    $previousInstallMoved = $false
-    try {
-        if (Test-Path -LiteralPath $installDir) {
-            Move-Item -LiteralPath $installDir -Destination $installBackupDir
-            $previousInstallMoved = $true
-        }
-        Move-Item -LiteralPath $installStageDir -Destination $installDir
-        $installedExe = Join-Path $installDir 'Hoot.exe'
-        if (-not (Test-Path -LiteralPath $installedExe) -or (Get-Item -LiteralPath $installedExe).Length -lt 1000000) {
-            throw 'The new HOOT installation did not pass its post-swap executable check.'
-        }
-    } catch {
-        $swapError = $_
-        if (Test-Path -LiteralPath $installDir) {
-            $failedInstallDir = Join-Path $installParent ".Hoot-Failed-$([System.Guid]::NewGuid().ToString('N'))"
-            try { Move-Item -LiteralPath $installDir -Destination $failedInstallDir -ErrorAction Stop }
-            catch { throw "HOOT install swap failed, and the incomplete folder could not be moved aside. Previous install backup: $installBackupDir. Error: $($_.Exception.Message)" }
-        }
-        if ($previousInstallMoved -and (Test-Path -LiteralPath $installBackupDir)) {
-            try { Move-Item -LiteralPath $installBackupDir -Destination $installDir -ErrorAction Stop }
-            catch { throw "HOOT install swap failed and automatic rollback could not restore the previous install. Backup preserved at $installBackupDir. Error: $($_.Exception.Message)" }
-        }
-        throw "HOOT install swap failed; the previous installation was restored when present. $($swapError.Exception.Message)"
-    }
-
-    # Remove old folders only after the replacement has passed its post-swap check. Cleanup failure leaves the
-    # new HOOT usable and reports the old path for manual removal.
-    if (Test-Path -LiteralPath $legacyDir) {
-        $legacyExe = Join-Path $legacyDir 'Hoot.exe'
-        if (-not (Test-Path -LiteralPath $legacyExe)) { $legacyExe = Join-Path $legacyDir 'Filee.exe' }
-        if (Test-Path -LiteralPath $legacyExe) {
-            try { Remove-Item -LiteralPath $legacyDir -Recurse -Force -ErrorAction Stop }
-            catch { Write-Warning "HOOT installed successfully, but the legacy folder could not be removed: $legacyDir" }
-        } else {
-            Write-Warning "A folder exists at $legacyDir but it contains no HOOT/Filee executable. Leaving it untouched."
-        }
-    }
-    if (Test-Path -LiteralPath $installBackupDir) {
-        try { Remove-Item -LiteralPath $installBackupDir -Recurse -Force -ErrorAction Stop }
-        catch { Write-Warning "HOOT installed successfully, but the previous app folder could not be cleaned up: $installBackupDir" }
-    }
-
-    # Launch only the HOOT executable.
-    $targetExe = Join-Path $installDir "Hoot.exe"
-
-    # Shortcuts: Create HOOT.lnk pointing to Hoot.exe; remove old Filee.lnk if present
-    $desktopPaths = @(
-        [Environment]::GetFolderPath("Desktop"),
-        (Join-Path $env:USERPROFILE "Desktop"),
-        (Join-Path $env:USERPROFILE "OneDrive\Desktop")
-    ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -Unique
-
-    $wscript = New-Object -ComObject WScript.Shell
-
-    foreach ($dp in $desktopPaths) {
-        $oldLnk = Join-Path $dp "Filee.lnk"
-        if (Test-Path $oldLnk) { Remove-Item $oldLnk -Force -ErrorAction SilentlyContinue }
-        $sc = $wscript.CreateShortcut((Join-Path $dp "HOOT.lnk"))
-        $sc.TargetPath = $targetExe
-        $sc.WorkingDirectory = $installDir
-        $sc.IconLocation = "$targetExe,0"
-        $sc.Description = "HOOT - Fast Local File Converter"
-        $sc.Save()
-    }
-
-    # Start Menu Shortcut
-    $startMenu = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs"
-    if (Test-Path $startMenu) {
-        $oldStartLnk = Join-Path $startMenu "Filee.lnk"
-        if (Test-Path $oldStartLnk) { Remove-Item $oldStartLnk -Force -ErrorAction SilentlyContinue }
-        $startSc = $wscript.CreateShortcut((Join-Path $startMenu "HOOT.lnk"))
-        $startSc.TargetPath = $targetExe
-        $startSc.WorkingDirectory = $installDir
-        $startSc.IconLocation = "$targetExe,0"
-        $startSc.Description = "HOOT - Fast Local File Converter"
-        $startSc.Save()
-    }
-
-    Write-Host "Desktop and Start Menu shortcuts created for HOOT!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Installation Complete! Launching HOOT..." -ForegroundColor Green
-    Write-Host ""
-
-    Start-Process -FilePath $targetExe
 }
 finally {
     Remove-Item $stagingDir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $installStageDir -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
     Remove-Item "$tempZip.sha256sums.txt" -Force -ErrorAction SilentlyContinue
-    if (-not $keepTempSetup) { Remove-Item $tempSetup -Force -ErrorAction SilentlyContinue }
+    # Retain the verified Setup for migration recovery.
 }
